@@ -1,0 +1,89 @@
+{
+  "name": "@zenbrain/algorithms",
+  "version": "0.1.0",
+  "description": "Neuroscience-inspired memory algorithms: FSRS spaced repetition, Hebbian learning, Ebbinghaus decay, emotional tagging, Bayesian confidence propagation. Zero dependencies.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./fsrs": {
+      "types": "./dist/fsrs.d.ts",
+      "import": "./dist/fsrs.js"
+    },
+    "./ebbinghaus": {
+      "types": "./dist/ebbinghaus.d.ts",
+      "import": "./dist/ebbinghaus.js"
+    },
+    "./emotional": {
+      "types": "./dist/emotional.d.ts",
+      "import": "./dist/emotional.js"
+    },
+    "./context-retrieval": {
+      "types": "./dist/context-retrieval.d.ts",
+      "import": "./dist/context-retrieval.js"
+    },
+    "./hebbian": {
+      "types": "./dist/hebbian.d.ts",
+      "import": "./dist/hebbian.js"
+    },
+    "./bayesian": {
+      "types": "./dist/bayesian.d.ts",
+      "import": "./dist/bayesian.js"
+    },
+    "./similarity": {
+      "types": "./dist/similarity.d.ts",
+      "import": "./dist/similarity.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "ai-memory",
+    "spaced-repetition",
+    "fsrs",
+    "ebbinghaus",
+    "hebbian-learning",
+    "emotional-memory",
+    "bayesian",
+    "knowledge-graph",
+    "neuroscience",
+    "ai-agents",
+    "memory-system",
+    "forgetting-curve",
+    "context-dependent-retrieval"
+  ],
+  "author": "ZenSation <open-source@zensation.ai>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zensation-ai/zenbrain.git",
+    "directory": "packages/algorithms"
+  },
+  "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/algorithms#readme",
+  "bugs": {
+    "url": "https://github.com/zensation-ai/zenbrain/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0",
+    "typescript": "^5.7.0"
+  }
+}
