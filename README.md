@@ -131,9 +131,9 @@ Knowledge isn't isolated — facts support or contradict each other. ZenBrain pr
 | Package | Description | Status |
 |---------|-------------|--------|
 | [`@zensation/algorithms`](./packages/algorithms) | Pure neuroscience algorithms (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian) | :white_check_mark: Published |
-| `@zensation/core` | Memory layers, coordinator, adapter interfaces | :construction: In Development |
-| `@zensation/adapter-postgres` | PostgreSQL + pgvector storage adapter | :calendar: Planned |
-| `@zensation/adapter-sqlite` | SQLite + sqlite-vec storage adapter | :calendar: Planned |
+| [`@zensation/core`](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Ready |
+| [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Ready |
+| [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Ready |
 
 ### Tree-Shakeable Imports
 
