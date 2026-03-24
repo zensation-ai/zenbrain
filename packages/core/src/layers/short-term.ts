@@ -35,7 +35,7 @@ export class ShortTermMemory {
 
   /** Start or resume a session. */
   startSession(sessionId?: string): string {
-    this.sessionId = sessionId ?? crypto.randomUUID();
+    this.sessionId = sessionId ?? globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
     this.interactions = [];
     return this.sessionId;
   }

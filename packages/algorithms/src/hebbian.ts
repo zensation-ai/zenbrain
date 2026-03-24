@@ -9,7 +9,7 @@
  * Database operations are left to the consuming application.
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/hebbian
+ * @module @zensation/algorithms/hebbian
  */
 
 // ===========================================

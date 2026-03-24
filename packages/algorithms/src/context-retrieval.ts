@@ -16,7 +16,7 @@
  * Context boost formula: 1.0 + (similarity * 0.3) → max 30% boost
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/context-retrieval
+ * @module @zensation/algorithms/context-retrieval
  */
 
 import type { Logger } from './types';

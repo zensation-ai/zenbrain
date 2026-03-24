@@ -9,7 +9,7 @@
  * Database operations and batch iteration are left to the consuming application.
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/bayesian
+ * @module @zensation/algorithms/bayesian
  */
 
 // ============================================================

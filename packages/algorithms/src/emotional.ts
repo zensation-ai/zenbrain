@@ -11,7 +11,7 @@
  * deliberately avoiding LLM calls for speed in the hot path.
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/emotional
+ * @module @zensation/algorithms/emotional
  */
 
 import type { Logger } from './types';

@@ -45,7 +45,7 @@ export class WorkingMemory {
     }
 
     const slot: WorkingMemorySlot = {
-      id: crypto.randomUUID(),
+      id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
       type,
       content,
       relevance,

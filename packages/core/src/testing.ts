@@ -44,7 +44,7 @@ export class InMemoryStorage implements StorageAdapter {
     const table = match?.[1] ?? 'unknown';
 
     const row: Record<string, unknown> = {
-      id: crypto.randomUUID(),
+      id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
       created_at: new Date().toISOString(),
     };
 

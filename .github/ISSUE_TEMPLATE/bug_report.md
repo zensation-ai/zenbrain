@@ -12,7 +12,7 @@ A clear description of the bug.
 
 ## Steps to Reproduce
 
-1. Install `@zenbrain/algorithms`
+1. Install `@zensation/algorithms`
 2. Call `...`
 3. See error
 

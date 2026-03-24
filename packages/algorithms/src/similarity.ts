@@ -8,7 +8,7 @@
  * - Safe JSON parsing
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/similarity
+ * @module @zensation/algorithms/similarity
  */
 
 import type { Logger } from './types';

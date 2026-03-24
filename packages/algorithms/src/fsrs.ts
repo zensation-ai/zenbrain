@@ -14,7 +14,7 @@
  * - Ebbinghaus (1885): R = e^(-t/S)
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/fsrs
+ * @module @zensation/algorithms/fsrs
  */
 
 import type { Logger } from './types';

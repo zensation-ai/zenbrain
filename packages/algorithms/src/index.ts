@@ -1,5 +1,5 @@
 /**
- * @zenbrain/algorithms — Neuroscience-inspired memory algorithms
+ * @zensation/algorithms — Neuroscience-inspired memory algorithms
  *
  * Pure TypeScript. Zero runtime dependencies.
  *

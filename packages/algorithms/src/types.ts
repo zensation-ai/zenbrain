@@ -1,8 +1,8 @@
 /**
- * Shared types for @zenbrain/algorithms
+ * Shared types for @zensation/algorithms
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/types
+ * @module @zensation/algorithms/types
  */
 
 /**

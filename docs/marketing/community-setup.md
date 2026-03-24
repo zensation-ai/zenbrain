@@ -8,7 +8,7 @@
 - [ ] Add invite link to GitHub README badges
 
 ## Twitter/X
-- [ ] Create account: @zensation_ai (or @zenbrain_ai if available)
+- [ ] Create account: @zensationai (DONE — https://x.com/zensationai)
 - [ ] Bio: "Neuroscience-inspired memory for AI agents. Open source."
 - [ ] Link: https://github.com/zensation-ai/zenbrain
 - [ ] Profile image: ZenBrain logo

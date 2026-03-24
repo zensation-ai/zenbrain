@@ -9,7 +9,7 @@
  * a simpler API for common use cases.
  *
  * @packageDocumentation
- * @module @zenbrain/algorithms/ebbinghaus
+ * @module @zensation/algorithms/ebbinghaus
  */
 
 import type { Logger } from './types';
