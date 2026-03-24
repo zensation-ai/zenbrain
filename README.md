@@ -18,6 +18,10 @@
 
 ---
 
+<p align="center">
+  <img src="docs/demo.gif" alt="ZenBrain Playground Demo" width="700"/>
+</p>
+
 > **Your AI forgets everything after every conversation.** ZenBrain fixes that — with the same mechanisms your brain uses: spaced repetition, emotional consolidation, Hebbian strengthening, and exponential forgetting curves. Not a vector database with a wrapper. Actual neuroscience.
 
 ---
