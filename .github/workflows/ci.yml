@@ -19,9 +19,18 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm install
-      - run: npm run lint
-      - run: npm run build
-      - run: npm test
+
+      # Lint all packages
+      - run: cd packages/algorithms && npx tsc --noEmit
+      - run: cd packages/core && npx tsc --noEmit
+
+      # Build all packages (order matters — algorithms before core)
+      - run: cd packages/algorithms && npm run build
+      - run: cd packages/core && npm run build
+
+      # Test all packages
+      - run: cd packages/algorithms && npx vitest run
+      - run: cd packages/core && npx vitest run
 
   publish:
     needs: test
@@ -37,7 +46,7 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
       - run: npm install
-      - run: npm run build
+      - run: cd packages/algorithms && npm run build
       - run: cd packages/algorithms && npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
