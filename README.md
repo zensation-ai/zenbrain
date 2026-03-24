@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@zenbrain/algorithms"><img src="https://img.shields.io/npm/v/@zenbrain/algorithms?color=blue&label=npm" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@zenbrain/algorithms"><img src="https://img.shields.io/npm/dm/@zenbrain/algorithms?color=blue" alt="npm downloads"></a>
+  <a href="https://www.npmjs.com/package/@zensation/algorithms"><img src="https://img.shields.io/npm/v/@zensation/algorithms?color=blue&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@zensation/algorithms"><img src="https://img.shields.io/npm/dm/@zensation/algorithms?color=blue" alt="npm downloads"></a>
   <a href="https://github.com/zensation-ai/zenbrain/stargazers"><img src="https://img.shields.io/github/stars/zensation-ai/zenbrain?style=social" alt="GitHub stars"></a>
   <a href="https://github.com/zensation-ai/zenbrain/actions/workflows/ci.yml"><img src="https://github.com/zensation-ai/zenbrain/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/zensation-ai/zenbrain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
@@ -44,7 +44,7 @@ ZenBrain brings these mechanisms to AI agents:
 ## Quick Start
 
 ```bash
-npm install @zenbrain/algorithms
+npm install @zensation/algorithms
 ```
 
 ```typescript
@@ -56,7 +56,7 @@ import {
   computeEmotionalWeight,
   computeHebbianStrengthening,
   propagateForRelation,
-} from '@zenbrain/algorithms';
+} from '@zensation/algorithms';
 
 // 1. Schedule a memory with FSRS
 const memory = initFromDecayClass('normal_decay');
@@ -128,10 +128,10 @@ Knowledge isn't isolated — facts support or contradict each other. ZenBrain pr
 
 | Package | Description | Status |
 |---------|-------------|--------|
-| [`@zenbrain/algorithms`](./packages/algorithms) | Pure neuroscience algorithms (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian) | :white_check_mark: Published |
-| `@zenbrain/core` | Memory layers, coordinator, adapter interfaces | :construction: In Development |
-| `@zenbrain/adapter-postgres` | PostgreSQL + pgvector storage adapter | :calendar: Planned |
-| `@zenbrain/adapter-sqlite` | SQLite + sqlite-vec storage adapter | :calendar: Planned |
+| [`@zensation/algorithms`](./packages/algorithms) | Pure neuroscience algorithms (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian) | :white_check_mark: Published |
+| `@zensation/core` | Memory layers, coordinator, adapter interfaces | :construction: In Development |
+| `@zensation/adapter-postgres` | PostgreSQL + pgvector storage adapter | :calendar: Planned |
+| `@zensation/adapter-sqlite` | SQLite + sqlite-vec storage adapter | :calendar: Planned |
 
 ### Tree-Shakeable Imports
 
@@ -139,13 +139,13 @@ Every algorithm is available as a subpath export:
 
 ```typescript
 // Import everything
-import { tagEmotion, updateAfterRecall } from '@zenbrain/algorithms';
+import { tagEmotion, updateAfterRecall } from '@zensation/algorithms';
 
 // Or just what you need (better tree-shaking)
-import { updateAfterRecall } from '@zenbrain/algorithms/fsrs';
-import { tagEmotion } from '@zenbrain/algorithms/emotional';
-import { computeHebbianStrengthening } from '@zenbrain/algorithms/hebbian';
-import { propagateForRelation } from '@zenbrain/algorithms/bayesian';
+import { updateAfterRecall } from '@zensation/algorithms/fsrs';
+import { tagEmotion } from '@zensation/algorithms/emotional';
+import { computeHebbianStrengthening } from '@zensation/algorithms/hebbian';
+import { propagateForRelation } from '@zensation/algorithms/bayesian';
 ```
 
 ## Use Cases
@@ -153,8 +153,8 @@ import { propagateForRelation } from '@zenbrain/algorithms/bayesian';
 ### AI Chatbots with Long-Term Memory
 
 ```typescript
-import { updateAfterRecall, getRetrievability, scheduleNextReview } from '@zenbrain/algorithms/fsrs';
-import { tagEmotion, computeEmotionalWeight } from '@zenbrain/algorithms/emotional';
+import { updateAfterRecall, getRetrievability, scheduleNextReview } from '@zensation/algorithms/fsrs';
+import { tagEmotion, computeEmotionalWeight } from '@zensation/algorithms/emotional';
 
 // When your AI learns a fact about the user:
 function rememberFact(fact: string) {
@@ -179,8 +179,8 @@ function getFactsDueForReview(facts: MemoryState[]) {
 ### Knowledge Graph with Self-Organizing Edges
 
 ```typescript
-import { computeHebbianStrengthening, computeHebbianDecay } from '@zenbrain/algorithms/hebbian';
-import { propagateForRelation } from '@zenbrain/algorithms/bayesian';
+import { computeHebbianStrengthening, computeHebbianDecay } from '@zensation/algorithms/hebbian';
+import { propagateForRelation } from '@zensation/algorithms/bayesian';
 
 // When two concepts are mentioned together:
 function coActivate(edge: { weight: number }) {
@@ -199,7 +199,7 @@ function decayEdges(edges: { weight: number; lastUsed: Date }[]) {
 ### RAG with Confidence Scoring
 
 ```typescript
-import { propagateForRelation, isSignificantChange } from '@zenbrain/algorithms/bayesian';
+import { propagateForRelation, isSignificantChange } from '@zensation/algorithms/bayesian';
 
 // After retrieval, propagate confidence through related facts:
 function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {

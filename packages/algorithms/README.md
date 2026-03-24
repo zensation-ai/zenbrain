@@ -1,8 +1,8 @@
-# @zenbrain/algorithms
+# @zensation/algorithms
 
 > Neuroscience-inspired memory algorithms for AI agents. Pure TypeScript. Zero dependencies.
 
-[![npm](https://img.shields.io/npm/v/@zenbrain/algorithms)](https://www.npmjs.com/package/@zenbrain/algorithms)
+[![npm](https://img.shields.io/npm/v/@zensation/algorithms)](https://www.npmjs.com/package/@zensation/algorithms)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../../LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue.svg)](https://www.typescriptlang.org/)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](#)
@@ -24,7 +24,7 @@ Seven battle-tested algorithms extracted from a production AI system (170K+ LOC,
 ## Quick Start
 
 ```bash
-npm install @zenbrain/algorithms
+npm install @zensation/algorithms
 ```
 
 ```typescript
@@ -45,7 +45,7 @@ import {
 
   // Bayesian Confidence
   propagateForRelation,
-} from '@zenbrain/algorithms';
+} from '@zensation/algorithms';
 
 // 1. Create a memory with FSRS scheduling
 const memory = initFromDecayClass('normal_decay');
@@ -90,13 +90,13 @@ Import only what you need:
 
 ```typescript
 // Just FSRS
-import { updateAfterRecall, getRetrievability } from '@zenbrain/algorithms/fsrs';
+import { updateAfterRecall, getRetrievability } from '@zensation/algorithms/fsrs';
 
 // Just emotional tagging
-import { tagEmotion } from '@zenbrain/algorithms/emotional';
+import { tagEmotion } from '@zensation/algorithms/emotional';
 
 // Just Hebbian dynamics
-import { computeHebbianStrengthening } from '@zenbrain/algorithms/hebbian';
+import { computeHebbianStrengthening } from '@zensation/algorithms/hebbian';
 ```
 
 ## Why These Algorithms?
@@ -119,7 +119,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 
 ## API Reference
 
-### FSRS (`@zenbrain/algorithms/fsrs`)
+### FSRS (`@zensation/algorithms/fsrs`)
 
 | Function | Description |
 |----------|-------------|
@@ -132,7 +132,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | `updateStabilityCompat(stability, success, multiplier?)` | Drop-in SM-2 replacement |
 | `getRetentionProbabilityCompat(lastAccess, stability, multiplier?)` | Drop-in Ebbinghaus replacement |
 
-### Ebbinghaus (`@zenbrain/algorithms/ebbinghaus`)
+### Ebbinghaus (`@zensation/algorithms/ebbinghaus`)
 
 | Function | Description |
 |----------|-------------|
@@ -144,7 +144,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | `learnDecayProfile(history)` | Personalized decay curves |
 | `calculatePersonalizedRetention(lastAccess, stability, profile)` | User-specific retention |
 
-### Emotional (`@zenbrain/algorithms/emotional`)
+### Emotional (`@zensation/algorithms/emotional`)
 
 | Function | Description |
 |----------|-------------|
@@ -153,7 +153,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | `isEmotionallySignificant(text, threshold?)` | Quick significance check |
 | `computeContextualValence(text, domain)` | Domain-adjusted valence |
 
-### Hebbian (`@zenbrain/algorithms/hebbian`)
+### Hebbian (`@zensation/algorithms/hebbian`)
 
 | Function | Description |
 |----------|-------------|
@@ -162,7 +162,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | `computeHomeostaticNormalization(weights, targetSum)` | Normalize weight distribution |
 | `generatePairs(items)` | Generate C(n,2) co-activation pairs |
 
-### Bayesian (`@zenbrain/algorithms/bayesian`)
+### Bayesian (`@zensation/algorithms/bayesian`)
 
 | Function | Description |
 |----------|-------------|
@@ -170,7 +170,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | `applyDamping(newValue, previousValue)` | Blend with previous for stability |
 | `isSignificantChange(newValue, previousValue)` | Check if update is worth persisting |
 
-### Context Retrieval (`@zenbrain/algorithms/context-retrieval`)
+### Context Retrieval (`@zensation/algorithms/context-retrieval`)
 
 | Function | Description |
 |----------|-------------|
@@ -178,7 +178,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | `calculateContextSimilarity(encoding, current?)` | Context match score + boost |
 | `serializeContext(ctx)` / `deserializeContext(data)` | Storage helpers |
 
-### Similarity (`@zenbrain/algorithms/similarity`)
+### Similarity (`@zensation/algorithms/similarity`)
 
 | Function | Description |
 |----------|-------------|
@@ -192,7 +192,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 All functions accept an optional `Logger` parameter. Pass `console`, your favorite logger, or nothing (silent by default):
 
 ```typescript
-import { updateAfterRecall } from '@zenbrain/algorithms';
+import { updateAfterRecall } from '@zensation/algorithms';
 
 // Silent (default)
 updateAfterRecall(state, 4, 0.9);
@@ -207,10 +207,10 @@ This package is part of the [ZenBrain](https://github.com/zensation-ai/zenbrain)
 
 | Package | Description |
 |---------|-------------|
-| **@zenbrain/algorithms** | Pure algorithms (this package) |
-| `@zenbrain/core` | Memory layers + coordinator |
-| `@zenbrain/adapter-postgres` | PostgreSQL + pgvector storage |
-| `@zenbrain/adapter-sqlite` | SQLite + sqlite-vec storage |
+| **@zensation/algorithms** | Pure algorithms (this package) |
+| `@zensation/core` | Memory layers + coordinator |
+| `@zensation/adapter-postgres` | PostgreSQL + pgvector storage |
+| `@zensation/adapter-sqlite` | SQLite + sqlite-vec storage |
 
 ## License
 

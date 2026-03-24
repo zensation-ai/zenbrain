@@ -1,5 +1,5 @@
 {
-  "name": "@zenbrain/algorithms",
+  "name": "@zensation/algorithms",
   "version": "0.1.0",
   "description": "Neuroscience-inspired memory algorithms: FSRS spaced repetition, Hebbian learning, Ebbinghaus decay, emotional tagging, Bayesian confidence propagation. Zero dependencies.",
   "type": "module",
