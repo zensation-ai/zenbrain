@@ -1,0 +1,21 @@
+{
+  "name": "zenbrain-playground",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ZenBrain interactive demo — explore the 7-layer memory system.",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zensation/algorithms": "^0.1.0",
+    "@zensation/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

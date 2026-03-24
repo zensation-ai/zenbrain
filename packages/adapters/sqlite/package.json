@@ -1,0 +1,55 @@
+{
+  "name": "@zensation/adapter-sqlite",
+  "version": "0.1.0",
+  "description": "SQLite storage adapter for ZenBrain memory system. Zero-config, file-based, perfect for development and single-user deployments.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "zenbrain",
+    "sqlite",
+    "ai-memory",
+    "storage-adapter",
+    "zero-config"
+  ],
+  "author": "ZenSation <open-source@zensation.ai>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zensation-ai/zenbrain.git",
+    "directory": "packages/adapters/sqlite"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  },
+  "peerDependencies": {
+    "@zensation/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "vitest": "^3.0.0",
+    "typescript": "^5.7.0"
+  }
+}

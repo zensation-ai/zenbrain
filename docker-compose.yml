@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  playground:
+    build: apps/playground
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://zenbrain:zenbrain@db:5432/zenbrain
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: zenbrain
+      POSTGRES_USER: zenbrain
+      POSTGRES_PASSWORD: zenbrain
+    healthcheck:
+      test: pg_isready -U zenbrain
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./packages/adapters/postgres/sql/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+
+volumes:
+  pgdata:

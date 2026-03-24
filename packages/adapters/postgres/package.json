@@ -1,0 +1,56 @@
+{
+  "name": "@zensation/adapter-postgres",
+  "version": "0.1.0",
+  "description": "PostgreSQL + pgvector storage adapter for ZenBrain memory system.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "sql",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "zenbrain",
+    "postgres",
+    "pgvector",
+    "ai-memory",
+    "storage-adapter"
+  ],
+  "author": "ZenSation <open-source@zensation.ai>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zensation-ai/zenbrain.git",
+    "directory": "packages/adapters/postgres"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  },
+  "peerDependencies": {
+    "@zensation/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.0",
+    "vitest": "^3.0.0",
+    "typescript": "^5.7.0"
+  }
+}
