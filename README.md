@@ -12,6 +12,8 @@
   <a href="https://github.com/zensation-ai/zenbrain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
   <a href="#"><img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Zero Dependencies"></a>
+  <a href="https://discord.gg/YKVTHaXK"><img src="https://img.shields.io/discord/1485937855447695443?color=7289da&label=Discord&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://x.com/zensationai"><img src="https://img.shields.io/twitter/follow/zensationai?style=social" alt="Follow on X"></a>
 </p>
 
 ---
@@ -250,6 +252,8 @@ npm run build
 
 ## Community
 
+- **Discord**: [ZenBrain Community](https://discord.gg/YKVTHaXK) — help, show-and-tell, feature requests
+- **Twitter/X**: [@zensationai](https://x.com/zensationai) — updates, launches, AI memory discussions
 - **GitHub Issues**: [Bug reports & feature requests](https://github.com/zensation-ai/zenbrain/issues)
 - **Email**: open-source@zensation.ai
 
