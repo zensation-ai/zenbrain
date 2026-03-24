@@ -1,0 +1,56 @@
+# Hacker News Post
+
+## Title
+
+Show HN: ZenBrain -- Neuroscience-Inspired Memory for AI Agents (FSRS, Hebbian, 7 layers)
+
+## URL
+
+https://github.com/zensation-ai/zenbrain
+
+## First Comment (Founder)
+
+Hi HN, Alexander here, solo dev from Kiel, Germany.
+
+I've been building a production AI platform for the past year (170K+ LOC, 9,228 tests). The hardest problem was always memory: how do you make an AI that actually remembers things in a way that's useful, not just a vector database that returns the top-k nearest neighbors?
+
+I went deep into the neuroscience literature and implemented the actual mechanisms the human brain uses for memory:
+
+**7 memory layers**, each with different retention characteristics:
+
+1. Working Memory (7 +/- 2 items, active task focus)
+2. Short-Term / Session (current conversation)
+3. Episodic Memory (concrete experiences)
+4. Long-Term Semantic (facts with FSRS scheduling)
+5. Procedural Memory (skills -- "how to do X")
+6. Core Memory (pinned facts, Letta-style)
+7. Cross-Context Memory (shared knowledge across domains)
+
+**The algorithms that power it:**
+
+- **FSRS** (Free Spaced Repetition Scheduler) -- the algorithm behind Anki, outperforms SM-2 by ~30%. Your AI reviews important facts at optimal intervals based on the desirable difficulty principle.
+
+- **Hebbian learning** -- "neurons that fire together wire together" (Hebb, 1949). Knowledge graph edges that are co-activated strengthen. Unused edges decay and get pruned. Homeostatic normalization prevents runaway growth.
+
+- **Ebbinghaus forgetting curves** -- memory decays exponentially: R = e^(-t/S). Personalized decay profiles that adapt to individual patterns.
+
+- **Emotional tagging** -- the amygdala modulates consolidation. Emotional memories get up to 3x longer decay half-lives. A 400+ keyword lexicon (EN/DE) computes arousal, valence, and significance.
+
+- **Bayesian confidence propagation** -- facts support or contradict each other. Confidence flows through the knowledge graph via Bayesian belief updates.
+
+- **Context-dependent retrieval** -- Tulving's Encoding Specificity Principle. Memories recalled better when retrieval context matches encoding context. Up to 30% retrieval boost.
+
+All of this is pure TypeScript with zero runtime dependencies. Everything is tree-shakeable:
+
+```
+npm install @zensation/algorithms
+```
+
+I extracted the core algorithms from my production system and open-sourced them as a standalone package. The algorithms package is the first piece -- storage adapters (Postgres, SQLite) and the full memory coordinator are coming next.
+
+Compared to Mem0 ($24M raised) and Letta ($10M raised) -- they have 2-3 memory layers and none of this neuroscience machinery. I'm not saying funding is bad, but I think the open-source community deserves a deeper approach to AI memory than "vector store + LLM summarization."
+
+GitHub: https://github.com/zensation-ai/zenbrain
+npm: https://www.npmjs.com/package/@zensation/algorithms
+
+Happy to answer any questions about the implementation, the neuroscience behind it, or the production system it was extracted from.
