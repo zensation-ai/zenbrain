@@ -20,17 +20,35 @@ jobs:
           cache: 'npm'
       - run: npm install
 
-      # Lint all packages
-      - run: cd packages/algorithms && npx tsc --noEmit
-      - run: cd packages/core && npx tsc --noEmit
+      # Build in dependency order (algorithms first — core and adapters depend on it)
+      - name: Build algorithms
+        run: cd packages/algorithms && npm run build
+      - name: Build core
+        run: cd packages/core && npm run build
+      - name: Build adapter-postgres
+        run: cd packages/adapters/postgres && npm run build
+      - name: Build adapter-sqlite
+        run: cd packages/adapters/sqlite && npm run build
 
-      # Build all packages (order matters — algorithms before core)
-      - run: cd packages/algorithms && npm run build
-      - run: cd packages/core && npm run build
+      # Type-check (after build so cross-package imports resolve)
+      - name: Lint algorithms
+        run: cd packages/algorithms && npx tsc --noEmit
+      - name: Lint core
+        run: cd packages/core && npx tsc --noEmit
+      - name: Lint adapter-postgres
+        run: cd packages/adapters/postgres && npx tsc --noEmit
+      - name: Lint adapter-sqlite
+        run: cd packages/adapters/sqlite && npx tsc --noEmit
 
       # Test all packages
-      - run: cd packages/algorithms && npx vitest run
-      - run: cd packages/core && npx vitest run
+      - name: Test algorithms
+        run: cd packages/algorithms && npx vitest run
+      - name: Test core
+        run: cd packages/core && npx vitest run
+      - name: Test adapter-postgres
+        run: cd packages/adapters/postgres && npx vitest run --passWithNoTests
+      - name: Test adapter-sqlite
+        run: cd packages/adapters/sqlite && npx vitest run --passWithNoTests
 
   publish:
     needs: test
@@ -47,6 +65,12 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: npm install
       - run: cd packages/algorithms && npm run build
-      - run: cd packages/algorithms && npm publish --provenance --access public
+      - run: cd packages/core && npm run build
+      - name: Publish algorithms
+        run: cd packages/algorithms && npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish core
+        run: cd packages/core && npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
