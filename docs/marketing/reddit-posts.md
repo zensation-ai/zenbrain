@@ -6,7 +6,7 @@
 
 ### Title
 
-I built an open-source memory system for AI agents inspired by neuroscience (7 layers, FSRS, Hebbian learning)
+I built an open-source memory system for AI agents inspired by neuroscience (7 layers, sleep consolidation, 276 tests)
 
 ### Body
 
@@ -26,7 +26,7 @@ It's pure TypeScript, zero dependencies, works with any LLM (local or cloud). No
 npm install @zensation/algorithms
 ```
 
-This was extracted from a production AI platform I've been building solo (170K+ LOC, 9,228 tests). Ships 4 packages: algorithms, core (7 layers), adapter-postgres (pgvector), and adapter-sqlite (zero-config). Docker Compose included.
+This was extracted from a production AI platform I've been building solo (170K+ LOC, 9,228 tests) + 276 ZenBrain tests). Ships 4 packages: algorithms, core (7 layers), adapter-postgres (pgvector), and adapter-sqlite (zero-config). Docker Compose included.
 
 I'm comparing against Mem0 ($24M) and Letta ($10M) -- they have 2-3 memory layers and none of this neuroscience machinery. ZenBrain has 7 layers and it's Apache 2.0.
 
@@ -63,7 +63,7 @@ npm install @zensation/algorithms
 
 Zero dependencies, pure TypeScript. No cloud services, no telemetry, no vendor lock-in.
 
-Extracted from a production system (170K+ LOC, 9,228 tests). Ships with Postgres/pgvector + SQLite adapters and Docker Compose for the complete self-hosted setup.
+Extracted from a production system (170K+ LOC, 9,228 tests) + 276 ZenBrain tests). Ships with Postgres/pgvector + SQLite adapters and Docker Compose for the complete self-hosted setup.
 
 Licensed under Apache 2.0. Competing with Mem0 ($24M raised, 2 layers) and Letta ($10M raised, 3 layers). ZenBrain has 7 layers and it costs you nothing.
 
@@ -104,7 +104,7 @@ I'm open-sourcing ZenBrain, a 7-layer memory architecture for AI agents that imp
 
 - **Context-dependent retrieval** -- Tulving's Encoding Specificity Principle (1973). Temporal context (time-of-day, day-of-week, task type) captured at encoding provides up to 30% retrieval boost.
 
-Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports. Extracted from a production system (170K+ LOC, 9,228 tests).
+Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports. Extracted from a production system (170K+ LOC, 9,228 tests) + 276 ZenBrain tests).
 
 ```bash
 npm install @zensation/algorithms

@@ -2,7 +2,7 @@
 
 ## Title
 
-Show HN: ZenBrain -- Neuroscience-Inspired Memory for AI Agents (FSRS, Hebbian, 7 layers)
+Show HN: ZenBrain -- Neuroscience-Inspired Memory for AI Agents (7 layers, sleep consolidation, 276 tests)
 
 ## URL
 
@@ -40,13 +40,23 @@ I went deep into the neuroscience literature and implemented the actual mechanis
 
 - **Context-dependent retrieval** -- Tulving's Encoding Specificity Principle. Memories recalled better when retrieval context matches encoding context. Up to 30% retrieval boost.
 
+**New in v0.2.0:**
+
+- **Sleep Consolidation** -- simulates memory replay during sleep (Stickgold & Walker 2013). Your AI can run a "sleep cycle" that replays important memories, boosts their stability by 50%, strengthens Hebbian edges, and prunes weak connections. No other memory system has this.
+
+- **MemoryCoordinator** -- orchestrates all 7 layers as a single cohesive system. Auto-routes content to the right layer, cross-layer search with ranked results, episodic-to-semantic consolidation, FSRS review queue.
+
+- **Confidence Intervals** -- 95% CIs for all probabilistic outputs. More reviews = narrower interval. Proper uncertainty quantification.
+
+- **Retention Curve Visualization** -- export Ebbinghaus forgetting curves as data points for charting.
+
 All of this is pure TypeScript with zero runtime dependencies. Everything is tree-shakeable:
 
 ```
-npm install @zensation/algorithms
+npm install @zensation/algorithms @zensation/core
 ```
 
-I extracted the algorithms from my production system and open-sourced them. The monorepo ships 4 packages: `@zensation/algorithms` (pure math), `@zensation/core` (7 memory layers + coordinator), `@zensation/adapter-postgres` (pgvector), and `@zensation/adapter-sqlite` (zero-config). 215 tests, all passing. Docker Compose included for quick self-hosting.
+I extracted the algorithms from my production system and open-sourced them. The monorepo ships 4 packages: `@zensation/algorithms` (12 algorithm modules), `@zensation/core` (7 memory layers + coordinator), `@zensation/adapter-postgres` (pgvector), and `@zensation/adapter-sqlite` (zero-config). 276 tests, all passing. Docker Compose included for quick self-hosting.
 
 Compared to Mem0 ($24M raised) and Letta ($10M raised) -- they have 2-3 memory layers and none of this neuroscience machinery. I'm not saying funding is bad, but I think the open-source community deserves a deeper approach to AI memory than "vector store + LLM summarization."
 

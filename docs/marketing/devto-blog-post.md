@@ -1,5 +1,5 @@
 ---
-title: "Why AI Memory Needs Neuroscience: Building a 7-Layer Memory System"
+title: "Why AI Memory Needs Neuroscience: Building a 7-Layer Memory System with Sleep Consolidation"
 published: false
 tags: ai, memory, typescript, neuroscience
 cover_image:

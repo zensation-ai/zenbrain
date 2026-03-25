@@ -12,7 +12,7 @@ Neuroscience-inspired memory for AI agents
 
 **Your AI forgets everything after every conversation. ZenBrain fixes that -- with the same mechanisms your brain uses.**
 
-ZenBrain is a 7-layer memory architecture for AI agents that implements actual neuroscience: FSRS spaced repetition (the algorithm behind Anki), Hebbian learning for self-organizing knowledge graphs, Ebbinghaus forgetting curves, emotional memory tagging, and Bayesian confidence propagation. Not a vector database with a wrapper. Actual neuroscience.
+ZenBrain is a 7-layer memory architecture for AI agents that implements actual neuroscience: FSRS spaced repetition (the algorithm behind Anki), Hebbian learning, sleep consolidation (memory replay simulation), emotional memory tagging, Bayesian confidence propagation, and a MemoryCoordinator that orchestrates all layers. Not a vector database with a wrapper. Actual neuroscience. 276 tests.
 
 The core algorithms are pure TypeScript with zero dependencies -- install with `npm install @zensation/algorithms` and start giving your AI real memory in minutes. Every algorithm is tree-shakeable, so you can import only what you need. Extracted from a production AI platform with 170K+ lines of code and 9,228 tests.
 
@@ -40,7 +40,7 @@ I went deep into the neuroscience literature and implemented the mechanisms the 
 
 7 memory layers from working memory to cross-context shared knowledge. Each with different retention, consolidation, and retrieval rules -- just like the human brain.
 
-The monorepo ships 4 packages: `@zensation/algorithms` (pure math), `@zensation/core` (7 memory layers), `@zensation/adapter-postgres` (pgvector), and `@zensation/adapter-sqlite` (zero-config). Docker Compose included. Everything is Apache 2.0.
+The monorepo ships 4 packages: `@zensation/algorithms` (12 algorithm modules), `@zensation/core` (7 memory layers + MemoryCoordinator), `@zensation/adapter-postgres` (pgvector), and `@zensation/adapter-sqlite` (zero-config). Docker Compose included. 276 tests. Everything is Apache 2.0.
 
 I'd love to hear how you'd use this in your AI projects. Happy to answer any questions about the neuroscience or the implementation!
 

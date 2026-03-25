@@ -12,9 +12,9 @@ I spent a year studying neuroscience to fix that.
 
 Today I'm open-sourcing ZenBrain: 7-layer memory for AI agents.
 
-FSRS, Hebbian learning, Ebbinghaus decay, emotional tagging.
+FSRS, Hebbian learning, sleep consolidation, emotional tagging.
 
-Zero dependencies. Pure TypeScript.
+276 tests. Zero dependencies. Pure TypeScript.
 
 ---
 
@@ -48,13 +48,15 @@ Each with different retention, consolidation, and retrieval rules.
 
 **Tweet 4 (Algorithms)**
 
-The algorithms that power it:
+12 algorithms that power it:
 
-- FSRS spaced repetition (the Anki algorithm, 30% better than SM-2)
-- Hebbian learning (connections that fire together wire together)
-- Ebbinghaus forgetting curves (R = e^(-t/S))
-- Emotional tagging (emotional memories decay 3x slower)
+- FSRS spaced repetition (30% better than SM-2)
+- Hebbian learning (fire together, wire together)
+- Sleep consolidation (memory replay during "sleep")
+- Emotional tagging (3x slower decay)
 - Bayesian confidence propagation
+- Confidence intervals for uncertainty
+- Retention curve visualization
 
 ---
 
@@ -63,7 +65,7 @@ The algorithms that power it:
 Mem0 raised $24M. 2 memory layers.
 Letta raised $10M. 3 memory layers.
 
-ZenBrain: 7 layers, FSRS, Hebbian dynamics, Ebbinghaus decay, emotional tagging, Bayesian propagation.
+ZenBrain: 7 layers, 12 algorithms, sleep consolidation, MemoryCoordinator, 276 tests.
 
 Apache 2.0. Zero dependencies. Free forever.
 
@@ -81,13 +83,13 @@ Tree-shakeable -- import only what you need:
 
 import { updateAfterRecall } from '@zensation/algorithms/fsrs'
 import { tagEmotion } from '@zensation/algorithms/emotional'
-import { computeHebbianStrengthening } from '@zensation/algorithms/hebbian'
+import { selectForReplay } from '@zensation/algorithms/sleep-consolidation'
 
 ---
 
 **Tweet 7 (Links + CTA)**
 
-Extracted from a production AI platform (170K+ LOC, 9,228 tests). Battle-tested, not theoretical.
+Extracted from a production AI platform (170K+ LOC, 9,228 tests). 276 ZenBrain tests. Battle-tested, not theoretical.
 
 GitHub: github.com/zensation-ai/zenbrain
 npm: npmjs.com/package/@zensation/algorithms
