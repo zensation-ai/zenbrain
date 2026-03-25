@@ -39,6 +39,7 @@
     "url": "https://github.com/zensation-ai/zenbrain.git",
     "directory": "packages/adapters/postgres"
   },
+  "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/adapters/postgres#readme",
   "engines": {
     "node": ">=18"
   },

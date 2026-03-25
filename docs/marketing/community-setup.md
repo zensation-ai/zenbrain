@@ -24,7 +24,7 @@
 ## README Badge Updates
 After setting up Discord and Twitter, add these badges to the root README:
 ```markdown
-[![Discord](https://img.shields.io/discord/DISCORD_SERVER_ID?color=7289da&label=Discord&logo=discord&logoColor=white)](INVITE_LINK)
-[![Twitter Follow](https://img.shields.io/twitter/follow/zensation_ai?style=social)](https://twitter.com/zensation_ai)
+[![Discord](https://img.shields.io/discord/1485937855447695443?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/YKVTHaXK)
+[![Twitter Follow](https://img.shields.io/twitter/follow/zensationai?style=social)](https://x.com/zensationai)
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/zensation-ai?style=social)](https://github.com/sponsors/zensation-ai)
 ```
