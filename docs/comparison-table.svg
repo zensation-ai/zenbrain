@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#12132a"/>
+      <stop offset="100%" style="stop-color:#1a1b2e"/>
+    </linearGradient>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d9488"/>
+      <stop offset="100%" style="stop-color:#0f766e"/>
+    </linearGradient>
+    <linearGradient id="zenCol" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(20,184,166,0.12)"/>
+      <stop offset="100%" style="stop-color:rgba(20,184,166,0.04)"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="820" rx="16" fill="url(#bg)"/>
+  <rect x="0.5" y="0.5" width="1199" height="819" rx="16" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+  <!-- Title -->
+  <text x="600" y="52" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="32" font-weight="700" fill="#f0fdfa" letter-spacing="-0.5">ZenBrain vs The Competition</text>
+  <text x="600" y="82" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" fill="#94a3b8" letter-spacing="0.3">The deepest open-source memory system for AI agents</text>
+
+  <!-- Table area -->
+  <g transform="translate(60, 110)">
+    <!-- Column positions: Feature=0, ZenBrain=340, Mem0=540, Letta=740, Zep=940 -->
+    <!-- Column widths: Feature=340, others=200 each, total=1080 -->
+
+    <!-- ZenBrain column highlight -->
+    <rect x="340" y="0" width="200" height="690" rx="8" fill="url(#zenCol)"/>
+    <rect x="340" y="0" width="200" height="690" rx="8" fill="none" stroke="rgba(20,184,166,0.2)" stroke-width="1"/>
+
+    <!-- Header row background -->
+    <rect x="0" y="0" width="1080" height="54" rx="8" fill="rgba(255,255,255,0.04)"/>
+    <rect x="340" y="0" width="200" height="54" rx="0" fill="url(#headerGrad)"/>
+    <!-- Round top corners of ZenBrain header -->
+    <rect x="340" y="0" width="200" height="54" rx="8" fill="url(#headerGrad)"/>
+    <rect x="340" y="8" width="200" height="46" fill="url(#headerGrad)"/>
+
+    <!-- Header text -->
+    <text x="170" y="33" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#64748b" letter-spacing="1.5">FEATURE</text>
+    <text x="440" y="33" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="700" fill="#ffffff" filter="url(#glow)">🧠 ZenBrain</text>
+    <text x="640" y="33" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#94a3b8">Mem0</text>
+    <text x="840" y="33" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#94a3b8">Letta</text>
+    <text x="1010" y="33" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#94a3b8">Zep</text>
+
+    <!-- Row template: y starts at 54, each row is 64px -->
+    <!-- Row 1: Memory Layers -->
+    <rect x="0" y="54" width="1080" height="64" fill="rgba(255,255,255,0.02)"/>
+    <line x1="0" y1="54" x2="1080" y2="54" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="92" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Memory Layers</text>
+    <text x="440" y="92" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="700" fill="#14b8a6">7</text>
+    <text x="640" y="92" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="500" fill="#64748b">2</text>
+    <text x="840" y="92" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="500" fill="#64748b">3</text>
+    <text x="1010" y="92" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="500" fill="#64748b">2</text>
+
+    <!-- Row 2: Spaced Repetition -->
+    <rect x="0" y="118" width="1080" height="64" fill="transparent"/>
+    <line x1="0" y1="118" x2="1080" y2="118" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="156" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Spaced Repetition (FSRS)</text>
+    <text x="440" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="840" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 3: Hebbian Learning -->
+    <rect x="0" y="182" width="1080" height="64" fill="rgba(255,255,255,0.02)"/>
+    <line x1="0" y1="182" x2="1080" y2="182" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="220" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Hebbian Learning</text>
+    <text x="440" y="222" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="222" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="840" y="222" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="222" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 4: Emotional Memory -->
+    <rect x="0" y="246" width="1080" height="64" fill="transparent"/>
+    <line x1="0" y1="246" x2="1080" y2="246" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="284" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Emotional Memory</text>
+    <text x="440" y="286" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="286" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="840" y="286" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="286" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 5: Ebbinghaus Decay -->
+    <rect x="0" y="310" width="1080" height="64" fill="rgba(255,255,255,0.02)"/>
+    <line x1="0" y1="310" x2="1080" y2="310" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="348" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Ebbinghaus Decay</text>
+    <text x="440" y="350" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="350" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="840" y="350" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="350" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 6: Bayesian Confidence -->
+    <rect x="0" y="374" width="1080" height="64" fill="transparent"/>
+    <line x1="0" y1="374" x2="1080" y2="374" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="412" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Bayesian Confidence</text>
+    <text x="440" y="414" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="414" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="840" y="414" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="414" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 7: Context-Dependent Retrieval -->
+    <rect x="0" y="438" width="1080" height="64" fill="rgba(255,255,255,0.02)"/>
+    <line x1="0" y1="438" x2="1080" y2="438" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="476" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Context-Dependent Retrieval</text>
+    <text x="440" y="478" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="478" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="840" y="478" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="478" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 8: TypeScript Native -->
+    <rect x="0" y="502" width="1080" height="64" fill="transparent"/>
+    <line x1="0" y1="502" x2="1080" y2="502" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="540" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">TypeScript Native</text>
+    <text x="440" y="542" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="542" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="840" y="542" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="542" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 9: Zero Dependencies -->
+    <rect x="0" y="566" width="1080" height="64" fill="rgba(255,255,255,0.02)"/>
+    <line x1="0" y1="566" x2="1080" y2="566" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="604" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Zero Dependencies</text>
+    <text x="440" y="606" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="606" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="840" y="606" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+    <text x="1010" y="606" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" fill="#475569">✗</text>
+
+    <!-- Row 10: Self-Hosted -->
+    <rect x="0" y="630" width="1080" height="60" fill="transparent"/>
+    <line x1="0" y1="630" x2="1080" y2="630" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="24" y="666" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="500" fill="#e2e8f0">Self-Hosted</text>
+    <text x="440" y="668" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="640" y="668" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="840" y="668" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+    <text x="1010" y="668" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" fill="#22c55e">✓</text>
+
+    <!-- Bottom line -->
+    <line x1="0" y1="690" x2="1080" y2="690" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  </g>
+
+  <!-- Footer -->
+  <text x="600" y="795" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" fill="#475569">github.com/zensation-ai/zenbrain  ·  MIT License  ·  npm install @zensation/algorithms</text>
+</svg>

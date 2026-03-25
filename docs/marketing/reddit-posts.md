@@ -26,7 +26,7 @@ It's pure TypeScript, zero dependencies, works with any LLM (local or cloud). No
 npm install @zensation/algorithms
 ```
 
-This was extracted from a production AI platform I've been building solo (170K+ LOC, 9,228 tests). The algorithms package is the core -- storage adapters for Postgres and SQLite are coming next.
+This was extracted from a production AI platform I've been building solo (170K+ LOC, 9,228 tests). Ships 4 packages: algorithms, core (7 layers), adapter-postgres (pgvector), and adapter-sqlite (zero-config). Docker Compose included.
 
 I'm comparing against Mem0 ($24M) and Letta ($10M) -- they have 2-3 memory layers and none of this neuroscience machinery. ZenBrain has 7 layers and it's Apache 2.0.
 
@@ -63,13 +63,11 @@ npm install @zensation/algorithms
 
 Zero dependencies, pure TypeScript. No cloud services, no telemetry, no vendor lock-in.
 
-This was extracted from a production system I've been running (170K+ LOC, 9,228 tests). The full stack with Postgres/pgvector storage is coming next, including Docker Compose for the complete self-hosted setup.
+Extracted from a production system (170K+ LOC, 9,228 tests). Ships with Postgres/pgvector + SQLite adapters and Docker Compose for the complete self-hosted setup.
 
 Licensed under Apache 2.0. Competing with Mem0 ($24M raised, 2 layers) and Letta ($10M raised, 3 layers). ZenBrain has 7 layers and it costs you nothing.
 
 GitHub: https://github.com/zensation-ai/zenbrain
-
-If anyone's interested in testing the Postgres adapter when it drops, let me know.
 
 ---
 

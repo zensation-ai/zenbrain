@@ -40,7 +40,7 @@ I went deep into the neuroscience literature and implemented the mechanisms the 
 
 7 memory layers from working memory to cross-context shared knowledge. Each with different retention, consolidation, and retrieval rules -- just like the human brain.
 
-This is the first package (`@zensation/algorithms`). Storage adapters for Postgres and SQLite, plus the full memory coordinator, are coming next. Everything is Apache 2.0.
+The monorepo ships 4 packages: `@zensation/algorithms` (pure math), `@zensation/core` (7 memory layers), `@zensation/adapter-postgres` (pgvector), and `@zensation/adapter-sqlite` (zero-config). Docker Compose included. Everything is Apache 2.0.
 
 I'd love to hear how you'd use this in your AI projects. Happy to answer any questions about the neuroscience or the implementation!
 

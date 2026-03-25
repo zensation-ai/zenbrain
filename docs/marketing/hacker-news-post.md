@@ -46,7 +46,7 @@ All of this is pure TypeScript with zero runtime dependencies. Everything is tre
 npm install @zensation/algorithms
 ```
 
-I extracted the core algorithms from my production system and open-sourced them as a standalone package. The algorithms package is the first piece -- storage adapters (Postgres, SQLite) and the full memory coordinator are coming next.
+I extracted the algorithms from my production system and open-sourced them. The monorepo ships 4 packages: `@zensation/algorithms` (pure math), `@zensation/core` (7 memory layers + coordinator), `@zensation/adapter-postgres` (pgvector), and `@zensation/adapter-sqlite` (zero-config). 215 tests, all passing. Docker Compose included for quick self-hosting.
 
 Compared to Mem0 ($24M raised) and Letta ($10M raised) -- they have 2-3 memory layers and none of this neuroscience machinery. I'm not saying funding is bad, but I think the open-source community deserves a deeper approach to AI memory than "vector store + LLM summarization."
 
