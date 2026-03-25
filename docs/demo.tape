@@ -3,12 +3,13 @@
 
 Output docs/demo.gif
 
-Set FontSize 16
-Set Width 900
-Set Height 600
+Set FontSize 14
+Set Width 960
+Set Height 720
 Set Theme "Catppuccin Mocha"
-Set Padding 20
+Set Padding 15
+Set TypingSpeed 40ms
 
-Type "npx tsx apps/playground/src/index.ts" Sleep 500ms Enter
+Type "npx tsx apps/playground/src/index.ts" Sleep 300ms Enter
 
-Sleep 8s
+Sleep 12s
