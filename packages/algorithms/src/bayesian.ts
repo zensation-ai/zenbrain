@@ -12,6 +12,9 @@
  * @module @zensation/algorithms/bayesian
  */
 
+import type { Logger } from './types';
+import { noopLogger } from './types';
+
 // ============================================================
 // Constants
 // ============================================================
@@ -57,6 +60,7 @@ export const CHANGE_THRESHOLD = 0.01;
  * @param sourceConfidence - Confidence of the source fact (0–1)
  * @param edgeWeight       - Strength of the relation edge (0–1)
  * @param relationType     - One of the relation types in PROPAGATION_FACTORS
+ * @param logger           - Optional logger for debug output
  * @returns New propagated confidence clamped to [0, 1]
  */
 export function propagateForRelation(
@@ -64,6 +68,7 @@ export function propagateForRelation(
   sourceConfidence: number,
   edgeWeight: number,
   relationType: string,
+  logger?: Logger,
 ): number {
   const factor = PROPAGATION_FACTORS[relationType] ?? 0;
 
@@ -83,7 +88,9 @@ export function propagateForRelation(
   }
 
   // Clamp to [0, 1]
-  return Math.max(0, Math.min(1, result));
+  result = Math.max(0, Math.min(1, result));
+  (logger ?? noopLogger).debug?.('Bayesian propagation', { baseConfidence, sourceConfidence, edgeWeight, relationType, result });
+  return result;
 }
 
 /**
@@ -93,10 +100,13 @@ export function propagateForRelation(
  *
  * @param newValue - Freshly computed propagated confidence
  * @param previousValue - Previous propagated confidence (or base confidence if null)
+ * @param logger - Optional logger for debug output
  * @returns Damped confidence value clamped to [0, 1]
  */
-export function applyDamping(newValue: number, previousValue: number): number {
-  return Math.max(0, Math.min(1, DAMPING * newValue + (1 - DAMPING) * previousValue));
+export function applyDamping(newValue: number, previousValue: number, logger?: Logger): number {
+  const result = Math.max(0, Math.min(1, DAMPING * newValue + (1 - DAMPING) * previousValue));
+  (logger ?? noopLogger).debug?.('Bayesian damping', { newValue, previousValue, damped: result });
+  return result;
 }
 
 /**

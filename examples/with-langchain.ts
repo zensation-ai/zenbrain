@@ -5,6 +5,19 @@
  * Conversation turns are stored in ShortTermMemory, facts are scheduled
  * for review with FSRS, and emotional tagging prioritizes important memories.
  *
+ * == Neuroscience Background ==
+ *
+ * This example demonstrates the "Desirable Difficulty" principle from
+ * cognitive science (Bjork & Bjork, 2011): reviewing information when
+ * it's HARD to recall (low retrievability) produces stronger long-term
+ * retention than easy reviews. FSRS optimizes for this by scheduling
+ * reviews just before the forgetting threshold.
+ *
+ * The emotional tagging prioritizes facts that carry emotional significance
+ * (e.g., "deadline is critical") over neutral ones (e.g., "prefers TypeScript").
+ * This mirrors the amygdala's role in memory consolidation — emotional events
+ * get preferential encoding and slower decay.
+ *
  * Prerequisites:
  *   npm install @zensation/algorithms @zensation/core @langchain/core @langchain/openai
  *

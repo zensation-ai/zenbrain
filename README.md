@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">ZenBrain</h1>
   <p align="center"><strong>The neuroscience-inspired memory system for AI agents.</strong></p>
-  <p align="center">7 memory layers. FSRS spaced repetition. Hebbian learning. Emotional tagging. Ebbinghaus decay.<br/>Pure TypeScript. Zero dependencies. Battle-tested in production.</p>
+  <p align="center">7 memory layers. FSRS spaced repetition. Hebbian learning. Emotional tagging. Sleep consolidation.<br/>Pure TypeScript. Zero dependencies. 276 tests. Battle-tested in production.</p>
 </p>
 
 <p align="center">
@@ -35,12 +35,16 @@ ZenBrain brings these mechanisms to AI agents:
 | Feature | ZenBrain | Mem0 | Letta | Zep |
 |---------|:--------:|:----:|:-----:|:---:|
 | Memory Layers | **7** | 2 | 3 | 2 |
+| Memory Coordinator | :white_check_mark: | :x: | :x: | :x: |
 | Spaced Repetition (FSRS) | :white_check_mark: | :x: | :x: | :x: |
 | Hebbian Learning | :white_check_mark: | :x: | :x: | :x: |
 | Emotional Memory | :white_check_mark: | :x: | :x: | :x: |
+| Sleep Consolidation | :white_check_mark: | :x: | :x: | :x: |
 | Ebbinghaus Forgetting Curves | :white_check_mark: | :x: | :x: | :x: |
 | Bayesian Confidence Propagation | :white_check_mark: | :x: | :x: | :x: |
 | Context-Dependent Retrieval | :white_check_mark: | :x: | :x: | :x: |
+| Confidence Intervals | :white_check_mark: | :x: | :x: | :x: |
+| Retention Curve Visualization | :white_check_mark: | :x: | :x: | :x: |
 | TypeScript Native | :white_check_mark: | :white_check_mark: | :x: | :x: |
 | Zero Dependencies (core) | :white_check_mark: | :x: | :x: | :x: |
 | Self-Hosted | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
@@ -130,11 +134,47 @@ Tulving's Encoding Specificity Principle (1973): memories are recalled better wh
 
 Knowledge isn't isolated — facts support or contradict each other. ZenBrain propagates confidence through your knowledge graph using Bayesian belief updates: supporting evidence increases confidence, contradictions decrease it, with damping for numerical stability.
 
+### Sleep Consolidation *(New — unique to ZenBrain)*
+
+During sleep, the hippocampus replays recent experiences, strengthening important memories and pruning weak connections (Stickgold & Walker, 2013). ZenBrain simulates this process: `selectForReplay()` prioritizes emotional and recently-accessed memories, `simulateReplay()` boosts their stability by 50%, and `pruneWeakConnections()` removes weak Hebbian edges — implementing the Synaptic Homeostasis Hypothesis (Tononi & Cirelli, 2006).
+
+```typescript
+import { selectForReplay, simulateReplay } from '@zensation/algorithms/sleep-consolidation';
+
+// Select memories for overnight consolidation
+const toReplay = selectForReplay(allMemories);
+// Simulate sleep replay — stability ↑, weak edges pruned
+const result = simulateReplay(toReplay);
+console.log(`Replayed ${result.summary.totalReplayed} memories, avg stability +${result.summary.avgStabilityIncrease.toFixed(1)} days`);
+```
+
+### Memory Coordinator *(New)*
+
+The `MemoryCoordinator` orchestrates all 7 layers into a single cohesive system — inspired by Global Workspace Theory (Baars, 1988):
+
+```typescript
+import { MemoryCoordinator } from '@zensation/core';
+
+const memory = new MemoryCoordinator({ storage: adapter, embedding: embedder });
+
+// Auto-routes to the right layer (semantic, episodic, procedural, or core)
+await memory.store('User prefers TypeScript', { type: 'auto' });
+
+// Cross-layer search with ranked, deduplicated results
+const results = await memory.recall('programming preferences');
+
+// Consolidate: promote episodic → semantic, apply decay
+await memory.consolidate();
+
+// FSRS review queue across all layers
+const dueItems = await memory.getReviewQueue();
+```
+
 ## Packages
 
 | Package | Description | Status |
 |---------|-------------|--------|
-| [`@zensation/algorithms`](./packages/algorithms) | Pure neuroscience algorithms (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian) | :white_check_mark: Published |
+| [`@zensation/algorithms`](./packages/algorithms) | 12 neuroscience algorithms (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, confidence intervals, visualization) | :white_check_mark: Published |
 | [`@zensation/core`](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
 | [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Ready |
 | [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Ready |
@@ -152,6 +192,9 @@ import { updateAfterRecall } from '@zensation/algorithms/fsrs';
 import { tagEmotion } from '@zensation/algorithms/emotional';
 import { computeHebbianStrengthening } from '@zensation/algorithms/hebbian';
 import { propagateForRelation } from '@zensation/algorithms/bayesian';
+import { selectForReplay } from '@zensation/algorithms/sleep-consolidation';
+import { getRetrievabilityWithCI } from '@zensation/algorithms/intervals';
+import { generateRetentionCurve } from '@zensation/algorithms/visualization';
 ```
 
 ## Use Cases
@@ -228,7 +271,7 @@ function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
 ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai) — a production AI platform with:
 
 - **170,000+** lines of TypeScript
-- **9,228** passing tests
+- **9,228** passing tests (ZenAI) + **276** tests (ZenBrain)
 - **55** AI tools across 14 categories
 - **7-layer** HiMeS memory architecture
 - **Phase 141** of active development
@@ -238,6 +281,8 @@ These aren't toy implementations. They've been battle-tested with real users, re
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+**Resources:** [API Reference](./docs/api-reference.md) | [Architecture](./docs/architecture.md) | [Benchmarks](./docs/benchmarks.md) | [FAQ](./docs/FAQ.md) | [Roadmap](./docs/ROADMAP.md)
 
 ```bash
 # Clone the repo

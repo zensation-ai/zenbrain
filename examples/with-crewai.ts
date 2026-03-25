@@ -3,8 +3,25 @@
  *
  * Shows how multiple agents (Researcher, Writer, Reviewer) share
  * Working Memory and use Hebbian learning to strengthen knowledge
- * connections between co-activated concepts. This is a TypeScript
- * equivalent of the Python CrewAI pattern.
+ * connections between co-activated concepts.
+ *
+ * == Neuroscience Background ==
+ *
+ * Hebbian Learning (Hebb, 1949): "Neurons that fire together, wire together."
+ * When two concepts are activated in the same context (co-activation), the
+ * connection between them strengthens. Over time, disuse causes decay —
+ * connections weaken following an exponential curve.
+ *
+ * In this multi-agent scenario:
+ * - The Researcher discovers concepts → they enter shared Working Memory
+ * - Concepts discovered together get Hebbian co-activation (edge strengthening)
+ * - The Writer reinforces connections it uses (stronger co-activation)
+ * - After 24h, unused connections decay (simulating biological forgetting)
+ *
+ * Homeostatic normalization (Turrigiano, 2008) prevents runaway strengthening:
+ * total edge weight is kept at a constant budget, so strengthening one
+ * connection relatively weakens others. This is how the brain maintains
+ * stability while learning.
  *
  * Prerequisites:
  *   npm install @zensation/algorithms @zensation/core

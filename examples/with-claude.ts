@@ -4,6 +4,23 @@
  * Shows how to use ZenBrain's memory layers with the Anthropic Claude API
  * to create an AI assistant that remembers across conversations.
  *
+ * == Neuroscience Background ==
+ *
+ * This example combines three cognitive mechanisms:
+ *
+ * 1. FSRS Spaced Repetition (Ebbinghaus, 1885): Facts decay over time following
+ *    R = e^(-t/S). The `getRetrievability()` check filters out facts the AI has
+ *    "forgotten" — just like how you can't recall a phone number from last week.
+ *    FSRS schedules reviews at optimal intervals, outperforming SM-2 by ~30%.
+ *
+ * 2. Emotional Memory Modulation (LaBar & Cabeza, 2006): When the user shares
+ *    something emotionally significant, Claude acknowledges it more strongly.
+ *    The decayMultiplier (1.0-3.0) means emotional memories persist 1-3x longer.
+ *
+ * 3. Working Memory as Active Context (Baddeley, 1974): The 7 working memory
+ *    slots represent what Claude is "actively thinking about" — goals, constraints,
+ *    and facts relevant to the current task. These decay if not refreshed.
+ *
  * Prerequisites:
  *   npm install @zensation/algorithms @zensation/core @anthropic-ai/sdk
  *   export ANTHROPIC_API_KEY=sk-ant-...
@@ -24,7 +41,11 @@ import {
 const workingMemory = new WorkingMemory({ maxSlots: 7 });
 const sessionMemory = new ShortTermMemory({ maxInteractions: 30 });
 
-// Facts the AI "knows" about the user (would come from persistent storage)
+// Facts the AI "knows" about the user (would come from persistent storage).
+// Each fact has an FSRS state that tracks how well it's "remembered":
+// - slow_decay: important facts (D=3.0, S=30 days) — retained for months
+// - normal_decay: regular facts (D=5.0, S=7 days) — needs periodic review
+// - fast_decay: fleeting info (D=7.5, S=2 days) — forgotten quickly
 const knownFacts = [
   { content: 'User is Alexander, a solo founder from Kiel, Germany', memory: initFromDecayClass('slow_decay') },
   { content: 'User prefers TypeScript over Python', memory: initFromDecayClass('normal_decay') },

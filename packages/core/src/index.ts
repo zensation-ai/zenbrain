@@ -28,5 +28,16 @@ export { ProceduralMemory, type ProceduralMemoryConfig } from './layers/procedur
 export { CoreMemory, type CoreMemoryConfig } from './layers/core';
 export { CrossContextMemory, type CrossContextConfig, type MergeCandidate } from './layers/cross-context';
 
+// Coordinator
+export {
+  MemoryCoordinator,
+  type CoordinatorConfig,
+  type StoreOptions,
+  type RecallOptions,
+  type RecallResult,
+  type ConsolidationResult,
+  type MemoryHealth,
+} from './coordinator';
+
 // Testing utilities
 export { InMemoryStorage, FakeEmbeddingProvider, InMemoryCache } from './testing';

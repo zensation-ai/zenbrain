@@ -12,6 +12,9 @@
  * @module @zensation/algorithms/hebbian
  */
 
+import type { Logger } from './types';
+import { noopLogger } from './types';
+
 // ===========================================
 // Configuration
 // ===========================================
@@ -42,11 +45,13 @@ export const HEBBIAN_CONFIG = {
  * Growth diminishes as weight approaches MAX_WEIGHT.
  *
  * @param currentWeight - Current edge weight
+ * @param logger - Optional logger for debug output
  * @returns New strengthened weight (capped at MAX_WEIGHT)
  */
-export function computeHebbianStrengthening(currentWeight: number): number {
+export function computeHebbianStrengthening(currentWeight: number, logger?: Logger): number {
   const growth = HEBBIAN_CONFIG.LEARNING_RATE * (1 - currentWeight / HEBBIAN_CONFIG.MAX_WEIGHT);
   const newWeight = currentWeight + Math.max(0, growth);
+  (logger ?? noopLogger).debug?.('Hebbian strengthening', { currentWeight, newWeight });
   return Math.min(HEBBIAN_CONFIG.MAX_WEIGHT, newWeight);
 }
 
@@ -57,10 +62,12 @@ export function computeHebbianStrengthening(currentWeight: number): number {
  * Returns 0 as a pruning signal when the result drops below MIN_WEIGHT.
  *
  * @param currentWeight - Current edge weight
+ * @param logger - Optional logger for debug output
  * @returns Decayed weight, or 0 as a pruning signal
  */
-export function computeHebbianDecay(currentWeight: number): number {
+export function computeHebbianDecay(currentWeight: number, logger?: Logger): number {
   const decayed = currentWeight * (1 - HEBBIAN_CONFIG.DECAY_RATE);
+  (logger ?? noopLogger).debug?.('Hebbian decay', { currentWeight, decayed, pruned: decayed < HEBBIAN_CONFIG.MIN_WEIGHT });
   if (decayed < HEBBIAN_CONFIG.MIN_WEIGHT) {
     return 0; // pruning signal
   }
@@ -73,24 +80,28 @@ export function computeHebbianDecay(currentWeight: number): number {
  *
  * Edge cases:
  *  - Empty array → return []
- *  - All-zero sum → return weights unchanged (cannot scale zeros)
+ *  - Near-zero sum → return weights unchanged (cannot scale zeros)
  *
  * @param weights - Array of edge weights
  * @param targetSum - Desired sum of all weights
+ * @param logger - Optional logger for debug output
  * @returns Normalized weight array
  */
 export function computeHomeostaticNormalization(
   weights: number[],
   targetSum: number,
+  logger?: Logger,
 ): number[] {
   if (weights.length === 0) { return []; }
 
   const currentSum = weights.reduce((a, b) => a + b, 0);
-  if (currentSum === 0) {
+  const EPSILON = 1e-10;
+  if (currentSum < EPSILON) {
     return [...weights];
   }
 
   const scale = targetSum / currentSum;
+  (logger ?? noopLogger).debug?.('Homeostatic normalization', { weightCount: weights.length, currentSum, targetSum, scale });
   return weights.map(w => w * scale);
 }
 

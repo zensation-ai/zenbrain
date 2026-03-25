@@ -102,3 +102,27 @@ export {
   stripNegation,
   safeJsonParse,
 } from './similarity';
+
+// Confidence Intervals
+export type { ConfidenceInterval } from './intervals';
+export { getRetrievabilityWithCI, propagateWithCI } from './intervals';
+
+// Visualization Helpers
+export type { CurvePoint, SchedulePoint } from './visualization';
+export { generateRetentionCurve, generateScheduleTimeline } from './visualization';
+
+// Sleep Consolidation
+export type {
+  SleepConsolidationConfig,
+  MemoryForConsolidation,
+  ReplayedMemory,
+  StrengthenedEdge,
+  PrunedEdge,
+  ConsolidationResult as SleepConsolidationResult,
+} from './sleep-consolidation';
+export {
+  SLEEP_CONSOLIDATION_CONFIG,
+  selectForReplay,
+  simulateReplay,
+  pruneWeakConnections,
+} from './sleep-consolidation';

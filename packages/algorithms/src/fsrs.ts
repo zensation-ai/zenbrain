@@ -52,7 +52,11 @@ export const MAX_DIFFICULTY = 10.0;
 /** Milliseconds per day */
 export const MS_PER_DAY = 86_400_000;
 
-// FSRS stability update hyper-parameters (tuned from open-spaced-repetition research)
+/**
+ * FSRS hyperparameters tuned from open-spaced-repetition/fsrs4anki.
+ * Reference: https://github.com/open-spaced-repetition/fsrs4anki
+ * These values are optimized across millions of Anki review logs.
+ */
 const FSRS_A = 0.2;
 const FSRS_B = 0.2;
 const FSRS_C = 0.3;

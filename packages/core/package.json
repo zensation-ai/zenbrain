@@ -1,6 +1,6 @@
 {
   "name": "@zensation/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "7-layer memory system for AI agents. Pluggable storage, embeddings, and LLM providers. Built on @zensation/algorithms.",
   "type": "module",
   "main": "./dist/index.js",

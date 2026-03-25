@@ -5,6 +5,24 @@
  * `streamText` pattern. Uses WorkingMemory for active context and FSRS
  * to filter facts by their current retrievability.
  *
+ * == Neuroscience Background ==
+ *
+ * This example demonstrates "Retrieval-Based Learning" (Karpicke & Roediger, 2008):
+ * the act of RECALLING information strengthens it more than re-studying.
+ * Each time the AI successfully uses a fact in a response, calling
+ * `updateAfterRecall(state, grade)` strengthens that memory's stability.
+ *
+ * The `recallFacts()` function filters by retrievability threshold — mimicking
+ * how the brain can't access memories below a certain activation level.
+ * Facts with high emotional priority (via `computeEmotionalWeight`) are
+ * retrieved preferentially, matching the amygdala's role in memory access.
+ *
+ * The combination of:
+ * - Working Memory (immediate context, 5 slots)
+ * - FSRS scheduling (long-term retention optimization)
+ * - Emotional prioritization (significance-based ranking)
+ * creates a biologically plausible memory system for AI assistants.
+ *
  * Prerequisites:
  *   npm install @zensation/algorithms @zensation/core ai @ai-sdk/openai
  *
