@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "@zensation/algorithms": "^0.1.0",
-    "@zensation/core": "^0.1.0"
+    "@zensation/core": "^0.1.0",
+    "tsx": "^4.19.0"
   },
   "devDependencies": {
-    "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }
 }

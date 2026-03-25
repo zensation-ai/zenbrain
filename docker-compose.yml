@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   playground:
     build: apps/playground
@@ -23,7 +21,7 @@ services:
       timeout: 3s
       retries: 5
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./packages/adapters/postgres/sql/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
