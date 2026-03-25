@@ -47,7 +47,7 @@
     "pg": "^8.13.0"
   },
   "peerDependencies": {
-    "@zensation/core": "^0.1.0"
+    "@zensation/core": "^0.2.0"
   },
   "devDependencies": {
     "@types/pg": "^8.11.0",

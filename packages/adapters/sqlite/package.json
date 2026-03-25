@@ -46,7 +46,7 @@
     "better-sqlite3": "^11.0.0"
   },
   "peerDependencies": {
-    "@zensation/core": "^0.1.0"
+    "@zensation/core": "^0.2.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
