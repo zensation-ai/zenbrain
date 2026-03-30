@@ -1,23 +1,56 @@
 {
   "name": "@zensation/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "7-layer memory system for AI agents. Pluggable storage, embeddings, and LLM providers. Built on @zensation/algorithms.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
-      "import": "./dist/interfaces/index.js"
+      "import": "./dist/interfaces/index.js",
+      "require": "./dist/interfaces/index.cjs"
     },
-    "./layers/*": {
-      "types": "./dist/layers/*.d.ts",
-      "import": "./dist/layers/*.js"
+    "./layers/working": {
+      "types": "./dist/layers/working.d.ts",
+      "import": "./dist/layers/working.js",
+      "require": "./dist/layers/working.cjs"
+    },
+    "./layers/short-term": {
+      "types": "./dist/layers/short-term.d.ts",
+      "import": "./dist/layers/short-term.js",
+      "require": "./dist/layers/short-term.cjs"
+    },
+    "./layers/episodic": {
+      "types": "./dist/layers/episodic.d.ts",
+      "import": "./dist/layers/episodic.js",
+      "require": "./dist/layers/episodic.cjs"
+    },
+    "./layers/semantic": {
+      "types": "./dist/layers/semantic.d.ts",
+      "import": "./dist/layers/semantic.js",
+      "require": "./dist/layers/semantic.cjs"
+    },
+    "./layers/procedural": {
+      "types": "./dist/layers/procedural.d.ts",
+      "import": "./dist/layers/procedural.js",
+      "require": "./dist/layers/procedural.cjs"
+    },
+    "./layers/core": {
+      "types": "./dist/layers/core.d.ts",
+      "import": "./dist/layers/core.js",
+      "require": "./dist/layers/core.cjs"
+    },
+    "./layers/cross-context": {
+      "types": "./dist/layers/cross-context.d.ts",
+      "import": "./dist/layers/cross-context.js",
+      "require": "./dist/layers/cross-context.cjs"
     }
   },
   "files": [
@@ -27,7 +60,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
@@ -59,10 +92,11 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@zensation/algorithms": "^0.2.0"
+    "@zensation/algorithms": "^0.2.1"
   },
   "devDependencies": {
-    "vitest": "^3.0.0",
-    "typescript": "^5.7.0"
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   }
 }

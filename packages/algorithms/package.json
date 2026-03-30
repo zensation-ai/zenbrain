@@ -1,55 +1,66 @@
 {
   "name": "@zensation/algorithms",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Neuroscience-inspired memory algorithms: FSRS spaced repetition, Hebbian learning, Ebbinghaus decay, emotional tagging, Bayesian confidence propagation. Zero dependencies.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./fsrs": {
       "types": "./dist/fsrs.d.ts",
-      "import": "./dist/fsrs.js"
+      "import": "./dist/fsrs.js",
+      "require": "./dist/fsrs.cjs"
     },
     "./ebbinghaus": {
       "types": "./dist/ebbinghaus.d.ts",
-      "import": "./dist/ebbinghaus.js"
+      "import": "./dist/ebbinghaus.js",
+      "require": "./dist/ebbinghaus.cjs"
     },
     "./emotional": {
       "types": "./dist/emotional.d.ts",
-      "import": "./dist/emotional.js"
+      "import": "./dist/emotional.js",
+      "require": "./dist/emotional.cjs"
     },
     "./context-retrieval": {
       "types": "./dist/context-retrieval.d.ts",
-      "import": "./dist/context-retrieval.js"
+      "import": "./dist/context-retrieval.js",
+      "require": "./dist/context-retrieval.cjs"
     },
     "./hebbian": {
       "types": "./dist/hebbian.d.ts",
-      "import": "./dist/hebbian.js"
+      "import": "./dist/hebbian.js",
+      "require": "./dist/hebbian.cjs"
     },
     "./bayesian": {
       "types": "./dist/bayesian.d.ts",
-      "import": "./dist/bayesian.js"
+      "import": "./dist/bayesian.js",
+      "require": "./dist/bayesian.cjs"
     },
     "./similarity": {
       "types": "./dist/similarity.d.ts",
-      "import": "./dist/similarity.js"
+      "import": "./dist/similarity.js",
+      "require": "./dist/similarity.cjs"
     },
     "./intervals": {
       "types": "./dist/intervals.d.ts",
-      "import": "./dist/intervals.js"
+      "import": "./dist/intervals.js",
+      "require": "./dist/intervals.cjs"
     },
     "./visualization": {
       "types": "./dist/visualization.d.ts",
-      "import": "./dist/visualization.js"
+      "import": "./dist/visualization.js",
+      "require": "./dist/visualization.cjs"
     },
     "./sleep-consolidation": {
       "types": "./dist/sleep-consolidation.d.ts",
-      "import": "./dist/sleep-consolidation.js"
+      "import": "./dist/sleep-consolidation.js",
+      "require": "./dist/sleep-consolidation.cjs"
     }
   },
   "files": [
@@ -59,7 +70,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
@@ -95,7 +106,8 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "vitest": "^3.0.0",
-    "typescript": "^5.7.0"
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   }
 }
