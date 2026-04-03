@@ -770,10 +770,12 @@ export class MemoryCoordinator {
     const deduped: RecallResult[] = [];
 
     for (const r of results) {
+      if (!r.content) continue;
       let isDuplicate = false;
 
       for (let i = 0; i < deduped.length; i++) {
         const existing = deduped[i];
+        if (!existing.content) continue;
         if (this.contentSimilarity(r.content, existing.content) > 0.9) {
           isDuplicate = true;
           // Keep the higher-scored version
@@ -797,6 +799,7 @@ export class MemoryCoordinator {
    * Compares word overlap between two strings.
    */
   private contentSimilarity(a: string, b: string): number {
+    if (!a || !b) return 0;
     const wordsA = new Set(a.toLowerCase().split(/\s+/).filter(w => w.length > 2));
     const wordsB = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 2));
 
