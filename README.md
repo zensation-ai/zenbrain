@@ -12,6 +12,8 @@
   <a href="https://github.com/zensation-ai/zenbrain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
   <a href="#"><img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Zero Dependencies"></a>
+  <a href="https://doi.org/10.5281/zenodo.19353663"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.19353663.svg" alt="DOI"></a>
+  <a href="https://huggingface.co/alexanderbering/zenbrain"><img src="https://img.shields.io/badge/%F0%9F%A4%97_HuggingFace-Model_Card-yellow" alt="HuggingFace"></a>
   <a href="https://discord.gg/YKVTHaXK"><img src="https://img.shields.io/discord/1485937855447695443?color=7289da&label=Discord&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://x.com/zensationai"><img src="https://img.shields.io/twitter/follow/zensationai?style=social" alt="Follow on X"></a>
 </p>
@@ -297,6 +299,27 @@ npm test
 
 # Build all packages
 npm run build
+```
+
+## Research
+
+ZenBrain's architecture and algorithms are documented in a peer-reviewed technical disclosure:
+
+- **Paper:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://zenodo.org/records/19413933) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663))
+- **TDCommons:** [Technical Disclosure](https://www.tdcommons.org/dpubs_series/9683) (CC BY 4.0)
+- **HuggingFace:** [Model Card & Benchmarks](https://huggingface.co/alexanderbering/zenbrain)
+
+If you use ZenBrain in academic work, please cite:
+
+```bibtex
+@misc{bering2026zenbrain,
+  title   = {ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems},
+  author  = {Bering, Alexander},
+  year    = {2026},
+  doi     = {10.5281/zenodo.19353663},
+  url     = {https://doi.org/10.5281/zenodo.19353663},
+  publisher = {Zenodo}
+}
 ```
 
 ## Community

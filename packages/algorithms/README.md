@@ -201,6 +201,10 @@ updateAfterRecall(state, 4, 0.9);
 updateAfterRecall(state, 4, 0.9, new Date(), console);
 ```
 
+## Research
+
+These algorithms are documented in a peer-reviewed technical disclosure: [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture](https://doi.org/10.5281/zenodo.19353663) (Zenodo). See also: [HuggingFace Model Card](https://huggingface.co/alexanderbering/zenbrain).
+
 ## Part of ZenBrain
 
 This package is part of the [ZenBrain](https://github.com/zensation-ai/zenbrain) monorepo — the neuroscience-inspired memory system for AI agents.

@@ -40,7 +40,7 @@ I went deep into the neuroscience literature and implemented the actual mechanis
 
 - **Context-dependent retrieval** -- Tulving's Encoding Specificity Principle. Memories recalled better when retrieval context matches encoding context. Up to 30% retrieval boost.
 
-**New in v0.2.0:**
+**New in v0.2.1:**
 
 - **Sleep Consolidation** -- simulates memory replay during sleep (Stickgold & Walker 2013). Your AI can run a "sleep cycle" that replays important memories, boosts their stability by 50%, strengthens Hebbian edges, and prunes weak connections. No other memory system has this.
 
