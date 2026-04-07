@@ -14,7 +14,7 @@ The industry's answer to this problem is: throw it in a vector database. Embed t
 
 This is not how memory works. This is a search engine pretending to be memory.
 
-I spent the last year building an AI platform (170K+ lines of code, 9,228 tests), and the hardest problem was always memory. Not storage -- memory. There's a difference. Storage is putting things in a database. Memory is knowing what to remember, when to forget, how to strengthen connections, and how context affects recall.
+I spent the last year building an AI platform (322K+ lines of code, 11,589 tests), and the hardest problem was always memory. Not storage -- memory. There's a difference. Storage is putting things in a database. Memory is knowing what to remember, when to forget, how to strengthen connections, and how context affects recall.
 
 So I went deep into the neuroscience literature. And I built the mechanisms the human brain actually uses.
 
@@ -242,7 +242,7 @@ The `@zensation/algorithms` package is the foundation. Here's what's coming:
 
 - **Docker Compose** -- One-command deployment for the complete self-hosted memory stack.
 
-This entire system was extracted from a production AI platform running 170K+ lines of code with 9,228 tests. It's not theoretical -- these algorithms have been handling real workloads.
+This entire system was extracted from a production AI platform running 322K+ lines of code with 11,589 tests. It's not theoretical -- these algorithms have been handling real workloads.
 
 The competition (Mem0 with $24M, Letta with $10M) has 2-3 memory layers and none of this neuroscience machinery. I built this solo because I believe the open-source community deserves a deeper approach to AI memory.
 

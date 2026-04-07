@@ -14,7 +14,7 @@ Neuroscience-inspired memory for AI agents
 
 ZenBrain is a 7-layer memory architecture for AI agents that implements actual neuroscience: FSRS spaced repetition (the algorithm behind Anki), Hebbian learning, sleep consolidation (memory replay simulation), emotional memory tagging, Bayesian confidence propagation, and a MemoryCoordinator that orchestrates all layers. Not a vector database with a wrapper. Actual neuroscience. 276 tests.
 
-The core algorithms are pure TypeScript with zero dependencies -- install with `npm install @zensation/algorithms` and start giving your AI real memory in minutes. Every algorithm is tree-shakeable, so you can import only what you need. Extracted from a production AI platform with 170K+ lines of code and 9,228 tests.
+The core algorithms are pure TypeScript with zero dependencies -- install with `npm install @zensation/algorithms` and start giving your AI real memory in minutes. Every algorithm is tree-shakeable, so you can import only what you need. Extracted from a production AI platform with 322K+ lines of code and 11,589 tests.
 
 While competitors like Mem0 ($24M raised) and Letta ($10M raised) offer 2-3 memory layers, ZenBrain provides 7 specialized layers with algorithms grounded in decades of memory research. Open source under Apache 2.0, built for the community.
 

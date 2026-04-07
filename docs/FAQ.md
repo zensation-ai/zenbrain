@@ -22,7 +22,7 @@ ZenBrain has deeper scientific grounding — every algorithm cites its neuroscie
 
 ### Is ZenBrain production-ready?
 
-The algorithms and core layers are extracted from ZenAI, a production platform with 170K+ lines of code and 9,228 passing tests. The algorithms are battle-tested with real users.
+The algorithms and core layers are extracted from ZenAI, a production platform with 322K+ lines of code and 11,589 passing tests. The algorithms are battle-tested with real users.
 
 That said, ZenBrain is at v0.1 — expect API changes before v1.0. We follow semver.
 

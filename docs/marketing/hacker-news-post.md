@@ -12,7 +12,7 @@ https://github.com/zensation-ai/zenbrain
 
 Hi HN, Alexander here, solo dev from Kiel, Germany.
 
-I've been building a production AI platform for the past year (170K+ LOC, 9,228 tests). The hardest problem was always memory: how do you make an AI that actually remembers things in a way that's useful, not just a vector database that returns the top-k nearest neighbors?
+I've been building a production AI platform for the past year (322K+ LOC, 11,589 tests). The hardest problem was always memory: how do you make an AI that actually remembers things in a way that's useful, not just a vector database that returns the top-k nearest neighbors?
 
 I went deep into the neuroscience literature and implemented the actual mechanisms the human brain uses for memory:
 

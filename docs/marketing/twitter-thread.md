@@ -89,7 +89,7 @@ import { selectForReplay } from '@zensation/algorithms/sleep-consolidation'
 
 **Tweet 7 (Links + CTA)**
 
-Extracted from a production AI platform (170K+ LOC, 9,228 tests). 276 ZenBrain tests. Battle-tested, not theoretical.
+Extracted from a production AI platform (322K+ LOC, 11,589 tests). 276 ZenBrain tests. Battle-tested, not theoretical.
 
 GitHub: github.com/zensation-ai/zenbrain
 npm: npmjs.com/package/@zensation/algorithms

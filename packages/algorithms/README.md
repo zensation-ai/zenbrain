@@ -9,7 +9,7 @@
 
 ## What's Inside
 
-Seven battle-tested algorithms extracted from a production AI system (170K+ LOC, 9,200+ tests):
+Seven battle-tested algorithms extracted from a production AI system (322K+ LOC, 11,500+ tests):
 
 | Algorithm | Inspired By | What It Does |
 |-----------|------------|--------------|

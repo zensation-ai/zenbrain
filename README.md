@@ -272,11 +272,11 @@ function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
 
 ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai) — a production AI platform with:
 
-- **170,000+** lines of TypeScript
-- **9,228** passing tests (ZenAI) + **276** tests (ZenBrain)
-- **55** AI tools across 14 categories
+- **322,000+** lines of TypeScript
+- **11,589** passing tests (ZenAI) + **276** tests (ZenBrain)
+- **60** AI tools across 14 categories
 - **7-layer** HiMeS memory architecture
-- **Phase 141** of active development
+- **Phase 145** of active development
 
 These aren't toy implementations. They've been battle-tested with real users, real data, and real edge cases.
 
@@ -305,7 +305,7 @@ npm run build
 
 ZenBrain's architecture and algorithms are documented in a peer-reviewed technical disclosure:
 
-- **Paper:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://zenodo.org/records/19413933) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663))
+- **Paper:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://zenodo.org/records/19450421) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663))
 - **TDCommons:** [Technical Disclosure](https://www.tdcommons.org/dpubs_series/9683) (CC BY 4.0)
 - **HuggingFace:** [Model Card & Benchmarks](https://huggingface.co/alexanderbering/zenbrain)
 
