@@ -305,7 +305,7 @@ npm run build
 
 ZenBrain's architecture and algorithms are documented in a peer-reviewed technical disclosure:
 
-- **Paper:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://zenodo.org/records/19450421) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663))
+- **Paper:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://zenodo.org/records/19481262) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663))
 - **TDCommons:** [Technical Disclosure](https://www.tdcommons.org/dpubs_series/9683) (CC BY 4.0)
 - **HuggingFace:** [Model Card & Benchmarks](https://huggingface.co/alexanderbering/zenbrain)
 
