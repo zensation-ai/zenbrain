@@ -338,7 +338,7 @@ npm run build
 
 ## Research
 
-ZenBrain's architecture and algorithms are documented in a peer-reviewed technical disclosure:
+ZenBrain's architecture and algorithms are documented in an open-access technical disclosure:
 
 - **Paper:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://doi.org/10.5281/zenodo.19353663) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663) — resolves to the latest version)
 - **TDCommons:** [Technical Disclosure](https://www.tdcommons.org/dpubs_series/9683) (CC BY 4.0)

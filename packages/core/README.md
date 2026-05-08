@@ -59,7 +59,7 @@ import type { StorageAdapter, EmbeddingProvider } from '@zensation/core/interfac
 
 ## Research
 
-These algorithms are documented in a peer-reviewed technical disclosure: [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture](https://doi.org/10.5281/zenodo.19353663) (Zenodo). See also: [HuggingFace Model Card](https://huggingface.co/alexanderbering/zenbrain).
+These algorithms are documented in an open-access technical disclosure: [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture](https://doi.org/10.5281/zenodo.19353663) (Zenodo). See also: [HuggingFace Model Card](https://huggingface.co/alexanderbering/zenbrain).
 
 ## Part of ZenBrain
 
