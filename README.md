@@ -58,7 +58,7 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 ---
 
-## Why ZenBrain?
+## Comparison with related open-source memory systems
 
 Every AI memory system today is a key-value store or a vector database with a thin layer on top. Human memory doesn't work that way. Your brain has specialized systems for different types of memory, active forgetting mechanisms, emotional modulation, and context-dependent retrieval.
 
@@ -81,7 +81,6 @@ ZenBrain brings these mechanisms to AI agents:
 | Zero Dependencies (core) | :white_check_mark: | :x: | :x: | :x: |
 | Self-Hosted | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
-> Mem0 raised $24M. Letta raised $10M. ZenBrain has 7 layers, they have 2-3. This is the deepest open-source memory system for AI agents.
 
 ### Advanced algorithms (v0.3.0, May 2026)
 
