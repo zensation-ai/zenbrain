@@ -338,7 +338,7 @@ These aren't toy implementations — ZenBrain's algorithms are extracted from [Z
 
 - **528 tests** (429 algorithms + 99 core), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
-- **Reproducible** — `npm ci && npm run build` recreates the published `@zensation/algorithms@0.3.3` (152 files, matching the npm registry)
+- **Reproducible** — building from this source produces the same 152-file `@zensation/algorithms@0.3.3` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
 
 ## Contributing
