@@ -9,9 +9,11 @@
 
 ## What's Inside
 
-**22 neuroscience-inspired algorithms**, extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 429 tests.
+**20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 429 tests.
 
-### Core (12 algorithms — since v0.2.x)
+> ZenBrain's full architecture is **15 neuroscience-inspired mechanisms (9 foundational + 6 PMA)** ([paper](https://arxiv.org/abs/2604.23878)). The 6 PMA components are proprietary; this open-source package ships the algorithm library described below.
+
+### Core (10 algorithms — since v0.2.x)
 
 | Algorithm | Inspired By | What It Does |
 |-----------|------------|--------------|

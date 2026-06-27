@@ -11,8 +11,8 @@ external deadlines; the items below are directions, not dated commitments.
 
 ### v0.3 — Advanced algorithms (May 2026)
 
-- `@zensation/algorithms@0.3.x` — 10 advanced algorithms added on top of the 12
-  core ones (**22 total**), each a zero-dependency subpath export: prediction-error
+- `@zensation/algorithms@0.3.x` — 10 advanced algorithms added on top of the 10
+  core ones (**20 total**), each a zero-dependency subpath export: prediction-error
   coupled FSRS (`fsrs-vmPFC`), two-factor synaptic Hebbian, simulation-selection
   sleep, spectral (Fiedler-value) KG health, Information-Bottleneck budget,
   dopamine-modulated routing, Hopfield STM, Personalized PageRank,
@@ -30,7 +30,7 @@ external deadlines; the items below are directions, not dated commitments.
 
 ### v0.1 — Foundation (March 2026)
 
-- Initial public release: the 7-layer memory architecture and 12 core
+- Initial public release: the 7-layer memory architecture and 10 core
   neuroscience-inspired algorithms (FSRS, Ebbinghaus, Hebbian, Bayesian,
   emotional, context-retrieval, similarity, intervals, visualization,
   sleep-consolidation, shared types).

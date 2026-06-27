@@ -2,6 +2,18 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] — 2026-06-27
+
+### Documentation consistency
+
+Cosmetic patch — no code changes. Reconciles the algorithm-count wording across the repo and the npm package so it matches the architecture described in the paper:
+
+- The **architecture** is **15 neuroscience-inspired mechanisms — 9 foundational algorithms + 6 PMA components** (the 6 PMA are proprietary; see the [paper](https://arxiv.org/abs/2604.23878)). Stated as a clear callout in the root and package READMEs.
+- The **open-source package** ships **20 algorithm modules (10 core + 10 advanced)** — corrected from the previous "22 / 12 core" miscount (the old "12 core" counted 10 algorithms plus shared `types`).
+- `package.json` description, `docs/ROADMAP.md`, and historical changelog counts aligned to 10 core / 20 total.
+
+No algorithm code or APIs changed.
+
 ## [0.2.2] — 2026-05-24
 
 `@zensation/core` patch — packaging + dependency hygiene. No runtime API changes.
@@ -60,7 +72,7 @@ Adds 10 advanced algorithms grounded in recent neuroscience and ML research to t
 - **+250 new tests** (429 total, 179 existing + 250 new). All passing on vitest.
 
 ### Build
-- `tsup` ESM + CJS + DTS dual format extended to all 22 algorithm modules.
+- `tsup` ESM + CJS + DTS dual format extended to all 20 algorithm modules.
 - Package size: 379 KB packed, 1.7 MB unpacked, 152 files.
 
 ### Breaking changes
@@ -98,7 +110,7 @@ Adds 10 advanced algorithms grounded in recent neuroscience and ML research to t
 
 ### Added
 - Initial public release.
-- 12 neuroscience-inspired memory algorithms (FSRS, Ebbinghaus, Hebbian, Bayesian, Emotional, Context-Retrieval, Similarity, Intervals, Visualization, Sleep-Consolidation, plus shared types).
+- 10 neuroscience-inspired memory algorithms (FSRS, Ebbinghaus, Hebbian, Bayesian, Emotional, Context-Retrieval, Similarity, Intervals, Visualization, Sleep-Consolidation, plus shared types).
 - 7-layer memory system (Working, Short-Term, Episodic, Semantic, Procedural, Core, Cross-Context).
 - Pluggable storage / embeddings / LLM providers.
 - Apache-2.0 license.

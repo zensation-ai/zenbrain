@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">ZenBrain</h1>
   <p align="center"><strong>The neuroscience-inspired memory system for AI agents.</strong></p>
-  <p align="center">7 memory layers. 22 neuroscience-inspired algorithms. FSRS, Hebbian, Sleep consolidation, Emotional tagging — plus 10 advanced algorithms (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, IB budget, Hopfield STM, Personalized PageRank, ...).<br/>Pure TypeScript. Zero dependencies. 528 tests. Extracted from a production AI platform.</p>
+  <p align="center">7 memory layers. Real neuroscience — FSRS, Hebbian, sleep consolidation, emotional tagging, plus 10 advanced research modules (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, IB budget, Hopfield STM, ...).<br/>Pure TypeScript. Zero dependencies. 528 tests. Extracted from a production AI platform.</p>
 </p>
 
 <p align="center">
@@ -56,6 +56,8 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 > **Your AI forgets everything after every conversation.** ZenBrain fixes that — with the same mechanisms your brain uses: spaced repetition, emotional consolidation, Hebbian strengthening, and exponential forgetting curves. Not a vector database with a wrapper. Actual neuroscience.
 
+> **Architecture vs. this package.** ZenBrain's architecture is **15 neuroscience-inspired mechanisms — 9 foundational algorithms + 6 Predictive Memory Architecture (PMA) components** ([paper](https://arxiv.org/abs/2604.23878)). The 6 PMA components are proprietary and run in the production system. **This open-source package ships the algorithm library: 10 core algorithms + 10 advanced research modules (20 modules), zero-dependency.**
+
 ---
 
 ## Comparison with related open-source memory systems
@@ -84,7 +86,7 @@ ZenBrain brings these mechanisms to AI agents:
 
 ### Advanced algorithms (v0.3.0, May 2026)
 
-On top of the 12 core algorithms above, `@zensation/algorithms@0.3.0` ships 10 advanced algorithms grounded in recent neuroscience and ML research. Each is exposed as its own sub-path (`@zensation/algorithms/<name>`) and remains zero-dependency:
+On top of the 10 core algorithms above, `@zensation/algorithms@0.3.0` ships 10 advanced algorithms grounded in recent neuroscience and ML research. Each is exposed as its own sub-path (`@zensation/algorithms/<name>`) and remains zero-dependency:
 
 - **`fsrs-vmPFC`** — Prediction-Error coupled FSRS
 - **`hebbian-two-factor`** — Two-Factor synaptic consolidation
@@ -240,7 +242,7 @@ const dueItems = await memory.getReviewQueue();
 
 | Package | Description | Status |
 |---------|-------------|--------|
-| [`@zensation/algorithms`](./packages/algorithms) | 22 neuroscience algorithms — 12 core (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, intervals, visualization) + 10 advanced (vmPFC-FSRS, two-factor Hebbian, IB budget, Hopfield STM, …) | :white_check_mark: Published |
+| [`@zensation/algorithms`](./packages/algorithms) | 20 algorithm modules — 10 core (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, intervals, visualization) + 10 advanced (vmPFC-FSRS, two-factor Hebbian, IB budget, Hopfield STM, …) | :white_check_mark: Published |
 | [`@zensation/core`](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
 | [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Ready |
 | [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Ready |
