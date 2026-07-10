@@ -67,9 +67,14 @@ jobs:
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1; Node 20 bundles npm 10.x.
+      - name: Upgrade npm (trusted publishing needs >= 11.5.1)
+        run: npm install -g npm@^11.5.1
       - run: npm install --no-package-lock
       - run: cd packages/algorithms && npm run build
       - run: cd packages/core && npm run build
+      # Auth is via OIDC trusted publishing configured on npmjs.com (no NPM_TOKEN);
+      # provenance attestations are generated automatically.
       # Idempotent: only publish a version that is not already on the registry,
       # so re-tagging or a tag that touches only one package never fails.
       - name: Publish algorithms (skip if already published)
@@ -79,10 +84,8 @@ jobs:
           if npm view "@zensation/algorithms@$VERSION" version >/dev/null 2>&1; then
             echo "@zensation/algorithms@$VERSION already on npm — skipping"
           else
-            npm publish --provenance --access public
+            npm publish --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish core (skip if already published)
         run: |
           cd packages/core
@@ -90,7 +93,5 @@ jobs:
           if npm view "@zensation/core@$VERSION" version >/dev/null 2>&1; then
             echo "@zensation/core@$VERSION already on npm — skipping"
           else
-            npm publish --provenance --access public
+            npm publish --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
