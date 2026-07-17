@@ -71,8 +71,11 @@ jobs:
       - name: Upgrade npm (trusted publishing needs >= 11.5.1)
         run: npm install -g npm@^11.5.1
       - run: npm install --no-package-lock
+      # Build order matters: algorithms -> core -> adapters (each depends on the previous).
       - run: cd packages/algorithms && npm run build
       - run: cd packages/core && npm run build
+      - run: cd packages/adapters/postgres && npm run build
+      - run: cd packages/adapters/sqlite && npm run build
       # Auth is via OIDC trusted publishing configured on npmjs.com (no NPM_TOKEN);
       # provenance attestations are generated automatically.
       # Idempotent: only publish a version that is not already on the registry,
@@ -92,6 +95,24 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           if npm view "@zensation/core@$VERSION" version >/dev/null 2>&1; then
             echo "@zensation/core@$VERSION already on npm — skipping"
+          else
+            npm publish --access public
+          fi
+      - name: Publish adapter-postgres (skip if already published)
+        run: |
+          cd packages/adapters/postgres
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@zensation/adapter-postgres@$VERSION" version >/dev/null 2>&1; then
+            echo "@zensation/adapter-postgres@$VERSION already on npm — skipping"
+          else
+            npm publish --access public
+          fi
+      - name: Publish adapter-sqlite (skip if already published)
+        run: |
+          cd packages/adapters/sqlite
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@zensation/adapter-sqlite@$VERSION" version >/dev/null 2>&1; then
+            echo "@zensation/adapter-sqlite@$VERSION already on npm — skipping"
           else
             npm publish --access public
           fi
