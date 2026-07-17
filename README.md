@@ -248,8 +248,8 @@ const dueItems = await memory.getReviewQueue();
 |---------|-------------|--------|
 | [`@zensation/algorithms`](./packages/algorithms) | 20 algorithm modules — 10 core (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, intervals, visualization) + 10 advanced (vmPFC-FSRS, two-factor Hebbian, IB budget, Hopfield STM, …) | :white_check_mark: Published |
 | [`@zensation/core`](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
-| [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Ready |
-| [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Ready |
+| [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Published |
+| [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Published |
 
 ### Tree-Shakeable Imports
 
