@@ -2,6 +2,24 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] — 2026-07-17
+
+### Added
+
+- **`@zensation/adapter-sqlite` and `@zensation/adapter-postgres` are now published to npm** (both `0.1.0`). Until now the README listed them as ready while they existed only in this repository, so anyone following the documented setup could not install the storage layer it described. The release job publishes them alongside `core` and `algorithms`.
+
+### Fixed — `@zensation/adapter-sqlite`
+
+The SQLite path did not work end to end when driven through `MemoryCoordinator`. Nothing in CI exercised the real core↔adapter integration, so five independent defects went unnoticed. Each was reproduced against realistic data before being fixed:
+
+- **`store()` threw on every semantic fact.** The layers bind `fsrs_next_review` as a `Date`, which better-sqlite3 cannot bind. Parameters are now coerced (`Date` → ISO string).
+- **`recall()` returned nothing, silently.** `embedding <=> ?` was rewritten to the constant `0`, producing `ORDER BY 0` — invalid in SQLite. The coordinator swallows per-layer errors, so callers saw an empty result indistinguishable from an empty memory. The operator now maps to a real cosine-distance function (`zb_cosine_dist`) over the stored embeddings, so similarity search works. It scans linearly (no ANN index): suitable for development, tests and single-user data; use the PostgreSQL adapter for large workloads.
+- **Repeated `$1` placeholders bound the wrong values**, breaking all three vector queries. `$N` now maps to numbered `?N` with object binding.
+- **`EpisodicMemory.getRecent(limit, context)` swapped its parameters.** Its query places `$2` before `$1`, so positional binding assigned the limit to `context` and the context to `LIMIT`. Every context-filtered recall failed.
+- **`procedural_memories` used a `trigger_text` column** while the layer inserts into `trigger`, so every procedural write failed. The column now matches the canonical schema; all six tables are identical to it.
+
+Adds a coordinator↔adapter integration test suite covering each regression, plus distance-function correctness. The PostgreSQL adapter is unaffected: it passes parameters straight to `pg`, where `$N`, `<=>` and date binding are native.
+
 ## [0.3.4] — 2026-06-27
 
 ### Documentation consistency
