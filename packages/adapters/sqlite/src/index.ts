@@ -5,11 +5,13 @@
  * Zero-config, file-based. Perfect for development, testing, and single-user deployments.
  *
  * Uses better-sqlite3 for synchronous, fast SQLite access.
- * Translates PostgreSQL-style $1/$2 placeholders to SQLite ? placeholders.
+ * Translates PostgreSQL-style $1/$2 placeholders to SQLite ?1/?2 placeholders.
  *
- * NOTE: This adapter does NOT support pgvector embedding operations.
- * For embedding-based search, use the PostgreSQL adapter.
- * SQLite layers will fall back to non-vector retrieval (recency, keyword match).
+ * Embedding search: pgvector's `<=>` operator is rewritten to a cosine-distance
+ * UDF (zb_cosine_dist) over the JSON-array embeddings this adapter stores, so
+ * semantic/episodic/procedural similarity search works on SQLite. It is a full
+ * scan per query (no ANN index) — fine for development, testing and single-user
+ * data volumes; use the PostgreSQL adapter for large production workloads.
  */
 import Database from 'better-sqlite3';
 import type { StorageAdapter, QueryResult } from '@zensation/core';
@@ -33,9 +35,12 @@ export interface SqliteAdapterConfig {
 
 /**
  * Translate PostgreSQL-style parameterized queries to SQLite.
- * - $1, $2, $3 → ?, ?, ?
+ * - $1, $2, $3 → ?1, ?2, ?3 (numbered, so a repeated $1 binds the same value —
+ *   the layers' vector queries use $1 twice with a single parameter)
  * - Remove ::vector casts (not supported in SQLite)
- * - Remove pgvector operators (<=>)
+ * - Rewrite the pgvector distance operator (embedding <=> $1) to the
+ *   zb_cosine_dist() UDF registered on the connection, so similarity search
+ *   works on SQLite instead of producing invalid SQL
  * - Replace gen_random_uuid() with a generated UUID
  * - Replace NOW() with datetime('now')
  * - Remove HNSW/GIN index hints
@@ -43,8 +48,10 @@ export interface SqliteAdapterConfig {
 function translateQuery(sql: string): string {
   let translated = sql;
 
-  // Replace $N parameters with ?
-  translated = translated.replace(/\$\d+/g, '?');
+  // Replace $N parameters with numbered ?N placeholders. Numbered (not anonymous)
+  // is load-bearing: the vector queries reference $1 in both SELECT and ORDER BY
+  // while passing the embedding only once.
+  translated = translated.replace(/\$(\d+)/g, '?$1');
 
   // Remove PostgreSQL type casts (::vector, ::text, etc.)
   translated = translated.replace(/::\w+/g, '');
@@ -59,10 +66,9 @@ function translateQuery(sql: string): string {
   // Replace TIMESTAMPTZ with TEXT (SQLite stores dates as text)
   translated = translated.replace(/\bTIMESTAMPTZ\b/gi, 'TEXT');
 
-  // Remove vector-specific operations (embedding <=> $1)
-  // These queries won't work in SQLite — caller should handle fallback
-  translated = translated.replace(/\bembedding\s*<=>\s*\?/g, '0');
-  translated = translated.replace(/1\s*-\s*\(0\)/g, '0 as score --');
+  // pgvector cosine-distance operator → cosine UDF over the stored JSON-array
+  // embedding. Ascending distance keeps the layers' ORDER BY semantics.
+  translated = translated.replace(/(\w+)\s*<=>\s*(\?\d+)/g, 'zb_cosine_dist($1, $2)');
 
   // Replace ON CONFLICT (label) DO UPDATE with SQLite equivalent
   // SQLite uses the same syntax, so this should work as-is
@@ -72,6 +78,21 @@ function translateQuery(sql: string): string {
   // We'll keep RETURNING for modern SQLite versions
 
   return translated;
+}
+
+/**
+ * Parse an embedding stored as a pgvector-style string ("[0.1,0.2,...]") into
+ * a number array. Returns null for anything that isn't a numeric JSON array.
+ */
+function parseVector(value: unknown): number[] | null {
+  if (typeof value !== 'string' || value.length < 2) return null;
+  try {
+    const arr: unknown = JSON.parse(value);
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    return arr.every((x): x is number => typeof x === 'number') ? arr : null;
+  } catch {
+    return null;
+  }
 }
 
 export class SqliteAdapter implements StorageAdapter {
@@ -92,6 +113,26 @@ export class SqliteAdapter implements StorageAdapter {
 
     this.db = new Database(filename);
 
+    // Cosine distance over pgvector-style string embeddings ("[0.1,...]").
+    // translateQuery rewrites `embedding <=> $1` to this UDF, giving SQLite real
+    // similarity search. Mismatched/unparsable vectors get max distance (1) so
+    // they sort last instead of crashing the query.
+    this.db.function('zb_cosine_dist', { deterministic: true }, (a: unknown, b: unknown): number => {
+      const va = parseVector(a);
+      const vb = parseVector(b);
+      if (!va || !vb || va.length !== vb.length) return 1;
+      let dot = 0;
+      let na = 0;
+      let nb = 0;
+      for (let i = 0; i < va.length; i++) {
+        dot += va[i] * vb[i];
+        na += va[i] * va[i];
+        nb += vb[i] * vb[i];
+      }
+      const denom = Math.sqrt(na) * Math.sqrt(nb);
+      return denom > 0 ? 1 - dot / denom : 1;
+    });
+
     // Enable WAL mode for better performance
     if (config.walMode !== false) {
       this.db.pragma('journal_mode = WAL');
@@ -111,24 +152,37 @@ export class SqliteAdapter implements StorageAdapter {
     const normalized = translated.trim().toUpperCase();
 
     try {
-      // Filter out null/undefined params that SQLite doesn't handle well
-      const safeParams = (params ?? []).map(p => p === undefined ? null : p);
+      // Coerce params SQLite can't bind: undefined → null, Date → ISO string.
+      // The core layers pass FSRS review times (fsrs_next_review) as Date objects;
+      // better-sqlite3 binds only numbers, strings, bigints, buffers and null.
+      const safeParams = (params ?? []).map(p =>
+        p === undefined ? null : p instanceof Date ? p.toISOString() : p
+      );
+
+      // better-sqlite3 treats numbered placeholders (?1, ?2) as *named* parameters,
+      // so they must be bound via an object keyed "1".."N" — spreading positional
+      // values against them throws "Too many parameter values were provided".
+      const bindArgs: unknown[] = /\?\d+/.test(translated)
+        ? safeParams.length > 0
+          ? [Object.fromEntries(safeParams.map((v, i) => [String(i + 1), v]))]
+          : []
+        : safeParams;
 
       if (normalized.startsWith('SELECT') || normalized.startsWith('WITH')) {
         const stmt = this.db.prepare(translated);
-        const rows = stmt.all(...safeParams) as T[];
+        const rows = stmt.all(...bindArgs) as T[];
         return { rows, rowCount: rows.length };
       }
 
       if (normalized.startsWith('INSERT') && translated.toUpperCase().includes('RETURNING')) {
         const stmt = this.db.prepare(translated);
-        const rows = stmt.all(...safeParams) as T[];
+        const rows = stmt.all(...bindArgs) as T[];
         return { rows, rowCount: rows.length };
       }
 
       if (normalized.startsWith('INSERT') || normalized.startsWith('UPDATE') || normalized.startsWith('DELETE')) {
         const stmt = this.db.prepare(translated);
-        const result = stmt.run(...safeParams);
+        const result = stmt.run(...bindArgs);
         return { rows: [] as T[], rowCount: result.changes };
       }
 
@@ -202,7 +256,11 @@ export class SqliteAdapter implements StorageAdapter {
       -- Layer 5: Procedural Memory
       CREATE TABLE IF NOT EXISTS procedural_memories (
         id TEXT PRIMARY KEY,
-        trigger_text TEXT NOT NULL,
+        -- Must match the canonical schema (adapters/postgres/sql/001_init.sql),
+        -- which ProceduralMemory queries by this name. SQLite accepts trigger as
+        -- an unquoted column name despite TRIGGER being a keyword; calling it
+        -- trigger_text here silently broke every procedural insert.
+        trigger TEXT NOT NULL,
         steps TEXT NOT NULL DEFAULT '[]',
         tools TEXT NOT NULL DEFAULT '[]',
         outcome TEXT NOT NULL,
