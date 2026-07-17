@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { MemoryCoordinator, FakeEmbeddingProvider } from '@zensation/core';
+import { MemoryCoordinator, EpisodicMemory, FakeEmbeddingProvider } from '@zensation/core';
 import { createMemoryAdapter } from '../src/index.js';
 
 // ── Coordinator ↔ SqliteAdapter integration ────────────────────────────────────
@@ -134,6 +134,38 @@ describe('SqliteAdapter vector + parameter translation', () => {
     const names = columns.map(c => c.name);
     expect(names).toContain('trigger');
     expect(names).not.toContain('trigger_text');
+    await adapter.close();
+  });
+});
+
+describe('episodic layer on SqliteAdapter', () => {
+  it('filters getRecent by context without swapping parameters', async () => {
+    // Regression: getRecent() builds `WHERE context = $2 ... LIMIT $1` — $2 appears
+    // *before* $1 in the SQL text. Translating $N to anonymous `?` bound them
+    // positionally, so context got the limit and LIMIT got the context string
+    // ("datatype mismatch"). Numbered ?N placeholders bind by index, not position.
+    const adapter = createMemoryAdapter();
+    const episodic = new EpisodicMemory({
+      storage: adapter,
+      embedding: new FakeEmbeddingProvider(),
+    });
+
+    await episodic.store('Shipped the release', 'work');
+    await episodic.store('Hiked the coast path', 'holiday');
+    await episodic.store('Reviewed the roadmap', 'work');
+
+    const work = await episodic.getRecent(10, 'work');
+    expect(work).toHaveLength(2);
+    expect(work.every(e => e.context === 'work')).toBe(true);
+
+    const holiday = await episodic.getRecent(10, 'holiday');
+    expect(holiday).toHaveLength(1);
+    expect(holiday[0].content).toBe('Hiked the coast path');
+
+    // The unfiltered path uses only $1 and must keep working.
+    const all = await episodic.getRecent(10);
+    expect(all).toHaveLength(3);
+
     await adapter.close();
   });
 });
