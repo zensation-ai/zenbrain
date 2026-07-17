@@ -256,7 +256,11 @@ export class SqliteAdapter implements StorageAdapter {
       -- Layer 5: Procedural Memory
       CREATE TABLE IF NOT EXISTS procedural_memories (
         id TEXT PRIMARY KEY,
-        trigger_text TEXT NOT NULL,
+        -- Must match the canonical schema (adapters/postgres/sql/001_init.sql),
+        -- which ProceduralMemory queries by this name. SQLite accepts trigger as
+        -- an unquoted column name despite TRIGGER being a keyword; calling it
+        -- trigger_text here silently broke every procedural insert.
+        trigger TEXT NOT NULL,
         steps TEXT NOT NULL DEFAULT '[]',
         tools TEXT NOT NULL DEFAULT '[]',
         outcome TEXT NOT NULL,

@@ -121,4 +121,38 @@ describe('SqliteAdapter vector + parameter translation', () => {
     expect(result.rows[0].d).toBe(1);
     await adapter.close();
   });
+
+  it('names procedural_memories.trigger as the core layer queries it', async () => {
+    // Regression: the schema called this column `trigger_text`, so every
+    // ProceduralMemory.record() insert failed with "no column named trigger".
+    // The canonical schema is adapters/postgres/sql/001_init.sql.
+    const adapter = createMemoryAdapter();
+    const columns = adapter
+      .getDatabase()
+      .prepare('PRAGMA table_info(procedural_memories)')
+      .all() as { name: string }[];
+    const names = columns.map(c => c.name);
+    expect(names).toContain('trigger');
+    expect(names).not.toContain('trigger_text');
+    await adapter.close();
+  });
+});
+
+describe('procedural layer on SqliteAdapter', () => {
+  it('records a procedure end to end', async () => {
+    const adapter = createMemoryAdapter();
+    const coordinator = new MemoryCoordinator({
+      storage: adapter,
+      embedding: new FakeEmbeddingProvider(),
+    });
+    await expect(
+      coordinator.store('Deploy by running npm run build then pushing the tag.', {
+        type: 'procedure',
+        steps: ['npm run build', 'git push --tags'],
+        tools: ['npm', 'git'],
+        outcome: 'released',
+      }),
+    ).resolves.toBeTruthy();
+    await adapter.close();
+  });
 });
