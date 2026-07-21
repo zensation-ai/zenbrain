@@ -8,6 +8,17 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: "development"
+    ignore:
+      # TypeScript 7 (the native compiler rewrite) breaks our build: tsup ->
+      # rollup-plugin-dts reads compiler internals (e.g. useCaseSensitiveFileNames)
+      # that no longer exist in TS7. Stay on 5.x until the .d.ts build toolchain
+      # supports it. Minor/patch TS 5.x updates still flow.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # vitest 4 caused test regressions (observed 2026-07-15). Stay on 3.x for now;
+      # minor/patch 3.x updates still flow. Re-evaluate a deliberate 4.x migration.
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
