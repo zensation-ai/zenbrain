@@ -155,7 +155,7 @@
     "url": "https://github.com/zensation-ai/zenbrain/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

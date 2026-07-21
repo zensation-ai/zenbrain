@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/adapters/postgres#readme",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "pg": "^8.22.0"
