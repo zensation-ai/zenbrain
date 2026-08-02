@@ -43,7 +43,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.1"
+    "better-sqlite3": "^13.0.2"
   },
   "peerDependencies": {
     "@zensation/core": "^0.2.0"
