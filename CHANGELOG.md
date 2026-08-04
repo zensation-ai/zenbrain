@@ -2,6 +2,30 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-08-04
+
+**Compatibility-only release. No runtime code changed** — `packages/*/src` is byte-identical to `0.3.5`. This release exists to publish a narrower, and finally honest, platform requirement.
+
+Package versions move independently: `@zensation/algorithms` `0.3.4 → 0.4.0`, `@zensation/core` `0.2.2 → 0.3.0`, `@zensation/adapter-sqlite` and `@zensation/adapter-postgres` `0.1.0 → 0.2.0`.
+
+### Changed — BREAKING: Node.js 22 or newer is now required
+
+`engines.node` moves from `>=18` to `>=22` in all four published packages.
+
+**The previous `>=18` was never accurate.** `@zensation/adapter-sqlite@0.1.0` depended on `better-sqlite3@^12`, which itself declares `20.x || 22.x || 23.x || 24.x || 25.x || 26.x` — so the effective floor was already **20**, and a Node 18 install would fail on the transitive dependency while our own metadata claimed support. The real change for users is therefore **20 → 22**, not 18 → 22. Node 18 and 20 have both reached end of life.
+
+Under semver, a breaking change in the `0.y.z` range is expressed by the **minor**, and this is deliberate: a `^0.3.4` or `^0.1.0` range does **not** match the new versions, so existing installations on Node 20 are never upgraded into a broken state automatically. Opting in is an explicit act.
+
+**Migration:** upgrade to Node 22 LTS or newer, then bump the ranges — `@zensation/algorithms` to `^0.4.0`, `@zensation/core` to `^0.3.0`, either adapter to `^0.2.0`. Nothing else has to change: no import paths, no APIs, no configuration. Staying on `0.3.x` / `0.1.x` remains valid on Node 20; those versions are unaffected by this release and are not being removed.
+
+### Changed — `@zensation/adapter-sqlite`: `better-sqlite3` 12 → 13
+
+Version 13 is built on **N-API**, so its prebuilt binaries are ABI-independent and install cleanly across current and future Node releases; the version 12 line required a matching prebuild per Node ABI and was the reason the floor could not be stated honestly before. `better-sqlite3@13` itself requires Node `>=22`, which is what forces the baseline above. No adapter API changed.
+
+### Changed — peer ranges widened
+
+Both adapters previously declared `peerDependencies: { "@zensation/core": "^0.2.0" }`, which the move of `core` to `0.3.0` would have broken. The range is now `^0.2.0 || ^0.3.0`: `core`'s public API is unchanged between `0.2.2` and `0.3.0`, so pinning either line is legitimate.
+
 ## [0.3.5] — 2026-07-17
 
 ### Added
