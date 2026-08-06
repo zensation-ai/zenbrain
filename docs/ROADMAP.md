@@ -80,3 +80,18 @@ We prioritize, in this order:
 2. **Simplicity** — APIs should be intuitive, not clever.
 3. **Performance** — optimize for real workloads, not microbenchmarks.
 4. **Compatibility** — avoid breaking existing users; follow semver.
+
+## Compatibility history
+
+Breaking changes are expressed through the **minor** version while the packages are below `1.0.0`, which is
+what semver prescribes for the `0.y.z` range. A `^0.3.4` range therefore does *not* pick up `0.4.0`: existing
+installations never move across a break on their own, and opting in is an explicit act.
+
+| Release | Break | Why |
+|---|---|---|
+| `0.4.0` (2026-08-05) | **Node.js 18/20 dropped, 22+ required** | The declared `>=18` was never accurate — `@zensation/adapter-sqlite` depended on `better-sqlite3@^12`, which itself requires Node 20 or newer, so a Node 18 install failed on a transitive dependency while our metadata claimed support. Adopting `better-sqlite3@13` (N-API, ABI-independent prebuilds) sets the real floor at 22. Both dropped lines are end of life. |
+
+Migration for `0.4.0`: move to Node 22 LTS or newer, then raise the ranges — `@zensation/algorithms` to
+`^0.4.0`, `@zensation/core` to `^0.3.0`, either adapter to `^0.2.0`. No imports, APIs or configuration
+change. Staying on `0.3.x` / `0.1.x` remains valid on Node 20; those versions are unaffected and are not
+being removed.

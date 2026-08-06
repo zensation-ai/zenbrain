@@ -103,6 +103,10 @@ See [`CHANGELOG.md`](./CHANGELOG.md#030--2026-05-08) for details.
 
 ## Quick Start
 
+> **Requires Node.js 22 or newer** (since `0.4.0`). On Node 20 or older, npm silently installs the last
+> compatible release (`@zensation/algorithms@0.3.4`, `@zensation/core@0.2.2`) instead of the current one —
+> which looks like a broken package but is a platform mismatch. See [CHANGELOG](./CHANGELOG.md#040--2026-08-05).
+
 ```bash
 npm install @zensation/algorithms
 ```
@@ -344,7 +348,7 @@ These aren't toy implementations — ZenBrain's algorithms are extracted from [Z
 
 - **528 tests** (429 algorithms + 99 core), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
-- **Reproducible** — building from this source produces the same 152-file `@zensation/algorithms@0.3.3` tarball published on npm
+- **Reproducible** — building from this source produces the same 152-file `@zensation/algorithms@0.4.0` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
 
 ## Contributing

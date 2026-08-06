@@ -1,5 +1,11 @@
 # Getting Started with ZenBrain
 
+## Requirements
+
+**Node.js 22 or newer.** Every published package declares `engines.node >= 22` since `0.4.0`. On an older
+Node, npm resolves to the last compatible versions instead of failing loudly — so if you end up with
+`@zensation/algorithms@0.3.4` rather than `0.4.0`, check your Node version first.
+
 ## Installation
 
 ```bash
