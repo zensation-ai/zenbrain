@@ -164,9 +164,9 @@ export class MyLayer {
 
 ## Getting Help
 
-- **Discord**: [Join our community](https://discord.gg/YKVTHaXK)
-- **GitHub Issues**: For bugs and feature requests
-- **Discussions**: For questions and ideas
+- **GitHub Discussions**: [Questions, ideas and show-and-tell](https://github.com/zensation-ai/zenbrain/discussions)
+- **GitHub Issues**: [Bugs and feature requests](https://github.com/zensation-ai/zenbrain/issues)
+- **Email**: open-source@zensation.ai
 
 ## License
 

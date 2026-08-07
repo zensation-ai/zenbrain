@@ -126,4 +126,4 @@ import { getRetrievability } from '@zensation/algorithms/ebbinghaus';
 - [Architecture Overview](./architecture.md) — understand the 7-layer design
 - [API Reference](https://www.npmjs.com/package/@zensation/algorithms) — full function signatures
 - [Playground](../apps/playground/) — interactive demo
-- [Discord](https://discord.gg/YKVTHaXK) — get help from the community
+- [GitHub Discussions](https://github.com/zensation-ai/zenbrain/discussions) — get help from the community

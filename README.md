@@ -16,7 +16,7 @@
   <a href="https://arxiv.org/abs/2604.23878"><img src="https://img.shields.io/badge/arXiv-2604.23878-b31b1b.svg" alt="arXiv"></a>
   <a href="https://orcid.org/0009-0001-1793-012X"><img src="https://img.shields.io/badge/ORCID-0009--0001--1793--012X-A6CE39?logo=orcid&logoColor=white" alt="ORCID"></a>
   <a href="https://huggingface.co/zensation-ai/zenbrain"><img src="https://img.shields.io/badge/%F0%9F%A4%97_HuggingFace-Model_Card-yellow" alt="HuggingFace"></a>
-  <a href="https://discord.gg/YKVTHaXK"><img src="https://img.shields.io/discord/1485937855447695443?color=7289da&label=Discord&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://github.com/zensation-ai/zenbrain/discussions"><img src="https://img.shields.io/badge/Discussions-ask%20a%20question-5865F2?logo=github" alt="GitHub Discussions"></a>
   <a href="https://x.com/zensationai"><img src="https://img.shields.io/twitter/follow/zensationai?style=social" alt="Follow on X"></a>
 </p>
 
@@ -395,7 +395,7 @@ If you use ZenBrain in academic work, please cite:
 
 ## Community
 
-- **Discord**: [ZenBrain Community](https://discord.gg/YKVTHaXK) — help, show-and-tell, feature requests
+- **GitHub Discussions**: [Ask a question, show what you built](https://github.com/zensation-ai/zenbrain/discussions) — help, show-and-tell, feature requests
 - **Twitter/X**: [@zensationai](https://x.com/zensationai) — updates, launches, AI memory discussions
 - **GitHub Issues**: [Bug reports & feature requests](https://github.com/zensation-ai/zenbrain/issues)
 - **Email**: open-source@zensation.ai
