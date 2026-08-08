@@ -11,13 +11,13 @@
   <a href="https://github.com/zensation-ai/zenbrain/actions/workflows/ci.yml"><img src="https://github.com/zensation-ai/zenbrain/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/zensation-ai/zenbrain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
-  <a href="#"><img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Zero Dependencies"></a>
+  <img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Zero Dependencies">
   <a href="https://doi.org/10.5281/zenodo.19353663"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.19353663.svg" alt="DOI"></a>
   <a href="https://arxiv.org/abs/2604.23878"><img src="https://img.shields.io/badge/arXiv-2604.23878-b31b1b.svg" alt="arXiv"></a>
   <a href="https://orcid.org/0009-0001-1793-012X"><img src="https://img.shields.io/badge/ORCID-0009--0001--1793--012X-A6CE39?logo=orcid&logoColor=white" alt="ORCID"></a>
   <a href="https://huggingface.co/zensation-ai/zenbrain"><img src="https://img.shields.io/badge/%F0%9F%A4%97_HuggingFace-Model_Card-yellow" alt="HuggingFace"></a>
   <a href="https://github.com/zensation-ai/zenbrain/discussions"><img src="https://img.shields.io/badge/Discussions-ask%20a%20question-5865F2?logo=github" alt="GitHub Discussions"></a>
-  <a href="https://x.com/zensationai"><img src="https://img.shields.io/twitter/follow/zensationai?style=social" alt="Follow on X"></a>
+  <a href="https://x.com/zensationai"><img src="https://img.shields.io/badge/X-%40zensationai-000000?logo=x&logoColor=white" alt="Follow on X"></a>
 </p>
 
 ---
@@ -88,9 +88,9 @@ ZenBrain brings these mechanisms to AI agents:
 | Self-Hosted | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 
-### Advanced algorithms (v0.3.0, May 2026)
+### Advanced algorithms (since v0.3.0, May 2026)
 
-On top of the 10 core algorithms above, `@zensation/algorithms@0.3.0` ships 10 advanced algorithms grounded in recent neuroscience and ML research. Each is exposed as its own sub-path (`@zensation/algorithms/<name>`) and remains zero-dependency:
+On top of the 10 core algorithms above, `@zensation/algorithms` ships 10 advanced algorithms grounded in recent neuroscience and ML research. Each is exposed as its own sub-path (`@zensation/algorithms/<name>`) and remains zero-dependency:
 
 - **`fsrs-vmPFC`** — Prediction-Error coupled FSRS
 - **`hebbian-two-factor`** — Two-Factor synaptic consolidation
