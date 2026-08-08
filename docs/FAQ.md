@@ -30,6 +30,25 @@ That said, ZenBrain is at v0.3 — expect API changes before v1.0. We follow sem
 
 Apache 2.0 — use it in commercial products, modify it, distribute it. Attribution appreciated but not required.
 
+### Which Node.js versions are supported?
+
+ZenBrain requires Node.js 22 or newer. The supported versions are Node.js 22, 24, and 26, matching the CI matrix.
+
+If you use Node.js 20 or older, npm may silently install the last compatible package versions instead of showing an error:
+
+- `@zensation/algorithms@0.3.4`
+- `@zensation/core@0.2.2`
+
+This can make the packages appear outdated or broken when the actual problem is an unsupported Node.js version.
+
+Check your Node.js version and the installed algorithms package with:
+
+```bash
+node -v
+npm ls @zensation/algorithms
+```
+
+
 ---
 
 ## Architecture
