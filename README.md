@@ -170,6 +170,24 @@ const nextInterval = computeAdaptiveFSRSInterval(14, pe);
 
 Each advanced algorithm has its own sub-path (`@zensation/algorithms/spectral-health`, `@zensation/algorithms/ib-budget`, …). All zero dependencies.
 
+## Runnable examples
+
+Five self-contained examples live in [`examples/`](./examples):
+
+| Example | Shows |
+|---|---|
+| [`basic-chatbot.ts`](./examples/basic-chatbot.ts) | Working Memory + Short-Term Memory for conversation context — no SDK needed |
+| [`with-claude.ts`](./examples/with-claude.ts) | An Anthropic Claude assistant that remembers across conversations |
+| [`with-langchain.ts`](./examples/with-langchain.ts) | ZenBrain as the memory backend of a LangChain agent |
+| [`with-crewai.ts`](./examples/with-crewai.ts) | Multiple agents sharing Working Memory, with Hebbian strengthening |
+| [`with-vercel-ai.ts`](./examples/with-vercel-ai.ts) | A memory-aware system prompt for the Vercel AI SDK `streamText` pattern |
+
+```bash
+npx tsx examples/basic-chatbot.ts
+```
+
+The integration examples additionally need their respective SDK installed. Want a LlamaIndex.TS or Mastra example? Those are open as [good first issues](https://github.com/zensation-ai/zenbrain/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+
 ## The Science Behind It
 
 ### 7-Layer Memory Architecture
