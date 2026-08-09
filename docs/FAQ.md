@@ -24,7 +24,7 @@ ZenBrain has deeper scientific grounding — every algorithm cites its neuroscie
 
 The algorithms and core layers are extracted from ZenAI, a production AI platform, and run against real users and real data. The published packages ship 528 tests (429 algorithms + 99 core), all passing.
 
-That said, ZenBrain is at v0.3 — expect API changes before v1.0. We follow semver.
+That said, ZenBrain is still pre-1.0 — expect API changes before v1.0. We follow semver, and the [CHANGELOG](../CHANGELOG.md) records what changed in each release.
 
 ### What license is ZenBrain under?
 
@@ -48,6 +48,7 @@ node -v
 npm ls @zensation/algorithms
 ```
 
+The requirement arrived in [0.4.0](../CHANGELOG.md#040--2026-08-05), the only breaking change the project has shipped so far.
 
 ---
 

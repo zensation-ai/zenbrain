@@ -2,11 +2,15 @@
 
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
-| 0.3.x   | Yes       |
-| 0.2.x   | Security fixes only |
-| < 0.2   | No        |
+These are **release lines** — the `v*` tags and [`CHANGELOG.md`](CHANGELOG.md) entries — not individual
+package versions. One release publishes several packages at different numbers, so `0.4.0` ships
+`@zensation/algorithms@0.4.0` alongside `@zensation/core@0.3.0` and both adapters at `0.2.0`.
+
+| Release | Supported | |
+|---------|-----------|---|
+| 0.4.x   | Yes | Current line. Requires Node.js 22 or newer. |
+| 0.3.x   | Security fixes only | Last line that runs on Node.js 20 — see [compatibility history](docs/ROADMAP.md#compatibility-history). |
+| < 0.3   | No | |
 
 ## Reporting a Vulnerability
 
