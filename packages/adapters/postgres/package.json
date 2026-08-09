@@ -50,7 +50,7 @@
     "@zensation/core": "^0.2.0 || ^0.3.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.0",
+    "@types/pg": "^8.20.4",
     "vitest": "^3.0.0",
     "typescript": "^5.7.0"
   }
