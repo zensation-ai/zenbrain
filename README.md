@@ -373,7 +373,7 @@ These aren't toy implementations — ZenBrain's algorithms are extracted from [Z
 
 We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
-**Resources:** [API Reference](./docs/api-reference.md) | [Architecture](./docs/architecture.md) | [Benchmarks](./docs/benchmarks.md) | [FAQ](./docs/FAQ.md) | [Roadmap](./docs/ROADMAP.md)
+**Resources:** [API Reference](./docs/api-reference.md) | [Recipes](./docs/recipes.md) | [Architecture](./docs/architecture.md) | [Benchmarks](./docs/benchmarks.md) | [FAQ](./docs/FAQ.md) | [Roadmap](./docs/ROADMAP.md)
 
 ```bash
 # Clone the repo
