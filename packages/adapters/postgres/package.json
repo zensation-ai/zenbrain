@@ -44,13 +44,13 @@
     "node": ">=22"
   },
   "dependencies": {
-    "pg": "^8.22.0"
+    "pg": "^8.23.0"
   },
   "peerDependencies": {
     "@zensation/core": "^0.2.0 || ^0.3.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.20.4",
+    "@types/pg": "^8.21.0",
     "vitest": "^3.0.0",
     "typescript": "^5.7.0"
   }
