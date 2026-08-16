@@ -49,7 +49,7 @@
     "@zensation/core": "^0.2.0 || ^0.3.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
+    "@types/better-sqlite3": "^9.6.0",
     "vitest": "^3.0.0",
     "typescript": "^5.7.0"
   }
