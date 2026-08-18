@@ -427,3 +427,7 @@ If you use ZenBrain in academic work, please cite:
 <p align="center">
   Built by <a href="https://zensation.ai">ZenSation</a> in Kiel, Germany.
 </p>
+
+
+## Documentation
+- [examples/: add a README explaining how to run each example](examples/README.md)
