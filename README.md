@@ -12,12 +12,6 @@
   <a href="https://github.com/zensation-ai/zenbrain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Zero Dependencies">
-  <a href="https://doi.org/10.5281/zenodo.19353663"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.19353663.svg" alt="DOI"></a>
-  <a href="https://arxiv.org/abs/2604.23878"><img src="https://img.shields.io/badge/arXiv-2604.23878-b31b1b.svg" alt="arXiv"></a>
-  <a href="https://orcid.org/0009-0001-1793-012X"><img src="https://img.shields.io/badge/ORCID-0009--0001--1793--012X-A6CE39?logo=orcid&logoColor=white" alt="ORCID"></a>
-  <a href="https://huggingface.co/zensation-ai/zenbrain"><img src="https://img.shields.io/badge/%F0%9F%A4%97_HuggingFace-Model_Card-yellow" alt="HuggingFace"></a>
-  <a href="https://github.com/zensation-ai/zenbrain/discussions"><img src="https://img.shields.io/badge/Discussions-ask%20a%20question-5865F2?logo=github" alt="GitHub Discussions"></a>
-  <a href="https://x.com/zensationai"><img src="https://img.shields.io/badge/X-%40zensationai-000000?logo=x&logoColor=white" alt="Follow on X"></a>
 </p>
 
 ---
@@ -362,7 +356,7 @@ function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
 
 ## Extracted From Production
 
-These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai), a production AI platform, and run against real users and real data. Everything claimed here is verifiable in this repository:
+These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai), a production AI platform. Everything claimed here is verifiable in this repository:
 
 - **528 tests** (429 algorithms + 99 core), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
@@ -372,6 +366,7 @@ These aren't toy implementations — ZenBrain's algorithms are extracted from [Z
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+Issues and pull requests get a first response typically within 72 hours.
 
 **Resources:** [API Reference](./docs/api-reference.md) | [Recipes](./docs/recipes.md) | [Architecture](./docs/architecture.md) | [Benchmarks](./docs/benchmarks.md) | [FAQ](./docs/FAQ.md) | [Roadmap](./docs/ROADMAP.md)
 
@@ -394,7 +389,8 @@ npm run build
 
 ZenBrain's architecture and algorithms are documented in an open-access technical disclosure:
 
-- **Paper:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://doi.org/10.5281/zenodo.19353663) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663) — resolves to the latest version)
+- **arXiv preprint** (cs.AI): [arxiv.org/abs/2604.23878](https://arxiv.org/abs/2604.23878)
+- **Open-access archive:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://doi.org/10.5281/zenodo.19353663) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663) — resolves to the latest version)
 - **TDCommons:** [Technical Disclosure](https://www.tdcommons.org/dpubs_series/9683) (CC BY 4.0)
 - **HuggingFace:** [Model Card & Benchmarks](https://huggingface.co/zensation-ai/zenbrain)
 
@@ -402,19 +398,20 @@ If you use ZenBrain in academic work, please cite:
 
 ```bibtex
 @misc{bering2026zenbrain,
-  title   = {ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems},
-  author  = {Bering, Alexander},
-  year    = {2026},
-  doi     = {10.5281/zenodo.19353663},
-  url     = {https://doi.org/10.5281/zenodo.19353663},
-  publisher = {Zenodo}
+  title         = {ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems},
+  author        = {Bering, Alexander},
+  year          = {2026},
+  eprint        = {2604.23878},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  doi           = {10.5281/zenodo.19353663},
+  url           = {https://arxiv.org/abs/2604.23878}
 }
 ```
 
 ## Community
 
 - **GitHub Discussions**: [Ask a question, show what you built](https://github.com/zensation-ai/zenbrain/discussions) — help, show-and-tell, feature requests
-- **Twitter/X**: [@zensationai](https://x.com/zensationai) — updates, launches, AI memory discussions
 - **GitHub Issues**: [Bug reports & feature requests](https://github.com/zensation-ai/zenbrain/issues)
 - **Email**: open-source@zensation.ai
 
