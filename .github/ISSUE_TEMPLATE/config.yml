@@ -1,0 +1,21 @@
+# The chooser shown above the issue templates. It keeps the tracker for
+# actual bugs and feature requests and sends everything else where it is
+# answered faster.
+#
+# blank_issues_enabled stays true on purpose: both larger projects in this
+# category turn it off, but at this size a wrong-format issue is cheaper
+# than an issue nobody opens.
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Ask a question or show what you built
+    url: https://github.com/zensation-ai/zenbrain/discussions
+    about: Usage questions, ideas and show-and-tell live in Discussions.
+  - name: 🧠 Discord community
+    url: https://discord.gg/YKVTHaXK
+    about: Chat with other people using ZenBrain.
+  - name: 📖 Documentation
+    url: https://github.com/zensation-ai/zenbrain/tree/main/docs
+    about: API reference, recipes, architecture, benchmarks and FAQ.
+  - name: 🔬 The paper behind the architecture
+    url: https://arxiv.org/abs/2604.23878
+    about: Benchmarks, ablations and the reproduction package.
