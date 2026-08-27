@@ -27,9 +27,15 @@
   "keywords": [
     "zenbrain",
     "sqlite",
+    "better-sqlite3",
     "ai-memory",
+    "agent-memory",
+    "long-term-memory",
     "storage-adapter",
-    "zero-config"
+    "zero-config",
+    "embedded-database",
+    "llm-memory",
+    "ai-agents"
   ],
   "author": "ZenSation <open-source@zensation.ai>",
   "license": "Apache-2.0",

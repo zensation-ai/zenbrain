@@ -68,14 +68,19 @@
   },
   "keywords": [
     "ai-memory",
+    "agent-memory",
     "memory-layers",
     "working-memory",
     "episodic-memory",
+    "semantic-memory",
     "procedural-memory",
     "long-term-memory",
     "ai-agents",
+    "llm-memory",
     "neuroscience",
-    "pluggable-adapters"
+    "cognitive-architecture",
+    "pluggable-adapters",
+    "zenbrain"
   ],
   "author": "ZenSation <open-source@zensation.ai>",
   "license": "Apache-2.0",

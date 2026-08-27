@@ -54,6 +54,12 @@ jobs:
       - name: Smoke-test example (basic-chatbot)
         run: npx tsx examples/basic-chatbot.ts
 
+      # The README claims zero runtime dependencies. Prove it against the packed
+      # artifacts on every push, so the claim cannot quietly stop being true between
+      # releases. This step sits inside the required `test` check by design.
+      - name: Verify the zero-dependency claim
+        run: bash scripts/verify-zero-dependencies.sh
+
   publish:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')

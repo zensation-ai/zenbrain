@@ -28,9 +28,15 @@
   "keywords": [
     "zenbrain",
     "postgres",
+    "postgresql",
     "pgvector",
     "ai-memory",
-    "storage-adapter"
+    "agent-memory",
+    "long-term-memory",
+    "storage-adapter",
+    "vector-search",
+    "llm-memory",
+    "ai-agents"
   ],
   "author": "ZenSation <open-source@zensation.ai>",
   "license": "Apache-2.0",
