@@ -1,5 +1,45 @@
 # ZenBrain Benchmarks
 
+This file collects the algorithm-level micro-benchmarks that run inside this repository.
+The system-level result — the one the architecture is judged on — is LongMemEval-500, below.
+
+## LongMemEval-500 (system level)
+
+On LongMemEval-500, ZenBrain wins **all nine head-to-head answer-quality comparisons** against
+Letta, Mem0 and A-Mem: three competitors x three LLM judges, under Bonferroni-corrected
+significance (alpha = 0.05/18), p_min = 6.2e-31, Cohen's d in [0.18, 0.52].
+
+| Measure | Result |
+|---|---|
+| Head-to-head answer-quality comparisons won | 9 of 9 (3 competitors x 3 LLM judges) |
+| Significance | Bonferroni-corrected, alpha = 0.05/18, p_min = 6.2e-31 |
+| Effect size | d in [0.18, 0.52] |
+| Share of full-context oracle binary-judge accuracy | 91.3% (47.7% vs. 52.2%) |
+| Per-query token cost against that oracle | 1/106th |
+| Multi-layer routing vs. flat single-layer baseline (LoCoMo) | +20.7% F1 |
+| Cost of principled forgetting (NoDecay ablation) | Delta-P@5 = 0.002 |
+
+**Where ZenBrain loses.** On LoCoMo, substring-based aggregate F1 favours lexical retrieval
+(BM25) by metric design, and we do not contest that. Retrieval-proper metrics go to a competing
+system. The advantage is most pronounced on judge-graded answer quality and cross-session
+reasoning.
+
+**Ablations.** Under moderate load, fourteen of the fifteen mechanism ablations look costless.
+Raising decay to 0.25/day over 60 days, with no change to the mechanisms, makes nine of the
+fifteen individually critical (Delta-Q up to -93.7%; Wilcoxon, 10 seeds). Mild-load ablation
+systematically underestimates architectural contributions — the paper calls this cooperative
+masking.
+
+**Reproducing it.** Every ablation table in the paper reproduces in under a minute on a laptop:
+`npm install`, no API keys. The material ships with the reproduction record.
+
+- Method and full tables: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
+- Reproduction material: [10.5281/zenodo.19481262](https://doi.org/10.5281/zenodo.19481262)
+
+---
+
+## Algorithm-level micro-benchmarks
+
 ## FSRS vs SM-2: Retention Accuracy
 
 Based on the [open-spaced-repetition/fsrs4anki](https://github.com/open-spaced-repetition/fsrs4anki) research across millions of Anki review logs:

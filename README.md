@@ -7,11 +7,16 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@zensation/algorithms"><img src="https://img.shields.io/npm/v/@zensation/algorithms?color=blue&label=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@zensation/algorithms"><img src="https://img.shields.io/npm/dm/@zensation/algorithms?color=blue" alt="npm downloads"></a>
-  <a href="https://github.com/zensation-ai/zenbrain/stargazers"><img src="https://img.shields.io/github/stars/zensation-ai/zenbrain?style=social" alt="GitHub stars"></a>
   <a href="https://github.com/zensation-ai/zenbrain/actions/workflows/ci.yml"><img src="https://github.com/zensation-ai/zenbrain/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/zensation-ai/zenbrain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Zero Dependencies">
+</p>
+
+<p align="center">
+  <sub><strong>Status:</strong> pre-1.0, semver — the public API can still change before <code>1.0</code>.<br/>
+  528 tests green on Node 22, 24 and 26 in CI · every release published to npm with build provenance ·
+  every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests get a first response typically within 72 hours.</sub>
 </p>
 
 ---
@@ -58,29 +63,60 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 ---
 
-## Comparison with related open-source memory systems
+## Benchmark: LongMemEval-500
 
-Every AI memory system today is a key-value store or a vector database with a thin layer on top. Human memory doesn't work that way. Your brain has specialized systems for different types of memory, active forgetting mechanisms, emotional modulation, and context-dependent retrieval.
+On LongMemEval-500, ZenBrain **wins all nine head-to-head answer-quality comparisons** against
+Letta, Mem0 and A-Mem — three competitors x three LLM judges, under Bonferroni-corrected
+significance (alpha = 0.05/18, p_min = 6.2e-31, d in [0.18, 0.52]). It reaches **91.3% of a
+full-context oracle's binary-judge accuracy at 1/106th of the per-query token cost**
+(47.7% vs. 52.2%).
 
-ZenBrain brings these mechanisms to AI agents:
+The paper prints where ZenBrain loses as well: on LoCoMo, substring-based aggregate F1 favours
+lexical retrieval (BM25) by metric design, and we do not contest that. The advantage is most
+pronounced on judge-graded answer quality and cross-session reasoning.
 
-| Feature | ZenBrain | Mem0 | Letta | Zep |
-|---------|:--------:|:----:|:-----:|:---:|
-| Memory Layers | **7** | 2 | 3 | 2 |
-| Memory Coordinator | :white_check_mark: | :x: | :x: | :x: |
-| Spaced Repetition (FSRS) | :white_check_mark: | :x: | :x: | :x: |
-| Hebbian Learning | :white_check_mark: | :x: | :x: | :x: |
-| Emotional Memory | :white_check_mark: | :x: | :x: | :x: |
-| Sleep Consolidation | :white_check_mark: | :x: | :x: | :x: |
-| Ebbinghaus Forgetting Curves | :white_check_mark: | :x: | :x: | :x: |
-| Bayesian Confidence Propagation | :white_check_mark: | :x: | :x: | :x: |
-| Context-Dependent Retrieval | :white_check_mark: | :x: | :x: | :x: |
-| Confidence Intervals | :white_check_mark: | :x: | :x: | :x: |
-| Retention Curve Visualization | :white_check_mark: | :x: | :x: | :x: |
-| TypeScript Native | :white_check_mark: | :white_check_mark: | :x: | :x: |
-| Zero Dependencies (core) | :white_check_mark: | :x: | :x: | :x: |
-| Self-Hosted | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+**Every ablation table in the paper reproduces in under a minute on a laptop** — `npm install`,
+no API keys. The material ships with the reproduction record, so the numbers above can be
+checked rather than believed.
 
+- Method, effect sizes and ablations: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
+- Reproduction material: [10.5281/zenodo.19481262](https://doi.org/10.5281/zenodo.19481262)
+
+---
+
+## How ZenBrain differs from Mem0, Letta and Zep
+
+ZenBrain implements fifteen mechanisms taken from human memory research. No system among those
+surveyed in the paper integrates more than two of them. The table below records which of the
+mechanisms appear in the public source of three widely used memory systems, at pinned versions,
+on a fixed date.
+
+| Mechanism | ZenBrain | Mem0 | Letta | Zep |
+|---|:--:|:--:|:--:|:--:|
+| FSRS spaced repetition | yes | — | — | — |
+| Hebbian learning | yes | — | — | — |
+| Ebbinghaus forgetting curves | yes | — | — | — |
+| Sleep consolidation | yes | — | — | — |
+| Emotional tagging | yes | — | — | — |
+| Zero runtime dependencies | yes | — | — | — |
+
+<sub><strong>How this was measured, 27 August 2026.</strong> Full-text search over the
+checked-out public source of <a href="https://github.com/mem0ai/mem0">mem0ai/mem0</a>
+(npm <code>mem0ai</code> 3.1.7, PyPI <code>mem0ai</code> 2.0.19),
+<a href="https://github.com/letta-ai/letta-code">letta-ai/letta-code</a>
+(npm <code>@letta-ai/letta-code</code> 0.31.2) and
+<a href="https://github.com/getzep/zep">getzep/zep</a>, lockfiles excluded. A dash means
+<strong>the term does not occur in that snapshot</strong> — not that the system cannot do
+something comparable under another name. Dependency counts are declared direct dependencies:
+<code>@zensation/core</code> resolves to two packages, both our own; <code>mem0ai</code>
+declares four, <code>@letta-ai/letta-code</code> eighteen. Re-run the whole check yourself with
+<a href="./scripts/compare-mechanisms.sh"><code>scripts/compare-mechanisms.sh</code></a>; it
+prints its own positive and negative controls so you can see the instrument works before you
+trust the result.</sub>
+
+Human memory does not work like a key-value store. The brain keeps specialised systems for
+different kinds of memory, forgets actively, modulates by emotion and retrieves by context.
+ZenBrain brings those mechanisms to AI agents.
 
 ### Advanced algorithms (since v0.3.0, May 2026)
 
@@ -222,7 +258,7 @@ Tulving's Encoding Specificity Principle (1973): memories are recalled better wh
 
 Knowledge isn't isolated — facts support or contradict each other. ZenBrain propagates confidence through your knowledge graph using Bayesian belief updates: supporting evidence increases confidence, contradictions decrease it, with damping for numerical stability.
 
-### Sleep Consolidation *(New — unique to ZenBrain)*
+### Sleep Consolidation
 
 During sleep, the hippocampus replays recent experiences, strengthening important memories and pruning weak connections (Stickgold & Walker, 2013). ZenBrain simulates this process: `selectForReplay()` prioritizes emotional and recently-accessed memories, `simulateReplay()` boosts their stability by 50%, and `pruneWeakConnections()` removes weak Hebbian edges — implementing the Synaptic Homeostasis Hypothesis (Tononi & Cirelli, 2006).
 
@@ -236,7 +272,7 @@ const result = simulateReplay(toReplay);
 console.log(`Replayed ${result.summary.totalReplayed} memories, avg stability +${result.summary.avgStabilityIncrease.toFixed(1)} days`);
 ```
 
-### Memory Coordinator *(New)*
+### Memory Coordinator
 
 The `MemoryCoordinator` orchestrates all 7 layers into a single cohesive system — inspired by Global Workspace Theory (Baars, 1988):
 
