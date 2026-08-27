@@ -29,6 +29,8 @@ jobs:
         run: cd packages/adapters/postgres && npm run build
       - name: Build adapter-sqlite
         run: cd packages/adapters/sqlite && npm run build
+      - name: Build mcp
+        run: cd packages/mcp && npm run build
 
       # Type-check (after build so cross-package imports resolve)
       - name: Lint algorithms
@@ -39,6 +41,8 @@ jobs:
         run: cd packages/adapters/postgres && npx tsc --noEmit
       - name: Lint adapter-sqlite
         run: cd packages/adapters/sqlite && npx tsc --noEmit
+      - name: Lint mcp
+        run: cd packages/mcp && npx tsc --noEmit
 
       # Test all packages
       - name: Test algorithms
@@ -49,6 +53,14 @@ jobs:
         run: cd packages/adapters/postgres && npx vitest run --passWithNoTests
       - name: Test adapter-sqlite
         run: cd packages/adapters/sqlite && npx vitest run --passWithNoTests
+      - name: Test mcp
+        run: cd packages/mcp && npx vitest run
+
+      # Green unit tests do not prove the *binary* runs: a bad bin path, a broken
+      # shebang or a native module that fails to load all pass in-process and fail
+      # on a user's machine. Spawn the built entry point and talk MCP to it.
+      - name: Smoke-test the MCP server binary
+        run: node scripts/smoke-mcp.mjs
 
       # Smoke-test the self-contained example so it cannot silently rot
       - name: Smoke-test example (basic-chatbot)
@@ -82,6 +94,7 @@ jobs:
       - run: cd packages/core && npm run build
       - run: cd packages/adapters/postgres && npm run build
       - run: cd packages/adapters/sqlite && npm run build
+      - run: cd packages/mcp && npm run build
       # Auth is via OIDC trusted publishing configured on npmjs.com (no NPM_TOKEN);
       # provenance attestations are generated automatically.
       # Idempotent: only publish a version that is not already on the registry,
@@ -119,6 +132,19 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           if npm view "@zensation/adapter-sqlite@$VERSION" version >/dev/null 2>&1; then
             echo "@zensation/adapter-sqlite@$VERSION already on npm — skipping"
+          else
+            npm publish --access public
+          fi
+      # Deliberately LAST. Trusted Publishing is configured per package on npmjs.com,
+      # and this job stops at the first failure — the half-release of 05.08.2026 is
+      # exactly that lesson. Until @zensation/mcp has its own trusted publisher, this
+      # step can fail without taking the four established packages down with it.
+      - name: Publish mcp (skip if already published)
+        run: |
+          cd packages/mcp
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@zensation/mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "@zensation/mcp@$VERSION already on npm — skipping"
           else
             npm publish --access public
           fi

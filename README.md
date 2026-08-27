@@ -302,6 +302,7 @@ const dueItems = await memory.getReviewQueue();
 | [`@zensation/core`](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
 | [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Published |
 | [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Published |
+| [`@zensation/mcp`](./packages/mcp) | MCP server — gives any MCP client (Claude Desktop, Claude Code, Cursor) the seven layers as four tools. Carries the protocol SDK, so the core stays dependency-free | :construction: Unreleased |
 
 ### Tree-Shakeable Imports
 

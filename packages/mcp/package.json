@@ -1,0 +1,74 @@
+{
+  "name": "@zensation/mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for ZenBrain — gives any MCP client a 7-layer memory: store, recall, consolidate, inspect.",
+  "mcpName": "ai.zensation/zenbrain",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "zenbrain-mcp": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "server.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "zenbrain",
+    "agent-memory",
+    "ai-memory",
+    "memory-layer",
+    "long-term-memory",
+    "episodic-memory",
+    "stateful-agents",
+    "llm-memory"
+  ],
+  "author": "ZenSation <open-source@zensation.ai>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zensation-ai/zenbrain.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/mcp#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@zensation/adapter-sqlite": "^0.2.0",
+    "@zensation/core": "^0.3.0"
+  },
+  "devDependencies": {
+    "@zensation/adapter-sqlite": "^0.2.0",
+    "@zensation/core": "^0.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
