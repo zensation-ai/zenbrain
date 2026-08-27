@@ -31,6 +31,8 @@ jobs:
         run: cd packages/adapters/sqlite && npm run build
       - name: Build mcp
         run: cd packages/mcp && npm run build
+      - name: Build ai-sdk
+        run: cd packages/ai-sdk && npm run build
 
       # Type-check (after build so cross-package imports resolve)
       - name: Lint algorithms
@@ -43,6 +45,8 @@ jobs:
         run: cd packages/adapters/sqlite && npx tsc --noEmit
       - name: Lint mcp
         run: cd packages/mcp && npx tsc --noEmit
+      - name: Lint ai-sdk
+        run: cd packages/ai-sdk && npx tsc --noEmit
 
       # Test all packages
       - name: Test algorithms
@@ -55,6 +59,8 @@ jobs:
         run: cd packages/adapters/sqlite && npx vitest run --passWithNoTests
       - name: Test mcp
         run: cd packages/mcp && npx vitest run
+      - name: Test ai-sdk
+        run: cd packages/ai-sdk && npx vitest run
 
       # Green unit tests do not prove the *binary* runs: a bad bin path, a broken
       # shebang or a native module that fails to load all pass in-process and fail
@@ -95,6 +101,7 @@ jobs:
       - run: cd packages/adapters/postgres && npm run build
       - run: cd packages/adapters/sqlite && npm run build
       - run: cd packages/mcp && npm run build
+      - run: cd packages/ai-sdk && npm run build
       # Auth is via OIDC trusted publishing configured on npmjs.com (no NPM_TOKEN);
       # provenance attestations are generated automatically.
       # Idempotent: only publish a version that is not already on the registry,
@@ -145,6 +152,18 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           if npm view "@zensation/mcp@$VERSION" version >/dev/null 2>&1; then
             echo "@zensation/mcp@$VERSION already on npm — skipping"
+          else
+            npm publish --access public
+          fi
+      # Same reasoning as the mcp step above: trusted publishing is per package and
+      # this job stops at the first failure, so a package without a publisher yet must
+      # not sit in front of the established ones.
+      - name: Publish ai-sdk (skip if already published)
+        run: |
+          cd packages/ai-sdk
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@zensation/ai-sdk@$VERSION" version >/dev/null 2>&1; then
+            echo "@zensation/ai-sdk@$VERSION already on npm — skipping"
           else
             npm publish --access public
           fi
