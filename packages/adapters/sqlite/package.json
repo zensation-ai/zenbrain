@@ -1,6 +1,6 @@
 {
   "name": "@zensation/adapter-sqlite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "SQLite storage adapter for ZenBrain memory system. Zero-config, file-based, perfect for development and single-user deployments.",
   "type": "module",
   "main": "./dist/index.js",

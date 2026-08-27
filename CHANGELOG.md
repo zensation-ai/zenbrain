@@ -2,6 +2,30 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] — 2026-08-28
+
+**Two things: a new package, and a metadata-only republish of the existing four.**
+
+Package versions move independently: `@zensation/algorithms` `0.4.0 → 0.4.1`, `@zensation/core` `0.3.0 → 0.3.1`, `@zensation/adapter-sqlite` and `@zensation/adapter-postgres` `0.2.0 → 0.2.1`. `@zensation/mcp` is new at `0.1.0`.
+
+### Added — `@zensation/mcp`, an MCP server
+
+`npm install -g @zensation/mcp` gives any [Model Context Protocol](https://modelcontextprotocol.io) client — Claude Desktop, Claude Code, Cursor — four tools: `zenbrain_store`, `zenbrain_recall`, `zenbrain_consolidate`, `zenbrain_health`. Storage is a local SQLite file (`ZENBRAIN_DB`, default `./zenbrain.db`). No account, no network call, no LLM provider configured.
+
+**It is a separate package on purpose.** An MCP server needs the protocol SDK; `@zensation/core` must not have it. Keeping the dependency out here is what lets `scripts/verify-zero-dependencies.sh` keep passing unchanged — installing `@zensation/core` still resolves to exactly two packages, itself and `@zensation/algorithms`.
+
+The server is verified three ways in CI on Node 22, 24 and 26: twelve tests drive a real MCP client over a linked in-memory transport; four run the same calls against the real SQLite adapter; and `scripts/smoke-mcp.mjs` spawns the built binary as a child process and round-trips a memory through real stdio, because green in-process tests say nothing about a bin path or a native module load.
+
+`zenbrain_recall` leaves out rows whose `content` did not survive the storage adapter and reports the number in a `skipped` field, rather than failing the whole call with an output-validation error.
+
+### Changed — the four existing packages: metadata only
+
+**No runtime code changed.** `packages/*/src` is byte-identical to `0.4.0` in all four packages; the diff is READMEs and `package.json` keywords.
+
+npm indexes a package by its title, description, README and keywords. Until this release, none of the four package READMEs on npmjs.com carried the benchmark result or a link to the paper, and the two adapter READMEs did not link back to the repository at all — so the one claim that distinguishes this library was invisible on the surface where people search for it. All four now carry the head-to-head result, the arXiv link and the repository link; keywords grew from 9 to 14 on `core` and from 5 to 11 on each adapter.
+
+A version bump is the only way to move a README on npm: the registry renders the README of the *published* version, not of the default branch.
+
 ## [0.4.0] — 2026-08-05
 
 **Compatibility-only release. No runtime code changed** — `packages/*/src` is byte-identical to `0.3.5`. This release exists to publish a narrower, and finally honest, platform requirement.
