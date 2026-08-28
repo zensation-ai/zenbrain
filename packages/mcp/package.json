@@ -59,15 +59,11 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.4.3"
-  },
-  "peerDependencies": {
-    "@zensation/adapter-sqlite": "^0.2.0",
-    "@zensation/core": "^0.3.0"
-  },
-  "devDependencies": {
     "@zensation/adapter-sqlite": "^0.2.0",
     "@zensation/core": "^0.3.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
