@@ -1,6 +1,6 @@
 {
   "name": "@zensation/ai-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ZenBrain as Vercel AI SDK middleware: recall relevant memories before a model call, store the turn after it. Zero runtime dependencies.",
   "type": "module",
   "main": "./dist/index.js",

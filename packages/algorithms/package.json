@@ -1,7 +1,7 @@
 {
   "name": "@zensation/algorithms",
   "version": "0.4.1",
-  "description": "ZenBrain's open-source memory algorithm library: 10 core algorithms (FSRS spaced repetition, Hebbian learning, Ebbinghaus decay, emotional tagging, sleep consolidation, Bayesian confidence, ...) + 10 advanced research modules (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, Information-Bottleneck budget, Hopfield STM, Personalized PageRank, ...). 20 modules, zero dependencies.",
+  "description": "ZenBrain's memory algorithms as a standalone library: FSRS spaced repetition, Hebbian learning, Ebbinghaus decay, emotional tagging, sleep consolidation and 15 more. 20 modules, zero dependencies.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

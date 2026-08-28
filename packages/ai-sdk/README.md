@@ -130,11 +130,17 @@ const result = streamText({
 for await (const chunk of result.textStream) process.stdout.write(chunk);
 ```
 
-## Links
+## About ZenBrain
 
-- Repository: <https://github.com/zensation-ai/zenbrain>
-- Paper: <https://arxiv.org/abs/2604.23878>
-- MCP server (same memory, for Claude Desktop and Cursor): [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp)
-- Playground: <https://zensation.ai/en/playground>
+ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
+zero-dependency TypeScript and published under Apache-2.0. On LongMemEval-500 it wins all nine
+head-to-head answer-quality comparisons against Letta, Mem0 and A-Mem (three competitors x three
+LLM judges, Bonferroni-corrected), reaching 91.3% of a full-context oracle's binary-judge
+accuracy at 1/106th of the per-query token cost.
 
-Apache-2.0.
+- Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
+- Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Reproduction material: [10.5281/zenodo.19481262](https://doi.org/10.5281/zenodo.19481262)
+- Try it in the browser: [zensation.ai/en/playground](https://zensation.ai/en/playground)
+- Packages: [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [`@zensation/ai-sdk`](https://www.npmjs.com/package/@zensation/ai-sdk)
+
+License: Apache-2.0
