@@ -299,12 +299,12 @@ const dueItems = await memory.getReviewQueue();
 
 | Package | Description | Status |
 |---------|-------------|--------|
-| [`@zensation/algorithms`](./packages/algorithms) | 20 algorithm modules — 10 core (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, intervals, visualization) + 10 advanced (vmPFC-FSRS, two-factor Hebbian, IB budget, Hopfield STM, …) | :white_check_mark: Published |
-| [`@zensation/core`](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
-| [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Published |
-| [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Published |
-| [`@zensation/mcp`](./packages/mcp) | MCP server — gives any MCP client (Claude Desktop, Claude Code, Cursor) the seven layers as four tools. Carries the protocol SDK, so the core stays dependency-free | :white_check_mark: Published |
-| [`@zensation/ai-sdk`](./packages/ai-sdk) | Vercel AI SDK middleware — recall before the model call, store after it. Works with any provider, **zero runtime dependencies** | :white_check_mark: Published |
+| [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [source](./packages/algorithms) | 20 algorithm modules — 10 core (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, intervals, visualization) + 10 advanced (vmPFC-FSRS, two-factor Hebbian, IB budget, Hopfield STM, …) | :white_check_mark: Published |
+| [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [source](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
+| [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [source](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Published |
+| [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [source](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Published |
+| [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [source](./packages/mcp) | MCP server — gives any MCP client (Claude Desktop, Claude Code, Cursor) the seven layers as four tools. Carries the protocol SDK, so the core stays dependency-free | :white_check_mark: Published |
+| [`@zensation/ai-sdk`](https://www.npmjs.com/package/@zensation/ai-sdk) · [source](./packages/ai-sdk) | Vercel AI SDK middleware — recall before the model call, store after it. Works with any provider, **zero runtime dependencies** | :white_check_mark: Published |
 
 ### Tree-Shakeable Imports
 
