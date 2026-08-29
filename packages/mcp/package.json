@@ -1,6 +1,6 @@
 {
   "name": "@zensation/mcp",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "MCP memory server for ZenBrain: agent memory for any Model Context Protocol client — store, recall, consolidate, health. Local SQLite file, no account.",
   "mcpName": "ai.zensation/zenbrain",
   "type": "module",
@@ -46,7 +46,7 @@
     "stateful-agents",
     "llm-memory"
   ],
-  "author": "ZenSation <open-source@zensation.ai>",
+  "author": "Zensation AI <open-source@zensation.ai>",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

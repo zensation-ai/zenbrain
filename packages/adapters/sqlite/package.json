@@ -1,6 +1,6 @@
 {
   "name": "@zensation/adapter-sqlite",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "SQLite storage adapter for ZenBrain memory system. Zero-config, file-based, perfect for development and single-user deployments.",
   "type": "module",
   "main": "./dist/index.js",
@@ -37,7 +37,7 @@
     "llm-memory",
     "ai-agents"
   ],
-  "author": "ZenSation <open-source@zensation.ai>",
+  "author": "Zensation AI <open-source@zensation.ai>",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

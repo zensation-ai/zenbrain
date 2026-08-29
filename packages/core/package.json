@@ -1,6 +1,6 @@
 {
   "name": "@zensation/core",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "7-layer memory system for AI agents. Pluggable storage, embeddings, and LLM providers. Built on @zensation/algorithms.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -82,7 +82,7 @@
     "pluggable-adapters",
     "zenbrain"
   ],
-  "author": "ZenSation <open-source@zensation.ai>",
+  "author": "Zensation AI <open-source@zensation.ai>",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

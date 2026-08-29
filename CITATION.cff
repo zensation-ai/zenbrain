@@ -17,8 +17,8 @@ identifiers:
 repository-code: "https://github.com/zensation-ai/zenbrain"
 url: "https://github.com/zensation-ai/zenbrain"
 license: Apache-2.0
-version: 0.4.0
-date-released: 2026-08-05
+version: 0.4.3
+date-released: 2026-08-29
 keywords:
   - ai-memory
   - spaced-repetition

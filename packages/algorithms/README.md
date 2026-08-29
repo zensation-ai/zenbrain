@@ -230,7 +230,7 @@ updateAfterRecall(state, 4, 0.9, new Date(), console);
 
 ## Research
 
-These algorithms are documented in an open-access technical disclosure: [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture](https://doi.org/10.5281/zenodo.19353663) (Zenodo). See also: [HuggingFace Model Card](https://huggingface.co/alexanderbering/zenbrain).
+These algorithms are documented in an open-access technical disclosure: [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture](https://doi.org/10.5281/zenodo.19353663) (Zenodo). See also: [HuggingFace Model Card](https://huggingface.co/zensation-ai/zenbrain).
 
 ## Part of ZenBrain
 
@@ -256,7 +256,7 @@ LLM judges, Bonferroni-corrected), reaching 91.3% of a full-context oracle's bin
 accuracy at 1/106th of the per-query token cost.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
-- Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Reproduction material: [10.5281/zenodo.19481262](https://doi.org/10.5281/zenodo.19481262)
+- Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Reproduction material: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 - Try it in the browser: [zensation.ai/en/playground](https://zensation.ai/en/playground)
 - Packages: [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [`@zensation/ai-sdk`](https://www.npmjs.com/package/@zensation/ai-sdk)
 

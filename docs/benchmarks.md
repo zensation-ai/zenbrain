@@ -34,7 +34,7 @@ masking.
 `npm install`, no API keys. The material ships with the reproduction record.
 
 - Method and full tables: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
-- Reproduction material: [10.5281/zenodo.19481262](https://doi.org/10.5281/zenodo.19481262)
+- Reproduction material: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 
 ---
 

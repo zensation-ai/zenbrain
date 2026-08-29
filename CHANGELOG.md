@@ -2,6 +2,45 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] — 2026-08-29
+
+**Metadata only, and every item is a correction rather than a change.** `packages/*/src` is
+byte-identical to `0.4.2`. All six packages take a patch bump so the corrections reach npm.
+
+### Fixed — the Zenodo DOI on every package page pointed at a pinned old version
+
+`CITATION.cff` carries `10.5281/zenodo.19353663` and says why, in its own `description` field:
+*"Concept DOI — resolves to the latest deposited version on Zenodo."* The **About ZenBrain**
+block, which is the one paragraph every package page opens with, carried
+`10.5281/zenodo.19481262` instead — that is the version DOI of **v6**, while the current
+deposit is **v8**. Eighteen occurrences across eight files, including this repository's own
+README and `docs/benchmarks.md`.
+
+A version DOI in a README does not stay wrong quietly for one release; it drifts further with
+every deposit. Every one of them is now the concept DOI, which is what the repository already
+documented as the rule.
+
+### Fixed — two package pages linked a Hugging Face namespace we left
+
+`packages/algorithms/README.md` and `packages/core/README.md` pointed at
+`huggingface.co/alexanderbering/zenbrain`. That URL answers `307` and redirects to
+`huggingface.co/zensation-ai/zenbrain`, so nothing looked broken — but every visitor and every
+crawler following it recorded the personal namespace we moved away from, which is exactly the
+entity signal the move was meant to consolidate. Both now point at the organisation.
+
+### Fixed — the `author` field disagreed with the citation metadata
+
+Six packages declared `author: "ZenSation <open-source@zensation.ai>"`. `CITATION.cff` declares
+`affiliation: "Zensation AI"`, and that lower-case form is the one used in structured fields
+throughout, because the mixed-case brand spelling splits entity matching between records. The
+`author` field is structured metadata, so it follows the citation file: `Zensation AI`.
+
+### Fixed — `CITATION.cff` still described the 0.4.0 release
+
+`version: 0.4.0` and `date-released: 2026-08-05`, three releases ago. Anyone who used the
+"Cite this repository" button between 5 August and today got a citation for a version that was
+no longer the one they had. Now `0.4.3` and `2026-08-29`.
+
 ## [0.4.2] — 2026-08-29
 
 **Metadata only. No runtime code changed** — `packages/*/src` is byte-identical to `0.4.1`.

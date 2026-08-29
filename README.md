@@ -36,7 +36,7 @@
 
 - **arXiv preprint** (cs.AI): [arxiv.org/abs/2604.23878](https://arxiv.org/abs/2604.23878)
 - **Open-access archive** (Zenodo / CERN): [doi.org/10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
-- **Reproducibility artifacts** (Zenodo): [doi.org/10.5281/zenodo.19481262](https://doi.org/10.5281/zenodo.19481262)
+- **Reproducibility artifacts** (Zenodo): [doi.org/10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 - **ORCID**: [0009-0001-1793-012X](https://orcid.org/0009-0001-1793-012X)
 - **License**: CC BY 4.0 (paper) · Apache-2.0 (code)
 
@@ -80,7 +80,7 @@ no API keys. The material ships with the reproduction record, so the numbers abo
 checked rather than believed.
 
 - Method, effect sizes and ablations: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
-- Reproduction material: [10.5281/zenodo.19481262](https://doi.org/10.5281/zenodo.19481262)
+- Reproduction material: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 
 ---
 
