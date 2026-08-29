@@ -1,7 +1,10 @@
 # ZenBrain Benchmarks
 
-This file collects the algorithm-level micro-benchmarks that run inside this repository.
-The system-level result — the one the architecture is judged on — is LongMemEval-500, below.
+This file collects the numbers behind ZenBrain. The system-level result — the one the
+architecture is judged on — is LongMemEval-500, below. The algorithm-level figures under it are
+a mix: some are measured, and some are taken from the published literature, cited at the table
+that uses them. Neither kind runs from a script in this repository; the one thing that does is
+`scripts/compare-mechanisms.sh`.
 
 ## LongMemEval-500 (system level)
 
