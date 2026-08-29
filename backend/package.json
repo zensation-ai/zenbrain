@@ -1,0 +1,19 @@
+{
+  "name": "@zensation/experiments",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reproduction package for the ablation tables in the ZenBrain paper (arXiv:2604.23878). Self-contained: no external services, no API keys, no data files.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "experiments": "vitest run",
+    "experiments:ablation": "vitest run ablation-study",
+    "experiments:comparison": "vitest run competitive-comparison",
+    "experiments:pma": "vitest run pma-benchmark",
+    "verify": "node scripts/verify-against-reference.mjs frisch results"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^3.0.0"
+  }
+}

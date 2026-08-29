@@ -84,6 +84,19 @@ jobs:
       - name: Verify every package ships what it promises
         run: bash scripts/verify-package-contents.sh
 
+      # The paper prints a reproduction procedure and an abstract sentence that says the
+      # ablation tables reproduce in under a minute. Run it, and compare the numbers it
+      # produces against the ones the published tables were generated from — otherwise
+      # the claim stops being true the first time an algorithm changes, and nobody finds
+      # out until a reviewer does. Point estimates must match exactly; the bootstrap
+      # confidence bounds are unseeded and are reported separately, not asserted on.
+      - name: Ablation tables still reproduce the published numbers
+        run: |
+          cd backend
+          npm run experiments > run.log 2>&1 || (tail -40 run.log; exit 1)
+          node scripts/extract-results.mjs run.log fresh/
+          node scripts/verify-against-reference.mjs fresh/ results/
+
   publish:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')
