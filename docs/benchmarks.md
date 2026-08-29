@@ -30,11 +30,13 @@ fifteen individually critical (Delta-Q up to -93.7%; Wilcoxon, 10 seeds). Mild-l
 systematically underestimates architectural contributions — the paper calls this cooperative
 masking.
 
-**Reproducing it.** Every ablation table in the paper reproduces in under a minute on a laptop:
-`npm install`, no API keys. The material ships with the reproduction record.
+**Checking it.** The mechanism comparison in the README re-runs from this repository with
+`bash scripts/compare-mechanisms.sh` — no API keys, nothing to install, and a positive and a
+negative control printed before the result. The LongMemEval and LoCoMo figures above come
+from the paper; this repository does not yet ship a runner that reproduces them.
 
 - Method and full tables: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
-- Reproduction material: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
+- Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 
 ---
 

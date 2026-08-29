@@ -7,6 +7,27 @@ All notable changes to ZenBrain are documented in this file. The format is based
 **Metadata only, and every item is a correction rather than a change.** `packages/*/src` is
 byte-identical to `0.4.2`. All six packages take a patch bump so the corrections reach npm.
 
+### Fixed — the reproducibility claim was not backed by anything reachable
+
+Every package page, this README, `docs/benchmarks.md` and the Hugging Face model card told the
+reader that reproduction material sits behind a Zenodo DOI. It does not. Each of the three
+deposited versions — v6, v7, v8 — holds exactly one file, the paper PDF, and is typed
+`Preprint`. There is no reproduction record on Zenodo, no ablation runner in `scripts/`, and no
+test in this repository that asserts any published figure.
+
+That is the wrong claim for this project to get wrong, so it is gone. What replaces it is the
+part that is true and can be run: `scripts/compare-mechanisms.sh` re-runs the mechanism
+comparison in under a minute, without API keys or an install, and prints a positive and a
+negative control before its result. The LongMemEval and LoCoMo figures come from the paper, and
+the text now says so instead of implying a runner that does not exist.
+
+The DOI itself keeps its place under the label that was already correct one line above it in
+this README — **Open-access archive**. The README had listed the same DOI twice, once as the
+archive and once as *Reproducibility artifacts*; the second line is removed.
+
+**This is a wording correction, not a decision to stop there.** Depositing the material and
+restoring the stronger sentence remains open, and would be the better ending.
+
 ### Fixed — the Zenodo DOI on every package page pointed at a pinned old version
 
 `CITATION.cff` carries `10.5281/zenodo.19353663` and says why, in its own `description` field:

@@ -36,7 +36,6 @@
 
 - **arXiv preprint** (cs.AI): [arxiv.org/abs/2604.23878](https://arxiv.org/abs/2604.23878)
 - **Open-access archive** (Zenodo / CERN): [doi.org/10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
-- **Reproducibility artifacts** (Zenodo): [doi.org/10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 - **ORCID**: [0009-0001-1793-012X](https://orcid.org/0009-0001-1793-012X)
 - **License**: CC BY 4.0 (paper) · Apache-2.0 (code)
 
@@ -75,12 +74,14 @@ The paper prints where ZenBrain loses as well: on LoCoMo, substring-based aggreg
 lexical retrieval (BM25) by metric design, and we do not contest that. The advantage is most
 pronounced on judge-graded answer quality and cross-session reasoning.
 
-**Every ablation table in the paper reproduces in under a minute on a laptop** — `npm install`,
-no API keys. The material ships with the reproduction record, so the numbers above can be
-checked rather than believed.
+**The mechanism comparison further down re-runs from this repository in under a minute** —
+`bash scripts/compare-mechanisms.sh`, no API keys and nothing to install. It prints a positive
+and a negative control before the result, so the instrument can be checked before its output
+is trusted. The method, the effect sizes and the ablations behind the numbers above are in the
+paper; this repository does not yet ship a runner for them.
 
 - Method, effect sizes and ablations: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
-- Reproduction material: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
+- Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 
 ---
 
