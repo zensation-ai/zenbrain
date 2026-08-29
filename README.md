@@ -302,8 +302,8 @@ const dueItems = await memory.getReviewQueue();
 | [`@zensation/core`](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
 | [`@zensation/adapter-postgres`](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Published |
 | [`@zensation/adapter-sqlite`](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Published |
-| [`@zensation/mcp`](./packages/mcp) | MCP server — gives any MCP client (Claude Desktop, Claude Code, Cursor) the seven layers as four tools. Carries the protocol SDK, so the core stays dependency-free | :construction: Unreleased |
-| [`@zensation/ai-sdk`](./packages/ai-sdk) | Vercel AI SDK middleware — recall before the model call, store after it. Works with any provider, **zero runtime dependencies** | :construction: Unreleased |
+| [`@zensation/mcp`](./packages/mcp) | MCP server — gives any MCP client (Claude Desktop, Claude Code, Cursor) the seven layers as four tools. Carries the protocol SDK, so the core stays dependency-free | :white_check_mark: Published |
+| [`@zensation/ai-sdk`](./packages/ai-sdk) | Vercel AI SDK middleware — recall before the model call, store after it. Works with any provider, **zero runtime dependencies** | :white_check_mark: Published |
 
 ### Tree-Shakeable Imports
 

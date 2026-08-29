@@ -1,6 +1,6 @@
 # @zensation/mcp
 
-**Status: 0.1.0, early release.** The tool surface is small on purpose and may still
+**Status: early release.** The tool surface is small on purpose and may still
 change before 1.0. The memory layers underneath it are the same ones the
 [ZenBrain paper](https://arxiv.org/abs/2604.23878) describes and the
 [benchmarks](https://github.com/zensation-ai/zenbrain/blob/main/docs/benchmarks.md) measure.

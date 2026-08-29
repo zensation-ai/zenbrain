@@ -1,6 +1,6 @@
 # @zensation/ai-sdk
 
-**Status: 0.1.0, early release.** The option shape may still change before 1.0. The memory
+**Status: early release.** The option shape may still change before 1.0. The memory
 layers underneath are the ones the [ZenBrain paper](https://arxiv.org/abs/2604.23878)
 describes and the
 [benchmarks](https://github.com/zensation-ai/zenbrain/blob/main/docs/benchmarks.md) measure.

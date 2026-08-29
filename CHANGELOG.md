@@ -2,6 +2,47 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] — 2026-08-29
+
+**Metadata only. No runtime code changed** — `packages/*/src` is byte-identical to `0.4.1`.
+`@zensation/mcp` and `@zensation/ai-sdk` move `0.1.1 → 0.1.2`; the other four are untouched.
+
+### Changed — the npm descriptions of the two integration packages
+
+npm's search ranks on the words in a package's `description`, and it weighs that far above
+download counts. For the query `vercel ai sdk memory`, `@turbomem/vercel-ai` (142 downloads a
+month) ranks first and `ai` (90,669,436 downloads a month) second. Of the fifteen top results
+for `mcp memory`, three carry no keywords at all; what all fifteen have in common is those two
+words standing next to each other in a name or a description.
+
+Neither of these packages had that. `@zensation/mcp` said *"gives any MCP client a 7-layer
+memory"* and `@zensation/ai-sdk` said *"recall relevant memories before a model call"* — both
+accurate, and neither in the top 250 for any phrase someone looking for this would actually
+type, while `@mem0/vercel-ai-provider`, the direct counterpart to `@zensation/ai-sdk`, sits at
+39. The new descriptions put the phrases together and claim nothing new:
+
+- `@zensation/mcp` — "MCP memory server for ZenBrain: agent memory for any Model Context Protocol client — store, recall, consolidate, health. Local SQLite file, no account."
+- `@zensation/ai-sdk` — "Vercel AI SDK memory middleware: agent memory that recalls before a model call and stores the turn after it. Zero runtime dependencies."
+
+Whether this moves anything is an open question, and it is measured the same way it was found:
+the same queries, re-run, with `7-layer memory` → `@zensation/core` at rank 1 as the control
+that the instrument still works.
+
+### Fixed — documentation that had drifted from what is published
+
+- The old `@zensation/mcp` description named a tool `inspect`. There is no such tool. The four
+  are `zenbrain_store`, `zenbrain_recall`, `zenbrain_consolidate` and `zenbrain_health`.
+- The package table in the README listed `@zensation/mcp` and `@zensation/ai-sdk` as
+  `:construction: Unreleased`. Both have been on npm with provenance attestations since
+  2026-08-28.
+- Both package READMEs opened with *"Status: 0.1.0, early release"* while `0.1.1` was the
+  published version. The version number is out of the sentence — the status was the point, and
+  a pinned number there only ages.
+- `@zensation/ai-sdk` did not appear in this changelog at all. It is Vercel AI SDK middleware:
+  it recalls before the model call and stores the turn after it, carries zero runtime
+  dependencies, and its twelve tests assert on `doGenerateCalls[0].prompt` — what reached the
+  model — rather than on what the middleware returned.
+
 ## [0.4.1] — 2026-08-28
 
 **Two things: a new package, and a metadata-only republish of the existing four.**

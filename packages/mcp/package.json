@@ -1,7 +1,7 @@
 {
   "name": "@zensation/mcp",
-  "version": "0.1.1",
-  "description": "Model Context Protocol server for ZenBrain — gives any MCP client a 7-layer memory: store, recall, consolidate, inspect.",
+  "version": "0.1.2",
+  "description": "MCP memory server for ZenBrain: agent memory for any Model Context Protocol client — store, recall, consolidate, health. Local SQLite file, no account.",
   "mcpName": "ai.zensation/zenbrain",
   "type": "module",
   "main": "./dist/index.js",
