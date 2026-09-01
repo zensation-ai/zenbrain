@@ -2,6 +2,18 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] — 2026-09-01
+
+**`@zensation/algorithms` only, description only.** `src` is byte-identical to `0.4.2`; no other
+package is bumped (the publish step skips versions already on the registry).
+
+### Changed
+
+- The package description now says what the library is for — *agent memory for LLM agents* —
+  before listing how it works. The npm search ranks by word sequences in the description, and
+  the previous text never contained the phrase people actually search for. Same correction the
+  GitHub repository description received on 2026-08-29.
+
 ## [0.4.3] — 2026-08-29
 
 **Metadata only, and every item is a correction rather than a change.** `packages/*/src` is

@@ -1,7 +1,7 @@
 {
   "name": "@zensation/algorithms",
-  "version": "0.4.2",
-  "description": "ZenBrain's memory algorithms as a standalone library: FSRS spaced repetition, Hebbian learning, Ebbinghaus decay, emotional tagging, sleep consolidation and 15 more. 20 modules, zero dependencies.",
+  "version": "0.4.4",
+  "description": "Agent memory for LLM agents: FSRS spaced repetition, Hebbian learning, Ebbinghaus forgetting curves, emotional tagging, sleep consolidation and 15 more. ZenBrain's algorithm core — 20 modules, zero-dependency TypeScript library.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
