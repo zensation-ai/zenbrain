@@ -9,16 +9,16 @@ authors:
     affiliation: "Zensation AI"
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.19353663
-    description: "Concept DOI — resolves to the latest deposited version on Zenodo"
+    value: 10.5281/zenodo.22260018
+    description: "Concept DOI of the software record on Zenodo — resolves to the latest deposited source release"
   - type: other
     value: "arXiv:2604.23878"
     description: "arXiv preprint identifier (cs.AI)"
 repository-code: "https://github.com/zensation-ai/zenbrain"
 url: "https://github.com/zensation-ai/zenbrain"
 license: Apache-2.0
-version: 0.4.3
-date-released: 2026-08-29
+version: 0.4.4
+date-released: 2026-09-01
 keywords:
   - ai-memory
   - spaced-repetition
