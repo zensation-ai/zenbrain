@@ -78,8 +78,9 @@ pronounced on judge-graded answer quality and cross-session reasoning.
 `bash scripts/compare-mechanisms.sh`, no API keys and nothing to install. It prints a positive
 and a negative control before the result, so the instrument can be checked before its output
 is trusted. The method, the effect sizes and the ablations behind the numbers above are in the
-paper; this repository does not ship a runner for them, but the archived reproduction packages
-below do.
+paper; this repository ships no runner for them. The archived packages below run the significance
+tests and effect sizes in full, and the mechanism ablation for three of the five tables the paper
+captions as ablations.
 
 - Method, effect sizes and ablations: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
 - Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
@@ -88,17 +89,28 @@ below do.
 
 ## Reproduction packages
 
-The raw material behind the numbers above is deposited on Zenodo, open access and citable:
+The raw material behind the numbers above is deposited on Zenodo, open access and citable. Both
+links are concept DOIs and resolve to the latest version, the same convention this README uses for
+the paper archive; each description was measured against the version named after it.
 
-- **Mechanism ablation, paper Tables 7–9** — [10.5281/zenodo.22162064](https://doi.org/10.5281/zenodo.22162064).
-  Four experiment suites (95 tests), the reference JSON the tables were generated from, and a
-  script that diffs a fresh run against it. `npm install && npm run experiments`; no API keys, no
-  network at run time, well under a minute on a laptop.
-- **Measurement package, LongMemEval-500 and the Tier-2 flag ablation** —
-  [10.5281/zenodo.22161978](https://doi.org/10.5281/zenodo.22161978). Per-(system, judge, seed)
-  judged outputs, the flag manifests as recorded at run time, `SHA256SUMS.txt`, and offline
-  re-derivation scripts that recompute the published figures — the significance tests behind the
-  head-to-head comparisons among them — and exit non-zero on mismatch.
+- **Mechanism ablation, paper Tables 7–9** — [10.5281/zenodo.22162063](https://doi.org/10.5281/zenodo.22162063)
+  (described here: v1.0.0). Four experiment suites (95 tests), the reference JSON the paper's
+  tables were generated from, and `verify-against-reference.mjs`, which diffs a fresh run against
+  that reference and exits non-zero on drift. `npm install && npm run experiments`; the run itself
+  needs no API keys and no network, and finishes in under a minute on a laptop. The paper captions
+  five tables as ablations and this package covers three of them: Table 11 needs the LoCoMo corpus,
+  Table 13 comes from a different pipeline, and the package states both itself.
+- **Measurement package, LongMemEval-500 and the real-pipeline flag ablation** —
+  [10.5281/zenodo.22161977](https://doi.org/10.5281/zenodo.22161977) (described here: v1).
+  Per-(system, judge, seed) judged outputs, the flag manifests as recorded at run time, a
+  `SHA256SUMS.txt` covering every file in the package, and the analysis scripts. Three of those
+  scripts are stdlib-only and self-checking — the oracle comparison behind the 91.3% figure, the
+  judge-agreement figures, and the real-pipeline flag-ablation table: each prints every re-derived
+  value next to the reference it has to match, and exits non-zero on mismatch. The significance
+  tests behind the nine head-to-head comparisons against Letta, Mem0 and A-Mem sit in a separate
+  script that needs numpy and scipy; it recomputes all eighteen pairwise tests and rewrites the
+  deposited significance JSON byte-identically, so what catches a mismatch there is the checksum,
+  not an exit code.
 
 Both packages name what they do not cover. Replications and counter-results are welcome:
 [research@zensation.ai](mailto:research@zensation.ai).
