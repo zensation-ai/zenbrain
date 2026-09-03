@@ -1,7 +1,7 @@
 {
   "name": "@zensation/algorithms",
   "version": "0.4.4",
-  "description": "Agent memory for LLM agents: FSRS spaced repetition, Hebbian learning, Ebbinghaus forgetting, sleep consolidation and 16 more. Zero-dependency TypeScript core of ZenBrain: 9 of 9 answer-quality wins on LongMemEval-500 vs Letta, Mem0, A-Mem.",
+  "description": "Agent memory for LLM agents: 20 zero-dependency modules — FSRS spaced repetition, Hebbian learning, Ebbinghaus forgetting, sleep consolidation and 16 more. ZenBrain's core: 9 of 9 answer-quality wins on LongMemEval-500 vs Letta, Mem0, A-Mem.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

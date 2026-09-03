@@ -1,7 +1,7 @@
 {
   "name": "@zensation/mcp",
   "version": "0.1.3",
-  "description": "Agent memory for any Model Context Protocol client: an MCP server giving Claude Desktop, Claude Code or Cursor memory that survives the conversation. Local SQLite file. ZenBrain: 9 of 9 answer-quality wins on LongMemEval-500 vs Letta, Mem0, A-Mem.",
+  "description": "Agent memory for any Model Context Protocol client — Claude Desktop, Claude Code, Cursor — that survives the conversation. MCP server, local SQLite file, no account. ZenBrain: 9 of 9 answer-quality wins on LongMemEval-500 vs Letta, Mem0, A-Mem.",
   "mcpName": "ai.zensation/zenbrain",
   "type": "module",
   "main": "./dist/index.js",

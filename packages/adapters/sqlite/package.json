@@ -1,7 +1,7 @@
 {
   "name": "@zensation/adapter-sqlite",
   "version": "0.2.2",
-  "description": "SQLite storage adapter for ZenBrain agent memory: an LLM agent's whole long-term memory in one portable file, no server and no network hop. Same StorageAdapter interface as the Postgres adapter, so moving between them is a one-line change.",
+  "description": "Zero-config SQLite storage adapter for ZenBrain agent memory: an LLM agent's whole long-term memory in one portable file, no server and no network hop. For development and single-user apps. Same StorageAdapter interface as the Postgres adapter.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
