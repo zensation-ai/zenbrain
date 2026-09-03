@@ -78,10 +78,30 @@ pronounced on judge-graded answer quality and cross-session reasoning.
 `bash scripts/compare-mechanisms.sh`, no API keys and nothing to install. It prints a positive
 and a negative control before the result, so the instrument can be checked before its output
 is trusted. The method, the effect sizes and the ablations behind the numbers above are in the
-paper; this repository does not yet ship a runner for them.
+paper; this repository does not ship a runner for them, but the archived reproduction packages
+below do.
 
 - Method, effect sizes and ablations: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
 - Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
+
+---
+
+## Reproduction packages
+
+The raw material behind the numbers above is deposited on Zenodo, open access and citable:
+
+- **Mechanism ablation, paper Tables 7–9** — [10.5281/zenodo.22162064](https://doi.org/10.5281/zenodo.22162064).
+  Four experiment suites (95 tests), the reference JSON the tables were generated from, and a
+  script that diffs a fresh run against it. `npm install && npm run experiments`; no API keys, no
+  network at run time, well under a minute on a laptop.
+- **Measurement package, LongMemEval-500 and the Tier-2 flag ablation** —
+  [10.5281/zenodo.22161978](https://doi.org/10.5281/zenodo.22161978). Per-(system, judge, seed)
+  judged outputs, the flag manifests as recorded at run time, `SHA256SUMS.txt`, and offline
+  re-derivation scripts that recompute the published figures — the significance tests behind the
+  head-to-head comparisons among them — and exit non-zero on mismatch.
+
+Both packages name what they do not cover. Replications and counter-results are welcome:
+[research@zensation.ai](mailto:research@zensation.ai).
 
 ---
 
