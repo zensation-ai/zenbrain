@@ -1,7 +1,7 @@
 {
   "name": "@zensation/core",
   "version": "0.3.2",
-  "description": "Agent memory for LLM agents: 7 layers (working, episodic, semantic, procedural) over pluggable storage, embeddings and LLM providers. ZenBrain wins 9 of 9 answer-quality comparisons on LongMemEval-500 against Letta, Mem0 and A-Mem (3 judges).",
+  "description": "Agent memory for LLM agents: 7 layers (working, episodic, semantic, procedural) over pluggable storage, embeddings and LLM providers. ZenBrain wins 9 of 9 answer-quality comparisons on LongMemEval-500 against Letta, Mem0 and A-Mem.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
