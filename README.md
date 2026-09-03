@@ -79,8 +79,7 @@ pronounced on judge-graded answer quality and cross-session reasoning.
 and a negative control before the result, so the instrument can be checked before its output
 is trusted. The method, the effect sizes and the ablations behind the numbers above are in the
 paper; this repository ships no runner for them. The archived packages below run the significance
-tests and effect sizes in full, and the mechanism ablation for three of the five tables the paper
-captions as ablations.
+tests and effect sizes in full, and the mechanism ablation behind paper Tables 7–9.
 
 - Method, effect sizes and ablations: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
 - Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
@@ -97,9 +96,9 @@ the paper archive; each description was measured against the version named after
   (described here: v1.0.0). Four experiment suites (95 tests), the reference JSON the paper's
   tables were generated from, and `verify-against-reference.mjs`, which diffs a fresh run against
   that reference and exits non-zero on drift. `npm install && npm run experiments`; the run itself
-  needs no API keys and no network, and finishes in under a minute on a laptop. The paper captions
-  five tables as ablations and this package covers three of them: Table 11 needs the LoCoMo corpus,
-  Table 13 comes from a different pipeline, and the package states both itself.
+  needs no API keys and no network, and finishes in under a minute on a laptop. Two of the paper's
+  other ablation tables need data this package does not carry: Table 11 the LoCoMo corpus, Table 13
+  a different pipeline. The package says so itself.
 - **Measurement package, LongMemEval-500 and the real-pipeline flag ablation** —
   [10.5281/zenodo.22161977](https://doi.org/10.5281/zenodo.22161977) (described here: v1).
   Per-(system, judge, seed) judged outputs, the flag manifests as recorded at run time, a
