@@ -1,7 +1,7 @@
 {
   "name": "@zensation/ai-sdk",
   "version": "0.1.3",
-  "description": "Vercel AI SDK memory middleware: agent memory that recalls before a model call and stores the turn after it. Zero runtime dependencies.",
+  "description": "Agent memory as Vercel AI SDK middleware for LLM agents: recalls what is relevant before the model call, stores the turn after it, with any provider. ZenBrain: 9 of 9 answer-quality wins on LongMemEval-500 vs Letta, Mem0, A-Mem.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -35,7 +35,9 @@
     "long-term-memory",
     "episodic-memory",
     "stateful-agents",
-    "llm-memory"
+    "llm-memory",
+    "longmemeval",
+    "llm-agents"
   ],
   "author": "Zensation AI <open-source@zensation.ai>",
   "license": "Apache-2.0",

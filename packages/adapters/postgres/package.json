@@ -1,7 +1,7 @@
 {
   "name": "@zensation/adapter-postgres",
   "version": "0.2.2",
-  "description": "PostgreSQL + pgvector storage adapter for ZenBrain memory system. Server-backed persistence with vector similarity search in the database.",
+  "description": "PostgreSQL and pgvector storage adapter for ZenBrain agent memory: server-backed persistence for LLM agents, with vector similarity search running in the database. Same StorageAdapter interface as the SQLite adapter.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -36,7 +36,9 @@
     "storage-adapter",
     "vector-search",
     "llm-memory",
-    "ai-agents"
+    "ai-agents",
+    "longmemeval",
+    "llm-agents"
   ],
   "author": "Zensation AI <open-source@zensation.ai>",
   "license": "Apache-2.0",
