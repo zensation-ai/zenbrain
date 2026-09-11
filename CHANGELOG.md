@@ -2,6 +2,53 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] — 2026-09-11
+
+**`@zensation/mcp` only** (0.1.4 → 0.1.5). No other package is bumped; the publish step skips
+versions already on the registry.
+
+### Fixed — the server did not start on either documented path
+
+`zenbrain-mcp` exited 0 and wrote nothing to stdout or stderr. Not an error, not a crash: a
+silent no-op. The entry guard compared `import.meta.url`, which has symlinks resolved, against
+`process.argv[1]`, which is the path as the caller spelled it. npm installs every `bin` as a
+symlink, so for an installed package the two never matched and `main()` was unreachable.
+
+Measured across all three invocation paths on `node:22-slim`, with a known-good MCP server
+probed identically on the same image as a control:
+
+| How it is started | Before | After |
+|---|---|---|
+| `npm i -g @zensation/mcp` then `zenbrain-mcp` | exit 0, nothing on either stream | answers, four tools |
+| `npx -y @zensation/mcp` | exit 0, nothing on either stream | answers, four tools |
+| `node <realpath>/dist/index.js` | answers | answers |
+
+The first two are what this package's own README documents — the install line and the
+`"command": "npx"` client configuration. So the documented way in has been dead since the guard
+was introduced, in the same file whose Node-version guard exists precisely to stop a server from
+coming up silently wrong.
+
+The check now resolves the argv path the way the loader resolved the module and compares like
+with like, and it lives in an exported function so the symlink arrangement is testable.
+
+### Fixed — clients were told the wrong version
+
+`createZenBrainServer` fell back to a written-out `'0.1.0'`, and `index.ts` calls it with no
+options, so that fallback was what every client saw while the package sat at 0.1.4. The default
+now comes from the manifest.
+
+### Added — the tests that would have caught both
+
+The existing suites could not catch either defect, and this is worth stating plainly: the
+protocol tests construct the server with a version of their own, so the bad default was never
+exercised; and a pure-function test of the entry guard passes just as happily while the
+installed binary stays dead. Verified rather than assumed — with the old call site restored,
+every unit test stays green and only the new test goes red.
+
+So one test spawns the built entry point **through a real symlink** and requires an answer on
+the wire, and another drives the no-options path and compares the reported version against the
+manifest rather than against a second literal.
+
 ## [0.4.4] — 2026-09-01
 
 **`@zensation/algorithms` only, description only.** `src` is byte-identical to `0.4.2`; no other
