@@ -61,7 +61,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@zensation/adapter-sqlite": "^0.2.0",
     "@zensation/core": "^0.3.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.1"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
