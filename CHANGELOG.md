@@ -2,6 +2,40 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.7] — 2026-09-21
+
+**All six packages bumped** (patch only), so that corrected README text reaches the npm package
+pages. npm reads the README at publish time, not from the repository — a merged fix to a README
+does not change what npmjs.com serves until the next release of that package.
+
+### Fixed — the package pages carried a retracted benchmark claim
+
+The benchmark correction of 2026-09-15 was rolled out on the website (2026-09-18) but never
+reached the package READMEs. All seven `@zensation` packages still served the superseded wording:
+
+| Was | Now | Why |
+|---|---|---|
+| `wins all nine head-to-head answer-quality comparisons` | `three of nine … hold, the remaining six are ties, none lost` | The judge versions were not matched (Sonnet 4.5 against 4.6). Re-run version-matched on 2026-09-15: three comparisons hold, all against A-Mem; six are ties; none lost. |
+| `1/106th of the per-query token cost` | `1/109.6` | The 106 came from 105,577.9 / **1,000**, a thousands constant in a charting script. Measured: 105,577.9 / 963.2 = **109.6**. |
+| `p_min = 6.2e-31`, `d in [0.18, 0.52]` | removed | Both are side figures over **nine** wins, six of which are now ties. They did not become wrong — they became homeless, and they are not derivable for the three remaining comparisons from the published record. |
+
+Unchanged: the Bonferroni correction `alpha = 0.05/18`, the ratio form `47.7% vs. 52.2%`, and the
+phrase *the nine head-to-head comparisons* in `README.md` — there were nine comparisons; there were
+not nine wins.
+
+### Changed
+
+- Self-set links to `zensation.ai` now carry campaign parameters, so that referral traffic can be
+  attributed at all. 56 % of visitors currently arrive without an identifiable source.
+- `packages/mcp/server.json` now states the version it is published as; it had been left at 0.1.4
+  while npm served 0.1.5.
+
+### Note on dependencies
+
+Patch bumps only. Every internal range is a caret (`^0.4.0`, `^0.3.0`, `^0.2.0`), so no dependent
+package falls out of its range — verified before tagging, after the 2026-08-05 release left npm in
+an `ERESOLVE` state for two days following a minor bump.
+
 ## [0.4.6] — 2026-09-11
 
 **`@zensation/mcp` only** (0.1.4 → 0.1.5). No other package is bumped; the publish step skips
