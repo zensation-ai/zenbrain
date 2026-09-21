@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://zensation.ai/en/playground">▶ Try the live playground in your browser</a></strong> — runs this published code, no install required.
+  <strong><a href="https://zensation.ai/en/playground?utm_source=github&utm_medium=readme&utm_campaign=evergreen">▶ Try the live playground in your browser</a></strong> — runs this published code, no install required.
 </p>
 
 <details>
@@ -426,7 +426,7 @@ function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
 
 ## Extracted From Production
 
-These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai), a production AI platform. Everything claimed here is verifiable in this repository:
+These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), a production AI platform. Everything claimed here is verifiable in this repository:
 
 - **528 tests** (429 algorithms + 99 core), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
@@ -492,5 +492,5 @@ If you use ZenBrain in academic work, please cite:
 ---
 
 <p align="center">
-  Built by <a href="https://zensation.ai">ZenSation</a> in Kiel, Germany.
+  Built by <a href="https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen">ZenSation</a> in Kiel, Germany.
 </p>
