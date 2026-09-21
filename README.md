@@ -64,11 +64,11 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 ## Benchmark: LongMemEval-500
 
-On LongMemEval-500, ZenBrain **wins all nine head-to-head answer-quality comparisons** against
-Letta, Mem0 and A-Mem — three competitors x three LLM judges, under Bonferroni-corrected
-significance (alpha = 0.05/18, p_min = 6.2e-31, d in [0.18, 0.52]). It reaches **91.3% of a
-full-context oracle's binary-judge accuracy at 1/106th of the per-query token cost**
-(47.7% vs. 52.2%).
+On LongMemEval-500, **three of nine head-to-head answer-quality comparisons hold** against
+Letta, Mem0 and A-Mem — all three against A-Mem, the remaining six are ties, none lost. Three
+competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched. It
+reaches **91.3% of a full-context oracle's binary-judge accuracy at 1/109.6 of the per-query
+token cost** (47.7% vs. 52.2%).
 
 The paper prints where ZenBrain loses as well: on LoCoMo, substring-based aggregate F1 favours
 lexical retrieval (BM25) by metric design, and we do not contest that. The advantage is most
