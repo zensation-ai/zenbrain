@@ -14,6 +14,8 @@
  * Nothing is written to stdout except protocol traffic — stdout *is* the
  * transport. Diagnostics go to stderr.
  */
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createZenBrainServer } from './server.js';
 
@@ -87,14 +89,44 @@ async function main(): Promise<void> {
   process.stderr.write(`zenbrain-mcp ready — store: ${filename}\n`);
 }
 
-// Only run when executed, not when imported. `process.argv[1]` is the script
-// path the runtime was handed; comparing against import.meta.url is the
-// ESM-safe form of the CommonJS `require.main === module` check.
-const invokedDirectly =
-  process.argv[1] !== undefined &&
-  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+/**
+ * Is this module the program the runtime was asked to run, or was it imported?
+ *
+ * `process.argv[1]` is the path as the caller spelled it. `import.meta.url` is
+ * that path *after* the loader resolved symlinks. npm installs every `bin` as a
+ * symlink — `/usr/local/bin/zenbrain-mcp -> ../lib/node_modules/@zensation/mcp/dist/index.js`
+ * — so for an installed package the two spellings never match, and comparing
+ * them unresolved left `main()` unreachable.
+ *
+ * Measured on 0.1.4 before this was fixed: `npm i -g @zensation/mcp` then
+ * `zenbrain-mcp`, and `npx -y @zensation/mcp` — the two ways the README tells
+ * people to start the server — both exited **0 with an empty stdout and an
+ * empty stderr**. Only `node <realpath>` came up. A silent no-op on the
+ * documented path is the same failure the Node guard above exists to prevent.
+ *
+ * So resolve the argv path the way the loader resolved this module, and compare
+ * like with like. `pathToFileURL` rather than a `file://${path}` template: the
+ * template hands `#`, `?` and `%` to the URL parser as fragment, query and
+ * escape introducer instead of as filename characters (measured on Node 22; a
+ * space, contrary to what one would guess, comes out the same either way).
+ *
+ * `resolve` is injectable so the symlink case can be tested without one.
+ */
+export function isDirectInvocation(
+  moduleUrl: string,
+  argv1: string | undefined,
+  resolve: (path: string) => string = realpathSync,
+): boolean {
+  if (argv1 === undefined) return false;
+  try {
+    return moduleUrl === pathToFileURL(resolve(argv1)).href;
+  } catch {
+    // argv[1] names something unresolvable; that is not a direct invocation.
+    return false;
+  }
+}
 
-if (invokedDirectly) {
+if (isDirectInvocation(import.meta.url, process.argv[1])) {
   main().catch((err: unknown) => {
     process.stderr.write(`zenbrain-mcp failed to start: ${String(err)}\n`);
     process.exit(1);

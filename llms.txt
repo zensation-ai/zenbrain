@@ -32,7 +32,7 @@ Cross-Context).
 - [CrewAI integration](https://github.com/zensation-ai/zenbrain/blob/main/examples/with-crewai.ts)
 - [Vercel AI SDK integration](https://github.com/zensation-ai/zenbrain/blob/main/examples/with-vercel-ai.ts)
 - [Claude integration](https://github.com/zensation-ai/zenbrain/blob/main/examples/with-claude.ts)
-- [Live in-browser playground](https://zensation.ai/en/playground): runs the published code with no install.
+- [Live in-browser playground](https://zensation.ai/en/playground?utm_source=llms&utm_medium=llms-txt&utm_campaign=evergreen): runs the published code with no install.
 
 ## Packages
 

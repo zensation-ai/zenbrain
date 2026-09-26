@@ -6,6 +6,7 @@
  * drive the real protocol over an in-memory transport against an in-memory store,
  * and never touch a file or a database. `index.ts` does the wiring for real use.
  */
+import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type {
@@ -14,6 +15,22 @@ import type {
   RecallResult,
   StoreOptions,
 } from '@zensation/core';
+
+/**
+ * The version the server reports to clients that do not pass one.
+ *
+ * Read from the manifest, not written out here. The literal that used to stand
+ * in this place said `0.1.0` while the package was at 0.1.4, so every client
+ * saw a version that had been stale for four releases — and the test suite
+ * never caught it, because it passes a version of its own and therefore never
+ * exercised the default. A constant that has to be remembered on each release
+ * is a constant that goes stale.
+ *
+ * `../package.json` resolves to the package root from both `src/` and `dist/`.
+ */
+const PACKAGE_VERSION: string = (
+  createRequire(import.meta.url)('../package.json') as { version: string }
+).version;
 
 /** Layer names the coordinator accepts in `RecallOptions.layers`. */
 const LAYERS = ['working', 'episodic', 'semantic', 'procedural', 'core'] as const;
@@ -45,7 +62,7 @@ export function createZenBrainServer(
 ): McpServer {
   const server = new McpServer({
     name: options.name ?? '@zensation/mcp',
-    version: options.version ?? '0.1.0',
+    version: options.version ?? PACKAGE_VERSION,
   });
 
   // ── store ────────────────────────────────────────────────────────────────

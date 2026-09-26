@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://zensation.ai/en/playground">▶ Try the live playground in your browser</a></strong> — runs this published code, no install required.
+  <strong><a href="https://zensation.ai/en/playground?utm_source=github&utm_medium=readme&utm_campaign=evergreen">▶ Try the live playground in your browser</a></strong> — runs this published code, no install required.
 </p>
 
 <details>
@@ -64,11 +64,11 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 ## Benchmark: LongMemEval-500
 
-On LongMemEval-500, ZenBrain **wins all nine head-to-head answer-quality comparisons** against
-Letta, Mem0 and A-Mem — three competitors x three LLM judges, under Bonferroni-corrected
-significance (alpha = 0.05/18, p_min = 6.2e-31, d in [0.18, 0.52]). It reaches **91.3% of a
-full-context oracle's binary-judge accuracy at 1/106th of the per-query token cost**
-(47.7% vs. 52.2%).
+On LongMemEval-500, **three of nine head-to-head answer-quality comparisons hold** against
+Letta, Mem0 and A-Mem — all three against A-Mem, the remaining six are ties, none lost. Three
+competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched. It
+reaches **91.3% of a full-context oracle's binary-judge accuracy at 1/109.6 of the per-query
+token cost** (47.7% vs. 52.2%).
 
 The paper prints where ZenBrain loses as well: on LoCoMo, substring-based aggregate F1 favours
 lexical retrieval (BM25) by metric design, and we do not contest that. The advantage is most
@@ -426,11 +426,11 @@ function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
 
 ## Extracted From Production
 
-These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai), a production AI platform. Everything claimed here is verifiable in this repository:
+These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), a production AI platform. Everything claimed here is verifiable in this repository:
 
 - **528 tests** (429 algorithms + 99 core), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
-- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.4.4` tarball published on npm
+- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.4.5` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
 
 ## Contributing
@@ -492,5 +492,5 @@ If you use ZenBrain in academic work, please cite:
 ---
 
 <p align="center">
-  Built by <a href="https://zensation.ai">ZenSation</a> in Kiel, Germany.
+  Built by <a href="https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen">ZenSation</a> in Kiel, Germany.
 </p>

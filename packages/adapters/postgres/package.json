@@ -1,6 +1,6 @@
 {
   "name": "@zensation/adapter-postgres",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "PostgreSQL + pgvector storage adapter for ZenBrain memory system. Server-backed persistence with vector similarity search in the database.",
   "type": "module",
   "main": "./dist/index.js",

@@ -77,9 +77,14 @@ store is a content heuristic, and consolidation runs without generated summaries
 
 Worth knowing before you wire it in:
 
-- **No embedding provider is configured by default.** Semantic search degrades to the
-  non-vector path. Recall still works; it is less sharp than the benchmarked
-  configuration. Pass an `EmbeddingProvider` through the library if you need that today.
+- **No embedding provider is configured by default, so recall is lexical, not semantic.**
+  Without vectors, recall ranks by folded token overlap — umlauts and accents are folded,
+  rarer words weigh more, and an adjacent phrase beats the same words scattered. It will
+  find "Kieler Foerde" in a note about the "Kieler Förde"; it will *not* connect "car" to
+  "automobile". Ranking runs over the most recent 500 entries per layer, and a query that
+  matches nothing falls back to recency with `score: 0`. Pass an `EmbeddingProvider`
+  through the library for true semantic matching — that is the configuration the published
+  benchmarks were measured with.
 - **SQLite similarity search is a full scan.** Fine for one person's memory; use
   [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres)
   for larger volumes.
@@ -119,14 +124,15 @@ the claim the core makes.
 ## About ZenBrain
 
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. On LongMemEval-500 it wins all nine
-head-to-head answer-quality comparisons against Letta, Mem0 and A-Mem (three competitors x three
-LLM judges, Bonferroni-corrected), reaching 91.3% of a full-context oracle's binary-judge
-accuracy at 1/106th of the per-query token cost.
+zero-dependency TypeScript and published under Apache-2.0. On LongMemEval-500 three of nine
+head-to-head answer-quality comparisons hold against Letta, Mem0 and A-Mem — all three against
+A-Mem, the remaining six are ties, none lost (three competitors x three LLM judges,
+Bonferroni-corrected, version-matched) — reaching 91.3% of a full-context oracle's binary-judge
+accuracy at 1/109.6 of the per-query token cost.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
-- Try it in the browser: [zensation.ai/en/playground](https://zensation.ai/en/playground)
+- Try it in the browser: [zensation.ai/en/playground](https://zensation.ai/en/playground?utm_source=npm&utm_medium=readme&utm_campaign=evergreen)
 - Model card: [huggingface.co/zensation-ai/zenbrain](https://huggingface.co/zensation-ai/zenbrain)
 - Packages: [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [`@zensation/ai-sdk`](https://www.npmjs.com/package/@zensation/ai-sdk) · [`@zensation/cli`](https://www.npmjs.com/package/@zensation/cli)
 - Registry entry: `ai.zensation/zenbrain`
