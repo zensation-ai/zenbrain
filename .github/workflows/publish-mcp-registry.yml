@@ -1,0 +1,112 @@
+name: Publish to MCP Registry
+
+# WHY THIS EXISTS.
+#
+# `packages/mcp/server.json` is bumped with every release and was correct at 0.1.6 — but
+# nothing ever pushed it to the official registry. On 2026-09-26 the registry still served
+# 0.1.3, last updated 2026-08-29: three patch versions behind, for four weeks. The file was
+# never the problem; the missing step was.
+#
+# A stale registry entry is not cosmetic. The registry is what MCP clients and third-party
+# directories read. Whatever it says propagates, and every copy is a surface we cannot edit
+# afterwards.
+#
+# PREREQUISITE — a secret only the owner can add:
+#   MCP_REGISTRY_DNS_KEY = the Ed25519 private key (64-char hex) for zensation.ai.
+# The matching public key is already live as a DNS TXT record on zensation.ai
+# ("v=MCPv1; k=ed25519; p=..."), so the namespace ai.zensation/* is verified.
+# Without the secret this workflow stops with a clear message instead of failing obscurely.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the secret is present
+        env:
+          KEY: ${{ secrets.MCP_REGISTRY_DNS_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::Secret MCP_REGISTRY_DNS_KEY is not set. The registry entry cannot be updated."
+            echo "::error::It is the Ed25519 private key (64-char hex) for zensation.ai, matching the DNS TXT record already published."
+            exit 1
+          fi
+          echo "Secret present."
+
+      - name: Read the version from server.json
+        id: v
+        run: |
+          VERSION=$(node -p "require('./packages/mcp/server.json').version")
+          PKG=$(node -p "require('./packages/mcp/package.json').version")
+          echo "server.json: $VERSION   package.json: $PKG"
+          if [ "$VERSION" != "$PKG" ]; then
+            echo "::error::server.json ($VERSION) and package.json ($PKG) disagree. Fix the bump before publishing."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # The registry validates ownership by reading `mcpName` from the PUBLISHED npm package.
+      # A fresh publish needs time to propagate — the same trap that turned the cli release job
+      # red on 2026-09-22 while the publish had actually succeeded. Poll, do not assume.
+      - name: Wait for the npm version to be visible
+        run: |
+          VERSION="${{ steps.v.outputs.version }}"
+          for attempt in $(seq 1 8); do
+            if NPMJSON=$(npm view "@zensation/mcp@$VERSION" mcpName 2>/dev/null) && [ -n "$NPMJSON" ]; then
+              echo "npm serves @zensation/mcp@$VERSION with mcpName=$NPMJSON (attempt $attempt)"
+              exit 0
+            fi
+            echo "Attempt $attempt/8: @zensation/mcp@$VERSION not visible on npm yet, waiting 15 s…"
+            sleep 15
+          done
+          echo "::error::@zensation/mcp@$VERSION is not on npm after ~2 minutes."
+          echo "::error::Check the npm release job first: if it printed '+ @zensation/mcp@$VERSION', this is propagation, not a failed release."
+          exit 1
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz"
+          tar -xzf mcp-publisher.tar.gz mcp-publisher
+          chmod +x mcp-publisher
+          ./mcp-publisher --help >/dev/null && echo "mcp-publisher installed."
+
+      - name: Log in via DNS and publish
+        env:
+          KEY: ${{ secrets.MCP_REGISTRY_DNS_KEY }}
+        run: |
+          # --algorithm defaults to ed25519, which matches the published DNS record.
+          ./mcp-publisher login dns --domain=zensation.ai --private-key="$KEY"
+          # NOTE: `publish` takes the server.json PATH. Never pass --registry here —
+          # that flag exists only on `login`, and publish would read it as the path.
+          ./mcp-publisher publish packages/mcp/server.json
+
+      # 🔴 The verification this workflow must NOT get wrong:
+      # /v0/servers?search= returns EVERY version of a server, oldest first. Reading the first
+      # element reports a long-superseded version as current — exactly the false finding that
+      # sent us looking for a five-version gap on 2026-09-26 when the real gap was three.
+      # The selector below filters on isLatest, which is the only field that answers "current".
+      - name: Confirm the registry serves the new version
+        run: |
+          VERSION="${{ steps.v.outputs.version }}"
+          SELECT='.servers[] | select(.server.name=="ai.zensation/zenbrain") | select(._meta["io.modelcontextprotocol.registry/official"].isLatest==true) | .server.version'
+          for attempt in $(seq 1 6); do
+            LATEST=$(curl -fsS "https://registry.modelcontextprotocol.io/v0/servers?search=zenbrain" | jq -r "$SELECT" 2>/dev/null || true)
+            if [ "$LATEST" = "$VERSION" ]; then
+              echo "Registry serves ai.zensation/zenbrain $LATEST as latest (attempt $attempt)."
+              exit 0
+            fi
+            echo "Attempt $attempt/6: registry latest is '${LATEST:-unreadable}', expected $VERSION. Waiting 10 s…"
+            sleep 10
+          done
+          echo "::error::Registry does not serve $VERSION as latest after ~1 minute."
+          echo "::error::Check the publish step above before re-running: if it succeeded, this is propagation, not a failed publish."
+          exit 1
