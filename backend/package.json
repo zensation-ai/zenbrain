@@ -12,7 +12,7 @@
     "verify": "node scripts/verify-against-reference.mjs frisch results"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
+    "@types/node": "^26.6.2",
     "typescript": "^5.3.3",
     "vitest": "^3.0.0"
   }
