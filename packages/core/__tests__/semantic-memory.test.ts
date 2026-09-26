@@ -71,11 +71,24 @@ describe('SemanticMemory', () => {
     expect(params[3]).toBeNull();
   });
 
-  it('search falls back to getRecent when no embedding provider', async () => {
+  it('search ranks lexically when there is no embedding provider', async () => {
     storage.query.mockResolvedValueOnce({ rows: [createFactRow()] });
 
     const results = await semantic.search('TypeScript', 5);
     expect(results).toHaveLength(1);
+    // This used to assert score === 0: the branch returned the most recent rows and threw
+    // the query away. The stored fact IS about TypeScript, so a score of 0 was never a
+    // correct answer — the old test encoded the defect rather than a requirement.
+    expect(results[0].score).toBeGreaterThan(0);
+  });
+
+  it('search falls back to recency with score 0 when nothing matches', async () => {
+    storage.query.mockResolvedValueOnce({ rows: [createFactRow()] });
+
+    const results = await semantic.search('Quantenchromodynamik', 5);
+    expect(results).toHaveLength(1);
+    // A zero score now MEANS "the query did not land", and the rows are the recency
+    // fallback — a recall never comes back empty for a reason the caller cannot see.
     expect(results[0].score).toBe(0);
   });
 

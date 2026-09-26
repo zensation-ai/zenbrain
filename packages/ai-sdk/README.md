@@ -106,8 +106,11 @@ suits your application.
 
 ## What this release does not do
 
-- **No embedding provider is configured unless you pass one.** Semantic search then runs
-  without vectors: recall still works, less sharply than the benchmarked configuration.
+- **No embedding provider is configured unless you pass one.** Recall then ranks
+  lexically rather than semantically: folded token overlap, rarer words weighted higher,
+  a bonus for an adjacent phrase, over the most recent 500 entries per layer. It matches
+  wording, not meaning — synonyms need an `EmbeddingProvider`, which is also the
+  configuration the published benchmarks were measured with.
 - **Streaming stores on flush.** The reply is written once the stream completes. An aborted
   stream stores the user's turn but not the partial answer.
 - **Only text is read.** File and tool parts of a message are ignored when building the

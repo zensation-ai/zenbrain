@@ -8,6 +8,7 @@
 import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type Episode, type Logger, noopLogger, formatForPgVector, cosineSimilarity } from '../types';
+import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 
 export interface EpisodicMemoryConfig {
   storage: StorageAdapter;
@@ -74,9 +75,15 @@ export class EpisodicMemory {
   /** Search episodes by semantic similarity (requires embedding provider). */
   async search(query: string, limit = 5): Promise<(Episode & { score: number })[]> {
     if (!this.embedding) {
-      this.log.warn('No embedding provider — falling back to recent episodes');
-      const recent = await this.getRecent(limit);
-      return recent.map(e => ({ ...e, score: 0 }));
+      // Was: return the most recent episodes and drop the query on the floor. The warning
+      // was honest but the behaviour was not useful — see ../lexical.ts for the measurement.
+      this.log.warn('No embedding provider — ranking episodes lexically, not semantically');
+      const candidates = await this.getRecent(LEXICAL_CANDIDATE_WINDOW);
+      const ranked = rankByLexicalRelevance(query, candidates, e => e.content, limit);
+      if (ranked.length > 0) {
+        return ranked.map(({ item, score }) => ({ ...item, score }));
+      }
+      return candidates.slice(0, limit).map(e => ({ ...e, score: 0 }));
     }
 
     const queryEmb = await this.embedding.embed(query);
