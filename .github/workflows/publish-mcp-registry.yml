@@ -35,8 +35,10 @@ jobs:
           KEY: ${{ secrets.MCP_REGISTRY_DNS_KEY }}
         run: |
           if [ -z "$KEY" ]; then
-            echo "::error::Secret MCP_REGISTRY_DNS_KEY is not set. The registry entry cannot be updated."
+            echo "::error::Secret MCP_REGISTRY_DNS_KEY is not set, so the MCP registry entry was NOT updated."
             echo "::error::It is the Ed25519 private key (64-char hex) for zensation.ai, matching the DNS TXT record already published."
+            echo "::error::THE RELEASE ITSELF IS UNAFFECTED. This job only refreshes the registry entry; npm publishing happens in ci.yml."
+            echo "::error::This job stays red on purpose until the secret exists — a skipped registry update that reports green would be forgotten."
             exit 1
           fi
           echo "Secret present."
