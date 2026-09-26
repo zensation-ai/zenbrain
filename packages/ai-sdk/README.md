@@ -143,7 +143,7 @@ Bonferroni-corrected, version-matched) — reaching 91.3% of a full-context orac
 accuracy at 1/109.6 of the per-query token cost.
 
 Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. With an embedding provider (e.g. `nomic-embed-text`) you get the
+dependencies. With `nomic-embed-text` as the embedding provider you get the
 configuration those figures were measured in.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)

@@ -71,7 +71,7 @@ reaches **91.3% of a full-context oracle's binary-judge accuracy at 1/109.6 of t
 token cost** (47.7% vs. 52.2%).
 
 Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. With an embedding provider (e.g. `nomic-embed-text`) you get the
+dependencies. With `nomic-embed-text` as the embedding provider you get the
 configuration those figures were measured in.
 
 The paper prints where ZenBrain loses as well: on LoCoMo, substring-based aggregate F1 favours
