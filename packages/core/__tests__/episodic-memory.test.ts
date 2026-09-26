@@ -80,12 +80,23 @@ describe('EpisodicMemory', () => {
     expect(params).toContain('personal');
   });
 
-  it('search falls back to getRecent when no embedding provider', async () => {
+  it('search ranks lexically when there is no embedding provider', async () => {
     storage.query.mockResolvedValueOnce({
       rows: [{ id: 'ep-1', content: 'test', timestamp: new Date() }],
     });
 
     const results = await episodic.search('test query', 5);
+    expect(results).toHaveLength(1);
+    // Was asserting score === 0 while the episode plainly matches the query.
+    expect(results[0].score).toBeGreaterThan(0);
+  });
+
+  it('search falls back to recency with score 0 when nothing matches', async () => {
+    storage.query.mockResolvedValueOnce({
+      rows: [{ id: 'ep-1', content: 'test', timestamp: new Date() }],
+    });
+
+    const results = await episodic.search('Quantenchromodynamik', 5);
     expect(results).toHaveLength(1);
     expect(results[0].score).toBe(0);
   });

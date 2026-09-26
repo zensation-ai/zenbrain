@@ -9,6 +9,7 @@ import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type MemoryFact, type Logger, noopLogger, formatForPgVector } from '../types';
 import { getRetrievability, updateAfterRecall, updateAfterForgot, initFromDecayClass } from '@zensation/algorithms/fsrs';
+import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 
 export interface SemanticMemoryConfig {
   storage: StorageAdapter;
@@ -86,7 +87,7 @@ export class SemanticMemory {
   /** Retrieve facts by semantic similarity. */
   async search(query: string, limit = 5): Promise<(MemoryFact & { score: number })[]> {
     if (!this.embedding) {
-      return this.getRecent(limit).then(facts => facts.map(f => ({ ...f, score: 0 })));
+      return this.lexicalSearch(query, limit);
     }
 
     const queryEmb = await this.embedding.embed(query);
@@ -102,6 +103,31 @@ export class SemanticMemory {
     );
 
     return result.rows.map(row => ({ ...rowToFact(row), score: row.score ?? 0 }));
+  }
+
+  /**
+   * Non-vector retrieval: rank a bounded recency window by lexical relevance.
+   *
+   * This branch used to hand back `getRecent()` with `score: 0`, discarding the query.
+   * Every SQLite user lands here, because the vector branch above is pgvector-only — so
+   * the default `npx @zensation/mcp` install answered every question with the same rows.
+   *
+   * A score of 0 now carries information: it means nothing matched lexically, and the
+   * rows are the recency fallback. Before, 0 meant "this path does not rank at all".
+   */
+  private async lexicalSearch(query: string, limit: number): Promise<(MemoryFact & { score: number })[]> {
+    const result = await this.storage.query<FactRow>(
+      `SELECT * FROM ${this.table} ORDER BY created_at DESC LIMIT $1`,
+      [LEXICAL_CANDIDATE_WINDOW]
+    );
+    const facts = result.rows.map(rowToFact);
+    const ranked = rankByLexicalRelevance(query, facts, f => f.content, limit);
+    if (ranked.length > 0) {
+      return ranked.map(({ item, score }) => ({ ...item, score }));
+    }
+    // Nothing matched. Recency keeps a recall from coming back empty for a reason the
+    // caller cannot see, and the zero score says plainly that the query did not land.
+    return facts.slice(0, limit).map(f => ({ ...f, score: 0 }));
   }
 
   /** Get recent facts. */

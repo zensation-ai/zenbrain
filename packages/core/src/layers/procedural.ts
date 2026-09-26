@@ -7,6 +7,7 @@
 import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type Procedure, type Logger, noopLogger, formatForPgVector } from '../types';
+import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 
 export interface ProceduralMemoryConfig {
   storage: StorageAdapter;
@@ -79,11 +80,25 @@ export class ProceduralMemory {
   /** Recall procedures similar to a query. */
   async recall(query: string, limit = 3): Promise<(Procedure & { score: number })[]> {
     if (!this.embedding) {
+      // This fallback was defensible — "the procedures that work best" is a real answer —
+      // but it was query-blind: the same list came back whatever was asked. Lexical
+      // relevance now decides WHICH procedures, while the recorded success rate still
+      // decides how much to trust each one, so neither signal is thrown away.
       const result = await this.storage.query<ProcedureRow>(
         `SELECT * FROM ${this.table} ORDER BY success_rate DESC, execution_count DESC LIMIT $1`,
-        [limit]
+        [LEXICAL_CANDIDATE_WINDOW]
       );
-      return result.rows.map(r => ({ ...rowToProcedure(r), score: r.success_rate }));
+      const procedures = result.rows.map(rowToProcedure);
+      const ranked = rankByLexicalRelevance(
+        query,
+        procedures,
+        p => `${p.trigger} ${p.outcome} ${p.tools.join(' ')}`,
+        limit
+      );
+      if (ranked.length > 0) {
+        return ranked.map(({ item, score }) => ({ ...item, score: score * item.successRate }));
+      }
+      return procedures.slice(0, limit).map(p => ({ ...p, score: p.successRate }));
     }
 
     const queryEmb = await this.embedding.embed(query);
