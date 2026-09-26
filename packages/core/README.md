@@ -85,6 +85,10 @@ A-Mem, the remaining six are ties, none lost (three competitors x three LLM judg
 Bonferroni-corrected, version-matched) — reaching 91.3% of a full-context oracle's binary-judge
 accuracy at 1/109.6 of the per-query token cost.
 
+Works out of the box without an embedding provider — lexical ranking, zero
+dependencies. With `nomic-embed-text` as the embedding provider you get the
+configuration those figures were measured in.
+
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 - Try it in the browser: [zensation.ai/en/playground](https://zensation.ai/en/playground?utm_source=npm&utm_medium=readme&utm_campaign=evergreen)

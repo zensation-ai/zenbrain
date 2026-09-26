@@ -70,6 +70,10 @@ competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and versi
 reaches **91.3% of a full-context oracle's binary-judge accuracy at 1/109.6 of the per-query
 token cost** (47.7% vs. 52.2%).
 
+Works out of the box without an embedding provider — lexical ranking, zero
+dependencies. With `nomic-embed-text` as the embedding provider you get the
+configuration those figures were measured in.
+
 The paper prints where ZenBrain loses as well: on LoCoMo, substring-based aggregate F1 favours
 lexical retrieval (BM25) by metric design, and we do not contest that. The advantage is most
 pronounced on judge-graded answer quality and cross-session reasoning.
