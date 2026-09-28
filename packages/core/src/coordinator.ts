@@ -136,6 +136,20 @@ function looksLikeProcedure(content: string): boolean {
   return PROCEDURAL_PATTERNS.some(p => p.test(content));
 }
 
+/**
+ * 32-bit FNV-1a over the UTF-16 code units, as eight hex digits. Stable and
+ * dependency-free (core also runs in the browser, so no node:crypto); enough
+ * to tell the labels of different memories apart.
+ */
+function fnv1a(text: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
 // ===========================================
 // Coordinator
 // ===========================================
@@ -258,8 +272,7 @@ export class MemoryCoordinator {
       }
 
       case 'core': {
-        const label = content.substring(0, 50).replace(/[^a-zA-Z0-9_ -]/g, '').trim();
-        const block = await this.core.upsertBlock(label, content);
+        const block = await this.core.upsertBlock(await this.coreLabelFor(content), content);
         storedId = block.id;
         this.log.debug(`Stored as core block: ${storedId}`);
         break;
@@ -608,6 +621,33 @@ export class MemoryCoordinator {
   // ===========================================
   // Private Helpers
   // ===========================================
+
+  /**
+   * The label a core block gets when `store()` creates it: the first words of
+   * the content, in whatever script, plus a short hash of the whole content.
+   * Two different memories never share a label; the same memory stored twice
+   * updates one block.
+   *
+   * The label used to be the first 50 characters with everything outside
+   * [a-zA-Z0-9_ -] removed. Measured on 2026-09-28 against a real SQLite store:
+   * two Chinese sentences both became the label "" and the second replaced the
+   * first; two English sentences sharing their first 50 characters did the
+   * same; "Über" became "ber". A block written under such a label and stored
+   * again verbatim keeps its label instead of gaining a twin.
+   */
+  private async coreLabelFor(content: string): Promise<string> {
+    const legacy = content.substring(0, 50).replace(/[^a-zA-Z0-9_ -]/g, '').trim();
+    if ((await this.core.getBlock(legacy))?.content === content) return legacy;
+
+    const words = content
+      .normalize('NFC')
+      .replace(/[^\p{L}\p{N}_ -]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 40)
+      .trim();
+    return `${words} #${fnv1a(content)}`;
+  }
 
   /**
    * Resolve the target memory type from content and options.

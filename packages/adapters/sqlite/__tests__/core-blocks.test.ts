@@ -26,6 +26,51 @@ describe('core memory on SQLite', () => {
     await c.close();
   });
 
+  it('keeps two different memories apart, in any script', async () => {
+    // Measured on 2026-09-28: labels were the first 50 characters with
+    // everything outside [a-zA-Z0-9_ -] removed. Two Chinese sentences both
+    // became "" and the second replaced the first; two English sentences
+    // sharing their first 50 characters did the same.
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    const inhalte = [
+      '用户喜欢简短的回答。',
+      '项目从主分支部署。',
+      'The user prefers short answers in German and English, always.',
+      'The user prefers short answers in German and English, never with emojis.',
+    ];
+    for (const t of inhalte) await c.store(t, { type: 'core' });
+
+    const blocks = await c.getCoreMemory().getBlocks();
+    expect(blocks.map((b) => b.content).sort()).toEqual([...inhalte].sort());
+    await c.close();
+  });
+
+  it('keeps the words of a label readable, umlauts included', async () => {
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    await c.store('Über die Präferenzen: kurz antworten.', { type: 'core' });
+    const [block] = await c.getCoreMemory().getBlocks();
+    expect(block.label.startsWith('Über die Präferenzen kurz antworten')).toBe(true);
+    await c.close();
+  });
+
+  it('updates one block when the same memory is stored twice', async () => {
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    await c.store('The user prefers short answers.', { type: 'core' });
+    await c.store('The user prefers short answers.', { type: 'core' });
+    expect(await c.getCoreMemory().getBlocks()).toHaveLength(1);
+    await c.close();
+  });
+
+  it('does not twin a block an earlier version labelled the old way', async () => {
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    // The old label: first 50 characters, [a-zA-Z0-9_ -] only.
+    await c.getCoreMemory().upsertBlock('The user prefers short answers', 'The user prefers short answers.');
+    await c.store('The user prefers short answers.', { type: 'core' });
+    const blocks = await c.getCoreMemory().getBlocks();
+    expect(blocks.map((b) => b.label)).toEqual(['The user prefers short answers']);
+    await c.close();
+  });
+
   it('keeps an explicit unpinned block unpinned', async () => {
     const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
     const block = await c.getCoreMemory().upsertBlock('scratch', 'temporary note', false);

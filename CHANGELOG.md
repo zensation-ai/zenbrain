@@ -53,6 +53,21 @@ The adapter now binds `true` and `false` as `1` and `0`, next to the `Date` coer
 did, and the core layer hands `pinned` back as a real boolean on both adapters. Tested through
 the coordinator and through `zenbrain_store` over a real SQLite store.
 
+### Fixed — core blocks created by `store()` could replace each other
+
+`store(…, { type: 'core' })` labels the new block itself, and a block with the same label is
+updated in place. The label was the first 50 characters with everything outside `[a-zA-Z0-9_ -]`
+removed. Measured on 2026-09-28 against a real SQLite store: two Chinese sentences both got the
+label `""` and the second replaced the first; two English sentences that share their first 50
+characters did the same; `Über` became `ber`. On PostgreSQL this happened already; on SQLite the
+fix above is what makes core blocks writable, so the two changes ship together.
+
+The label is now the first words of the content in any script, plus eight hex digits of a hash of
+the whole content. Different memories never share a label, and the same memory stored twice
+updates one block. A block written under an old-style label and stored again verbatim keeps that
+label instead of gaining a twin. The label format was never documented; code that reads blocks
+by label should keep choosing its own labels with `getCoreMemory().upsertBlock(label, content)`.
+
 ### Fixed — SQLite wrote two timestamp formats, and three queries went wrong because of it
 
 `NOW()` and the column defaults wrote SQLite's `datetime('now')` — `2026-09-28 21:25:17`, no zone
