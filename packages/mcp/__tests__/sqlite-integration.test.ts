@@ -137,6 +137,28 @@ open('the MCP surface over a real SQLite store', () => {
     expect(health.core.blocks).toBe(2);
   });
 
+  it('consolidates a significant episode into one fact, not one per pass', async () => {
+    // Measured on 2026-09-28 against the published 0.1.6: three passes, three
+    // identical facts. The tool calls itself safe to run periodically.
+    const c = await connect();
+    await c.callTool({
+      name: 'zenbrain_store',
+      arguments: { content: 'We finally shipped after three days.', type: 'episode', emotionalWeight: 0.8 },
+    });
+    const promoted: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const res = await c.callTool({ name: 'zenbrain_consolidate', arguments: {} });
+      promoted.push((res.structuredContent as { promoted: number }).promoted);
+    }
+    expect(promoted).toEqual([1, 0, 0]);
+
+    const res = await c.callTool({ name: 'zenbrain_health', arguments: {} });
+    const health = JSON.parse((res.content as { text: string }[])[0].text) as {
+      semantic: { count: number };
+    };
+    expect(health.semantic.count).toBe(1);
+  });
+
   it('reports the stored fact in the health check', async () => {
     const c = await connect();
     await c.callTool({

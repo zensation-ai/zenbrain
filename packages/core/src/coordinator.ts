@@ -92,11 +92,11 @@ export interface RecallResult {
 }
 
 export interface ConsolidationResult {
-  /** Number of episodic memories promoted to semantic facts. */
+  /** Number of episodic memories promoted to semantic facts in this pass. */
   promoted: number;
   /** Number of working memory slots decayed. */
   decayed: number;
-  /** Number of items pruned (below retention threshold). */
+  /** Always 0: consolidation deletes nothing from long-term memory. Kept for the result's shape. */
   pruned: number;
 }
 
@@ -392,13 +392,24 @@ export class MemoryCoordinator {
   // ===========================================
 
   /**
-   * Promote frequently accessed episodic memories to semantic facts.
+   * Promote emotionally significant episodes to semantic facts, once each,
+   * and decay working memory.
    *
-   * Scans recent episodes and, for those with high access patterns or
-   * emotional significance, creates a corresponding semantic fact.
-   * This mirrors the hippocampal-to-cortical transfer during sleep.
+   * Looks at the 100 most recent episodes. Each one with an emotional weight
+   * above 0.5 that has not been promoted before becomes a semantic fact
+   * (distilled by the LLM when one is configured, verbatim otherwise), and the
+   * episode is marked in its metadata (`consolidatedInto: <fact id>`). This
+   * mirrors the hippocampal-to-cortical transfer during sleep.
    *
-   * @returns Counts of promoted, decayed, and pruned memories.
+   * Nothing in long-term memory is deleted: `pruned` is part of the result's
+   * shape and is always 0.
+   *
+   * Until the mark existed, every pass promoted the same episodes again —
+   * measured on 2026-09-28 against @zensation/mcp 0.1.6 with a real SQLite
+   * file: three passes, three identical facts. An episode an earlier version
+   * already promoted verbatim is recognised by that fact and only marked.
+   *
+   * @returns Counts of promoted episodes, decayed working-memory slots, and pruned items (0).
    */
   async consolidate(): Promise<ConsolidationResult> {
     let promoted = 0;
@@ -409,28 +420,33 @@ export class MemoryCoordinator {
 
     for (const episode of episodes) {
       const emotionalWeight = episode.emotionalWeight ?? 0;
-      const isSignificant = emotionalWeight > 0.5;
+      if (emotionalWeight <= 0.5 || this.episodic.isConsolidated(episode)) continue;
 
-      // Promote emotionally significant or contextually rich episodes
-      if (isSignificant) {
-        let summary = episode.content;
-
-        // If LLM is available, generate a distilled fact
-        if (this.llm) {
-          try {
-            summary = await this.llm.generate(
-              'You are a memory consolidation system. Extract the key factual insight from this episode in one concise sentence.',
-              episode.content,
-              { maxTokens: 100, temperature: 0.3 }
-            );
-          } catch {
-            this.log.warn('LLM consolidation failed, using raw content');
-          }
-        }
-
-        await this.semantic.storeFact(summary, 'consolidation', 0.7);
-        promoted++;
+      // Promoted verbatim by an earlier version that left no mark: mark it, do not copy it again.
+      const earlier = await this.semantic.findExact(episode.content, 'consolidation');
+      if (earlier) {
+        await this.episodic.markConsolidated(episode, earlier.id);
+        continue;
       }
+
+      let summary = episode.content;
+
+      // If LLM is available, generate a distilled fact
+      if (this.llm) {
+        try {
+          summary = await this.llm.generate(
+            'You are a memory consolidation system. Extract the key factual insight from this episode in one concise sentence.',
+            episode.content,
+            { maxTokens: 100, temperature: 0.3 }
+          );
+        } catch {
+          this.log.warn('LLM consolidation failed, using raw content');
+        }
+      }
+
+      const fact = await this.semantic.storeFact(summary, 'consolidation', 0.7);
+      await this.episodic.markConsolidated(episode, fact.id);
+      promoted++;
     }
 
     // Apply decay to working memory

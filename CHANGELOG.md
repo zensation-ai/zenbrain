@@ -85,6 +85,30 @@ columns and the timestamp format, and no longer claims that SQLite has no simila
 falls back to recency: it has both a cosine scan and, without an embedding provider, the lexical
 ranking of #95.
 
+### Fixed — every consolidation pass promoted the same episodes again
+
+`consolidate()` looks at the 100 most recent episodes and turns each one with an emotional weight
+above 0.5 into a semantic fact. Nothing recorded that it had done so, so the next pass did it
+again. Measured on 2026-09-28 against the published `@zensation/mcp` 0.1.6 with a real SQLite
+file: one episode with weight 0.8, three passes, three identical facts. The tool description
+called the pass *"safe to run periodically"*, and `docs/recipes.md` suggests running it hourly.
+
+A promoted episode is now marked in its own `metadata` (`consolidatedInto: <fact id>`), which both
+adapters already store, and later passes leave it alone. An episode that an earlier version
+promoted verbatim is recognised by that fact and only marked, so upgrading does not add one more
+copy. Copies made before this version stay where they are: consolidation deletes nothing.
+
+The descriptions now say what the pass does. The MCP tool, its README and `docs/recipes.md` spoke
+of promoting *"repeated episodes"* and of pruning *"what has fallen below the retention
+threshold"*; the selection is by emotional weight, and `pruned` has always been 0 because nothing
+prunes. `docs/api-reference.md` said *"based on access patterns"*, and gave `decay()` a signature
+it does not have (`Promise<{ decayed, pruned }>`; it is `{ removed: number }`, synchronous).
+
+Tests on a real SQLite store: three passes promote `[1, 0, 0]` (before: `[1, 1, 1]`), the mark
+keeps other metadata, an earlier verbatim promotion is not copied again, and `pruned` is 0 with
+nothing deleted; the same three-pass check runs over MCP. A database file that 0.1.6 wrote with
+three copies of one fact gets no fourth.
+
 ### Added — tests for the two start paths that silenced 0.1.3 on macOS and Windows
 
 does-it-install's weekly runs have listed `@zensation/mcp` as failing on two of three platforms

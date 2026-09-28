@@ -84,6 +84,25 @@ export class SemanticMemory {
     return rowToFact(result.rows[0]);
   }
 
+  /**
+   * A fact with exactly this content — and this source, if one is given — or
+   * null. The match is checked again on the returned rows, so a storage that
+   * does not evaluate WHERE (like the in-memory test double) cannot turn any
+   * fact into a match.
+   */
+  async findExact(content: string, source?: string): Promise<MemoryFact | null> {
+    const result = await this.storage.query<FactRow>(
+      source === undefined
+        ? `SELECT * FROM ${this.table} WHERE content = $1 LIMIT 1`
+        : `SELECT * FROM ${this.table} WHERE content = $1 AND source = $2 LIMIT 1`,
+      source === undefined ? [content] : [content, source]
+    );
+    const row = result.rows.find(
+      (r) => r.content === content && (source === undefined || r.source === source)
+    );
+    return row ? rowToFact(row) : null;
+  }
+
   /** Retrieve facts by semantic similarity. */
   async search(query: string, limit = 5): Promise<(MemoryFact & { score: number })[]> {
     if (!this.embedding) {

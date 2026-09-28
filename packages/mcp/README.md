@@ -14,7 +14,7 @@ Four tools, one local SQLite file, no account and no network call.
 |---|---|
 | `zenbrain_store` | Write something into long-term memory. Routing is automatic: a general statement becomes a semantic fact, a narrated event an episode, a sequence of instructions a procedure. |
 | `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back ranked, each tagged with the layer it came from. |
-| `zenbrain_consolidate` | One sleep-like maintenance pass: promote repeated episodes into facts, decay stale slots, prune what fell below the retention threshold. |
+| `zenbrain_consolidate` | One sleep-like maintenance pass: episodes with an emotional weight above 0.5 become semantic facts, each only once, and stale working-memory slots decay. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
 ## Install

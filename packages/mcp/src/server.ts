@@ -238,15 +238,16 @@ export function createZenBrainServer(
     {
       title: 'Consolidate memory',
       description:
-        'Run one consolidation pass: promote repeated episodes into semantic facts, decay ' +
-        'stale working-memory slots, prune what has fallen below the retention threshold. ' +
+        'Run one consolidation pass: among the 100 most recent episodes, each one with an ' +
+        'emotional weight above 0.5 becomes a semantic fact — once, however often the pass ' +
+        'runs — and stale working-memory slots decay. Nothing in long-term memory is deleted. ' +
         'This is the sleep-like maintenance step — safe to run periodically, not per turn.',
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
       inputSchema: {},
       outputSchema: {
-        promoted: z.number().describe('Episodes promoted to semantic facts.'),
+        promoted: z.number().describe('Episodes promoted to semantic facts in this pass.'),
         decayed: z.number().describe('Working-memory slots decayed.'),
-        pruned: z.number().describe('Items pruned below the retention threshold.'),
+        pruned: z.number().describe('Always 0: consolidation deletes nothing from long-term memory.'),
       },
     },
     async () => {

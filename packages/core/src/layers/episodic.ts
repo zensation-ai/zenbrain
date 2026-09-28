@@ -10,6 +10,22 @@ import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type Episode, type Logger, noopLogger, formatForPgVector, cosineSimilarity } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 
+/**
+ * An episode's metadata as an object. SQLite hands the column back as JSON
+ * text, PostgreSQL as a parsed value; anything unreadable counts as empty.
+ */
+function readMetadata(value: unknown): Record<string, unknown> {
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed !== null && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+  return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
 export interface EpisodicMemoryConfig {
   storage: StorageAdapter;
   embedding?: EmbeddingProvider;
@@ -70,6 +86,24 @@ export class EpisodicMemory {
       params
     );
     return result.rows;
+  }
+
+  /** Whether a consolidation pass has already promoted this episode (see `markConsolidated`). */
+  isConsolidated(episode: Episode): boolean {
+    return typeof readMetadata(episode.metadata).consolidatedInto === 'string';
+  }
+
+  /**
+   * Record in the episode's own metadata that it was promoted into a semantic
+   * fact, so a later consolidation pass leaves it alone. Both adapters already
+   * store `metadata`, so this needs no schema change. Existing keys are kept.
+   */
+  async markConsolidated(episode: Episode, factId: string): Promise<void> {
+    const metadata = { ...readMetadata(episode.metadata), consolidatedInto: factId };
+    await this.storage.query(`UPDATE ${this.table} SET metadata = $1 WHERE id = $2`, [
+      JSON.stringify(metadata),
+      episode.id,
+    ]);
   }
 
   /** Search episodes by semantic similarity (requires embedding provider). */

@@ -371,10 +371,12 @@ Route content to the appropriate memory layer. Auto-detects type when `type: 'au
 Cross-layer search with ranked, deduplicated results.
 
 #### `consolidate(): Promise<ConsolidationResult>`
-Promote episodic memories to semantic facts based on access patterns.
+Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic
+facts, each episode once, and decay working memory. Deletes nothing from long-term memory:
+`pruned` is always 0.
 
-#### `decay(): Promise<{ decayed, pruned }>`
-Apply Ebbinghaus decay to working memory.
+#### `decay(): { removed: number }`
+Apply Ebbinghaus decay to working memory; returns how many slots were evicted.
 
 #### `getReviewQueue(limit?): Promise<RecallResult[]>`
 Get FSRS-due items for spaced repetition review.

@@ -48,8 +48,9 @@ When in doubt, leave `type: 'auto'`. A wrong explicit type is worse than letting
 
 ## 2. `consolidate()` on a schedule or on demand?
 
-`consolidate()` promotes short-term material into long-term layers, decays what was not reinforced,
-and prunes what fell below threshold. It returns what it did:
+`consolidate()` promotes emotionally significant episodes (weight above 0.5, among the 100 most
+recent) into semantic facts, each episode once, and decays working memory. It deletes nothing from
+long-term memory, so `pruned` is always 0. It returns what it did:
 
 ```ts
 const { promoted, decayed, pruned } = await memory.consolidate();
