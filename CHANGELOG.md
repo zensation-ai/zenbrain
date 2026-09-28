@@ -41,6 +41,27 @@ actually makes and checks the description against them; the other stores a memor
 that a default recall leaves working memory out while an explicit request finds it. What a
 recall returns is unchanged. `packages/mcp/README.md` carried the same sentence and is corrected.
 
+### Added — tests for the two start paths that silenced 0.1.3 on macOS and Windows
+
+does-it-install's weekly runs have listed `@zensation/mcp` as failing on two of three platforms
+since 2026-08-31: Linux passed, macOS and Windows ended the handshake with *"Connection closed"*.
+Those runs test 0.1.3, whose entry guard compared `import.meta.url` with a `file://${argv[1]}`
+template. Reproduced on 2026-09-28 by installing the published packages the way the service does,
+into a prefix under `os.tmpdir()`, and starting `node <prefix>/…/dist/index.js`:
+
+| Version | Path as the service passes it (`/var/…`) | Same file, resolved (`/private/var/…`) |
+|---|---|---|
+| 0.1.3 | exits 0, nothing on stdout or stderr | answers, four tools |
+| 0.1.6 | answers, four tools | answers, four tools |
+
+On macOS every `os.tmpdir()` lies under `/var`, a symlink to `/private/var`. On Windows the
+runners' temp path carries the 8.3 short name `RUNNER~1`, and `pathToFileURL` writes `~` as `%7E`
+where the template leaves it alone; that part is shown on the URL functions, not on a Windows
+machine. Linux temp paths have neither. The guard fixed in 0.1.5 (#86) compares resolved path with
+resolved path and handles both. The entry-guard tests now pin both shapes, the tilde as a unit case
+and the directory symlink as a real start through a linked package directory. With the 0.1.3 guard
+put back, five of the eight fail.
+
 ### Changed
 
 - **The MCP registry entry is published on release** (#94). `packages/mcp/server.json` was bumped

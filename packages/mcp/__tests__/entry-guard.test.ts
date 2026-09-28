@@ -60,10 +60,37 @@ describe('the entry guard', () => {
     // Measured on Node 22: a space comes out the same either way, but `#`, `?`
     // and `%` do not — the template hands them to the URL parser as fragment,
     // query and escape introducer instead of as filename characters.
-    for (const pfad of ['/pkg/a#b/dist/index.js', '/pkg/a?b/dist/index.js', '/pkg/a%b/dist/index.js']) {
+    //
+    // `~` joins them (measured on 22.23.3): `pathToFileURL` writes it as `%7E`,
+    // the template leaves it alone. GitHub's Windows runners keep the 8.3 short
+    // name `RUNNER~1` in %TEMP%, so an install test that puts the package under
+    // the temp directory hands the server exactly such a path. That is how 0.1.3,
+    // which still used the template, failed its handshake on Windows in
+    // does-it-install's weekly runs ("Connection closed") while passing on Linux.
+    for (const pfad of [
+      '/pkg/a#b/dist/index.js',
+      '/pkg/a?b/dist/index.js',
+      '/pkg/a%b/dist/index.js',
+      '/Users/RUNNER~1/AppData/Local/Temp/pkg/dist/index.js',
+    ]) {
       expect(isDirectInvocation(pathToFileURL(pfad).href, pfad, (p) => p), pfad).toBe(true);
       expect(new URL(`file://${pfad}`).href, pfad).not.toBe(pathToFileURL(pfad).href);
     }
+  });
+
+  it('recognises a symlinked directory above the package, as macOS has for /var', () => {
+    // os.tmpdir() on macOS is under /var/folders, and /var is a symlink to
+    // /private/var. The loader resolves it, argv[1] does not. Reproduced on
+    // 2026-09-28 against the published packages, started the way does-it-install
+    // starts them (`node <tmpdir>/…/dist/index.js`): 0.1.3 exits 0 with nothing
+    // on either stream, 0.1.6 answers.
+    const gesehen = '/var/folders/x/T/pkg/node_modules/@zensation/mcp/dist/index.js';
+    const echt = `/private${gesehen}`;
+    expect(
+      isDirectInvocation(pathToFileURL(echt).href, gesehen, (p) =>
+        p.startsWith('/var/') ? `/private${p}` : p,
+      ),
+    ).toBe(true);
   });
 
   it('answers MCP when started through a symlink, the way npm installs it', async () => {
@@ -132,4 +159,76 @@ describe('the entry guard', () => {
     expect(ergebnis.serverInfo).toBeDefined();
     expect(ergebnis.capabilities).toBeDefined();
   }, 20_000);
+
+  it('answers MCP when a directory above the entry point is a symlink', async () => {
+    // The other arrangement that shipped broken: not the bin file but a
+    // directory on the way to it is a link — /var on macOS, where every
+    // os.tmpdir() lives. Link the package directory itself and start the
+    // entry point through the link.
+    expect(existsSync(gebauteDatei), `${gebauteDatei} is missing — run \`npm run build\` first.`).toBe(true);
+    const verzeichnis = mkdtempSync(join(tmpdir(), 'zenbrain-dir-'));
+    const linkVerzeichnis = join(verzeichnis, 'linked-package');
+    symlinkSync(join(hier, '..'), linkVerzeichnis, 'dir');
+    const antwort = await initialisiere(join(linkVerzeichnis, 'dist', 'index.js'));
+    expect(JSON.parse(antwort).result.serverInfo).toBeDefined();
+  }, 20_000);
 });
+
+/** Starts `node <pfad>`, sends `initialize`, resolves with the response line. */
+function initialisiere(pfad: string): Promise<string> {
+  return new Promise<string>((loese, scheitere) => {
+    const kind = spawn(process.execPath, [pfad], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ZENBRAIN_DB: ':memory:' },
+    });
+    let aus = '';
+    let fehler = '';
+    const uhr = setTimeout(() => {
+      kind.kill();
+      scheitere(
+        new Error(
+          `no MCP response within 15s. stdout=${JSON.stringify(aus)} stderr=${JSON.stringify(fehler)}`,
+        ),
+      );
+    }, 15_000);
+    kind.stdout.on('data', (d) => {
+      aus += String(d);
+      for (const zeile of aus.split('\n')) {
+        if (!zeile.trim().startsWith('{')) continue;
+        try {
+          if (JSON.parse(zeile).id === 1) {
+            clearTimeout(uhr);
+            kind.kill();
+            loese(zeile);
+          }
+        } catch {
+          // a partial line; wait for the rest
+        }
+      }
+    });
+    kind.stderr.on('data', (d) => (fehler += String(d)));
+    kind.on('exit', (code) => {
+      if (code !== null && !aus.includes('"id":1')) {
+        clearTimeout(uhr);
+        scheitere(
+          new Error(
+            `exited ${code} before answering. stdout=${JSON.stringify(aus)} stderr=${JSON.stringify(fehler)}`,
+          ),
+        );
+      }
+    });
+    kind.on('error', scheitere);
+    kind.stdin.write(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'entry-guard-test', version: '1.0.0' },
+        },
+      }) + '\n',
+    );
+  });
+}
