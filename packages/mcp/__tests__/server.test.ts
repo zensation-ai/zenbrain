@@ -6,7 +6,7 @@
  * that no client can call would pass a unit test and fail in the wild — this
  * catches that.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import {
@@ -149,6 +149,48 @@ describe('zenbrain_recall', () => {
     expect(res.isError).toBeFalsy();
     const out = res.structuredContent as { results: { layer: string }[] };
     for (const r of out.results) expect(r.layer).toBe('semantic');
+  });
+
+  it('describes exactly the layers it searches when none are named', async () => {
+    // Read the default off the call the handler really makes, not off a list typed
+    // into this test: a typed list would only check the description against itself.
+    const spy = vi.spyOn(coordinator, 'recall');
+    await client.callTool({ name: 'zenbrain_recall', arguments: { query: 'anything' } });
+    const searched = spy.mock.calls[0]?.[1]?.layers ?? [];
+    expect(searched.length).toBeGreaterThan(0);
+
+    const { tools } = await client.listTools();
+    const description = tools.find((t) => t.name === 'zenbrain_recall')!.description!;
+    for (const layer of searched) expect(description).toContain(layer);
+    expect(description).not.toMatch(/every layer|all layers/i);
+    expect(searched).not.toContain('working');
+    expect(description).toMatch(/working memory[^.]*only when named/i);
+  });
+
+  it('leaves working memory out by default and searches it when asked', async () => {
+    // store() also places every memory in working memory, so the item is there
+    // either way; the only question is whether a default recall looks at it.
+    await client.callTool({
+      name: 'zenbrain_store',
+      arguments: { content: 'The staging database listens on port 6543.', type: 'fact' },
+    });
+    const layersOf = (res: Awaited<ReturnType<Client['callTool']>>) =>
+      (res.structuredContent as { results: { layer: string }[] }).results.map((r) => r.layer);
+
+    // The control first: asked for explicitly, working memory does return it —
+    // so the default below comes back without it for a reason, not by accident.
+    const asked = await client.callTool({
+      name: 'zenbrain_recall',
+      arguments: { query: 'staging database port', layers: ['working'] },
+    });
+    expect(layersOf(asked)).toContain('working');
+
+    const byDefault = await client.callTool({
+      name: 'zenbrain_recall',
+      arguments: { query: 'staging database port' },
+    });
+    expect(byDefault.isError).toBeFalsy();
+    expect(layersOf(byDefault)).not.toContain('working');
   });
 
   it('rejects a layer name the coordinator does not know', async () => {

@@ -2,6 +2,57 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+On `main`, not yet published to npm: the versions npm serves were released from `v0.4.7` on
+2026-09-21, and everything below came after.
+
+### Fixed — recall without an embedding provider answered every query with the same rows (#95)
+
+Without an `EmbeddingProvider`, `semantic.search` returned `getRecent(limit)` and never read the
+query. `episodic` did the same; `procedural` ranked by recorded success rate, a real signal but
+just as blind to the query. Every SQLite user lands on this path, a default
+`npx @zensation/mcp` install included, because the vector branch is pgvector-only. Measured on
+2026-09-26 against `npx -y @zensation/mcp` with three unrelated facts stored:
+
+| Query | Before | After |
+|---|---|---|
+| `Leuchtturm` | all three rows, every score 0 | one result, score 1.0 |
+| `Backrezept mit Speck` | the same three rows, every score 0 | one result, score 0.318 |
+
+The non-vector path now ranks by wording (`packages/core/src/lexical.ts`, no dependencies):
+folded tokens (umlauts, sharp s, accents), a small DE/EN stop list, IDF weighting over a recency
+window of 500 rows, and a bonus when a candidate carries the query as an adjacent phrase.
+Procedural memory keeps its success rate as a weight on top. A score of 0 now means that nothing
+matched. The path matches wording, not meaning: synonyms still need an embedding provider.
+
+### Fixed — `zenbrain_recall` described a default it does not use
+
+The tool description told MCP clients that `zenbrain_recall` *"searches every layer by
+default"*. The input schema said *"defaults to all but working"*, and the handler searched four
+layers: episodic, semantic, procedural and core. Working memory is searched only when a client
+names it; short-term and cross-context memory are not reachable through `recall`. Glama's
+automated assessment of the tool definitions flagged the contradiction (as of 2026-09-18).
+
+The default is now one list in `packages/mcp/src/server.ts`. The handler passes it to the
+coordinator, and the tool description and the schema text are written from it, so the three can
+no longer disagree. Two new tests hold this: one reads the layers off the call the handler
+actually makes and checks the description against them; the other stores a memory and checks
+that a default recall leaves working memory out while an explicit request finds it. What a
+recall returns is unchanged. `packages/mcp/README.md` carried the same sentence and is corrected.
+
+### Changed
+
+- **The MCP registry entry is published on release** (#94). `packages/mcp/server.json` was bumped
+  with every release, but no step ever pushed it: on 2026-09-26 the official registry still
+  served 0.1.3, three patch versions behind npm. The new workflow runs on every `v*` tag and can
+  be started by hand; it checks the result by the registry's `isLatest` flag, not by the first
+  entry of the version list.
+- **Every README that prints the LongMemEval-500 figures names the configuration they were
+  measured in** (#96): `nomic-embed-text` as the embedding provider. A default install takes the
+  lexical path above, which is not that configuration. npm shows a README as it was at publish
+  time, so these sentences reach the package pages with the next release.
+
 ## [0.4.7] — 2026-09-21
 
 **All six packages bumped** (patch only), so that corrected README text reaches the npm package

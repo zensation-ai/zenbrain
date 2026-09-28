@@ -13,7 +13,7 @@ Four tools, one local SQLite file, no account and no network call.
 | Tool | What it does |
 |---|---|
 | `zenbrain_store` | Write something into long-term memory. Routing is automatic: a general statement becomes a semantic fact, a narrated event an episode, a sequence of instructions a procedure. |
-| `zenbrain_recall` | Search every layer for what is relevant to a query. Results come back ranked, each tagged with the layer it came from. |
+| `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back ranked, each tagged with the layer it came from. |
 | `zenbrain_consolidate` | One sleep-like maintenance pass: promote repeated episodes into facts, decay stale slots, prune what fell below the retention threshold. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 

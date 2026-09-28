@@ -35,6 +35,24 @@ const PACKAGE_VERSION: string = (
 /** Layer names the coordinator accepts in `RecallOptions.layers`. */
 const LAYERS = ['working', 'episodic', 'semantic', 'procedural', 'core'] as const;
 
+/**
+ * The layers `zenbrain_recall` searches when the client names none.
+ *
+ * Passed to the coordinator explicitly and used to write the tool description,
+ * so the two come from one list. The description used to say "searches every
+ * layer by default" while the schema said "all but working" and the handler
+ * searched these four — an automated review of the tool definitions found the
+ * contradiction before we did.
+ */
+const DEFAULT_RECALL_LAYERS = ['episodic', 'semantic', 'procedural', 'core'] as const;
+
+/** `['a', 'b', 'c']` → `"a, b and c"`. */
+function listed(items: readonly string[]): string {
+  return items.length < 2
+    ? items.join('')
+    : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
 /** Routing hints the coordinator accepts in `StoreOptions.type`. */
 const STORE_TYPES = ['auto', 'fact', 'episode', 'procedure', 'core'] as const;
 
@@ -135,17 +153,22 @@ export function createZenBrainServer(
     {
       title: 'Recall memories',
       description:
-        'Search long-term memory for anything relevant to a query. Searches every layer ' +
-        'by default and returns results ranked by relevance, each tagged with the layer it ' +
-        'came from. Use this before answering when the user refers to something from an ' +
-        'earlier session.',
+        'Search long-term memory for anything relevant to a query. By default it searches ' +
+        `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (a handful of recently ` +
+        'stored items, held only while the server runs) is searched only when named in ' +
+        '`layers`. Returns results ranked by relevance, each tagged with the layer it came ' +
+        'from. Use this before answering when the user refers to something from an earlier ' +
+        'session.',
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         query: z.string().min(1).describe('What to look for, in plain language.'),
         layers: z
           .array(z.enum(LAYERS))
           .optional()
-          .describe('Restrict the search to these layers. Defaults to all but working.'),
+          .describe(
+            `Restrict the search to these layers. Defaults to ${listed(DEFAULT_RECALL_LAYERS)}; ` +
+              "add 'working' to include recently stored items held in memory.",
+          ),
         limit: z.number().int().min(1).max(100).optional().describe('Maximum results (default 10).'),
         minConfidence: z
           .number()
@@ -181,8 +204,9 @@ export function createZenBrainServer(
       },
     },
     async ({ query, ...rest }) => {
-      const opts: RecallOptions = {};
-      if (rest.layers !== undefined) opts.layers = rest.layers as RecallOptions['layers'];
+      const opts: RecallOptions = {
+        layers: (rest.layers ?? [...DEFAULT_RECALL_LAYERS]) as RecallOptions['layers'],
+      };
       if (rest.limit !== undefined) opts.limit = rest.limit;
       if (rest.minConfidence !== undefined) opts.minConfidence = rest.minConfidence;
       if (rest.includeContext !== undefined) opts.includeContext = rest.includeContext;
