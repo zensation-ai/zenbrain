@@ -90,9 +90,12 @@ export function createZenBrainServer(
       title: 'Store a memory',
       description:
         'Write something into long-term memory so it survives this conversation. ' +
-        'Routing is automatic by default: a general statement becomes a semantic fact, ' +
-        'a narrated event becomes an episode, a sequence of instructions becomes a procedure. ' +
-        'Set `type` only when you want to override that. Returns the id of the stored memory.',
+        'Routing is automatic by default: steps or instructions become a procedure; content ' +
+        'with an emotional weight above 0.5 (detected, or set via `emotionalWeight`) becomes an ' +
+        'episode; a `confidence` above 0.9 makes it a pinned core memory; anything else becomes ' +
+        'a semantic fact. Set `type` only when you want to override that. Every call adds a new ' +
+        'memory, except that storing the same core memory again updates it; the content is also ' +
+        'kept in working memory while the server runs. Returns the id of the stored memory.',
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
       inputSchema: {
         content: z.string().min(1).describe('The memory to store, in plain language.'),
@@ -115,7 +118,10 @@ export function createZenBrainServer(
           .min(0)
           .max(1)
           .optional()
-          .describe('Emotional significance (0–1). Detected from the content when omitted.'),
+          .describe(
+            'Emotional significance (0–1). Detected from the content when omitted. ' +
+              'Above 0.5 routes to episodic memory.',
+          ),
         source: z
           .string()
           .optional()

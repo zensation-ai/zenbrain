@@ -159,6 +159,32 @@ open('the MCP surface over a real SQLite store', () => {
     expect(health.semantic.count).toBe(1);
   });
 
+  it('routes the way the zenbrain_store description says', async () => {
+    // The description names four routes and one exception; check each against
+    // the layer counts a client can see, so the text cannot drift from the code.
+    const c = await connect();
+    const speichere = (args: Record<string, unknown>) =>
+      c.callTool({ name: 'zenbrain_store', arguments: args });
+    await speichere({ content: 'Deploy: build, test, tag, push.', steps: ['build', 'test', 'tag', 'push'] });
+    await speichere({ content: 'We finally shipped after three days.', emotionalWeight: 0.8 });
+    await speichere({ content: 'The project deploys from the main branch.', confidence: 0.95 });
+    await speichere({ content: 'Redis listens on port 6379.' });
+    await speichere({ content: 'Redis listens on port 6379.' });
+    await speichere({ content: 'The project deploys from the main branch.', confidence: 0.95 });
+
+    const res = await c.callTool({ name: 'zenbrain_health', arguments: {} });
+    const h = JSON.parse((res.content as { text: string }[])[0].text) as {
+      procedural: { count: number };
+      episodic: { count: number };
+      core: { blocks: number };
+      semantic: { count: number };
+    };
+    expect(h.procedural.count).toBe(1);
+    expect(h.episodic.count).toBe(1);
+    expect(h.core.blocks).toBe(1); // the same core memory twice: updated, not added
+    expect(h.semantic.count).toBe(2); // every other call adds a memory
+  });
+
   it('reports the stored fact in the health check', async () => {
     const c = await connect();
     await c.callTool({

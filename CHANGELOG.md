@@ -147,6 +147,12 @@ put back, five of the eight fail.
 
 ### Changed
 
+- **`zenbrain_store` describes its routing as the code does it.** It said *"a narrated event becomes an
+  episode"*; the router decides by emotional weight (above 0.5), whatever the form of the text. The
+  description now names all four routes (procedure, episode, pinned core memory above confidence 0.9,
+  semantic fact) and the side effects: every call adds a memory except a repeated core memory, which
+  is updated, and the content is also kept in working memory while the server runs. A test over a
+  real SQLite store checks each route and the exception against the layer counts.
 - **The MCP registry entry is published on release** (#94). `packages/mcp/server.json` was bumped
   with every release, but no step ever pushed it: on 2026-09-26 the official registry still
   served 0.1.3, three patch versions behind npm. The new workflow runs on every `v*` tag and can
