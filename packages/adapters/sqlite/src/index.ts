@@ -152,11 +152,21 @@ export class SqliteAdapter implements StorageAdapter {
     const normalized = translated.trim().toUpperCase();
 
     try {
-      // Coerce params SQLite can't bind: undefined → null, Date → ISO string.
-      // The core layers pass FSRS review times (fsrs_next_review) as Date objects;
+      // Coerce params SQLite can't bind: undefined → null, Date → ISO string,
+      // boolean → 1/0. The core layers pass FSRS review times (fsrs_next_review)
+      // as Date objects and a core block's `pinned` flag as a boolean;
       // better-sqlite3 binds only numbers, strings, bigints, buffers and null.
+      // Until the boolean case was added, every write to core memory failed on
+      // SQLite (measured 2026-09-28 against the published @zensation/mcp 0.1.6:
+      // `type: 'core'` and `confidence` above 0.9 both errored and stored nothing).
       const safeParams = (params ?? []).map(p =>
-        p === undefined ? null : p instanceof Date ? p.toISOString() : p
+        p === undefined
+          ? null
+          : p instanceof Date
+            ? p.toISOString()
+            : typeof p === 'boolean'
+              ? (p ? 1 : 0)
+              : p
       );
 
       // better-sqlite3 treats numbered placeholders (?1, ?2) as *named* parameters,

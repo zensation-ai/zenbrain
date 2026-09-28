@@ -7,6 +7,14 @@
 import type { StorageAdapter } from '../interfaces/storage';
 import { type CoreMemoryBlock, type Logger, noopLogger } from '../types';
 
+/**
+ * `pinned` as a real boolean. SQLite has no boolean type and hands the column
+ * back as 1 or 0; PostgreSQL already returns true or false.
+ */
+function toBlock(row: CoreMemoryBlock): CoreMemoryBlock {
+  return { ...row, pinned: Boolean(row.pinned) };
+}
+
 export interface CoreMemoryConfig {
   storage: StorageAdapter;
   tableName?: string;
@@ -30,7 +38,7 @@ export class CoreMemory {
       `SELECT id, label, content, pinned, updated_at as "updatedAt"
        FROM ${this.table} ORDER BY label`
     );
-    return result.rows;
+    return result.rows.map(toBlock);
   }
 
   /** Get a single block by label. */
@@ -40,7 +48,7 @@ export class CoreMemory {
        FROM ${this.table} WHERE label = $1`,
       [label]
     );
-    return result.rows[0] ?? null;
+    return result.rows[0] ? toBlock(result.rows[0]) : null;
   }
 
   /** Update or create a core memory block. */
@@ -53,7 +61,7 @@ export class CoreMemory {
       [label, content, pinned]
     );
     this.log.info(`Core memory block upserted: ${label}`);
-    return result.rows[0];
+    return toBlock(result.rows[0]);
   }
 
   /** Delete a core memory block. */

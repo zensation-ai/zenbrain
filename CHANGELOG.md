@@ -41,6 +41,18 @@ actually makes and checks the description against them; the other stores a memor
 that a default recall leaves working memory out while an explicit request finds it. What a
 recall returns is unchanged. `packages/mcp/README.md` carried the same sentence and is corrected.
 
+### Fixed — core memory could not be written on SQLite
+
+`store(…, { type: 'core' })`, and every store with a confidence above 0.9 — the documented route
+into core memory — failed on SQLite with *"SQLite3 can only bind numbers, strings, bigints,
+buffers, and null"*, and nothing was written. The core layer passes a block's `pinned` flag as a
+boolean; better-sqlite3 binds no booleans. Measured on 2026-09-28 against the published
+`@zensation/mcp` 0.1.6: both calls errored, and `zenbrain_health` reported zero core blocks.
+
+The adapter now binds `true` and `false` as `1` and `0`, next to the `Date` coercion it already
+did, and the core layer hands `pinned` back as a real boolean on both adapters. Tested through
+the coordinator and through `zenbrain_store` over a real SQLite store.
+
 ### Added — tests for the two start paths that silenced 0.1.3 on macOS and Windows
 
 does-it-install's weekly runs have listed `@zensation/mcp` as failing on two of three platforms

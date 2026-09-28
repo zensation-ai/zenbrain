@@ -196,6 +196,27 @@ describe('SqliteAdapter query translation', () => {
     expect(result.rows[0].uuid.length).toBe(36);
   });
 
+  it('binds booleans as 1 and 0', async () => {
+    // better-sqlite3 refuses booleans outright; the core layer passes `pinned`
+    // as one, which made every core-memory write fail before this coercion.
+    const adapter = createMemoryAdapter();
+    await adapter.query(
+      'INSERT INTO core_memory_blocks (id, label, content, pinned) VALUES ($1, $2, $3, $4)',
+      ['b-true', 'yes', 'pinned', true],
+    );
+    await adapter.query(
+      'INSERT INTO core_memory_blocks (id, label, content, pinned) VALUES ($1, $2, $3, $4)',
+      ['b-false', 'no', 'not pinned', false],
+    );
+    const result = await adapter.query<{ id: string; pinned: number }>(
+      'SELECT id, pinned FROM core_memory_blocks ORDER BY id',
+    );
+    expect(result.rows).toEqual([
+      { id: 'b-false', pinned: 0 },
+      { id: 'b-true', pinned: 1 },
+    ]);
+  });
+
   it('handles undefined params as null', async () => {
     const adapter = createMemoryAdapter();
     await adapter.query(

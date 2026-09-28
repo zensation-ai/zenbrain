@@ -115,6 +115,28 @@ open('the MCP surface over a real SQLite store', () => {
     for (const r of out.results) expect(r.layer).toBe('semantic');
   });
 
+  it('stores into core memory, by type and by high confidence', async () => {
+    // Measured on 2026-09-28 against the published 0.1.6: both calls below
+    // answered "SQLite3 can only bind numbers, strings, bigints, buffers, and
+    // null" and stored nothing — a core block's `pinned` flag reached the
+    // driver as a boolean. The second one is the documented route: confidence
+    // above 0.9 goes to core memory.
+    const c = await connect();
+    for (const args of [
+      { content: 'The user prefers short answers.', type: 'core' },
+      { content: 'The project deploys from the main branch.', confidence: 0.95 },
+    ]) {
+      const res = await c.callTool({ name: 'zenbrain_store', arguments: args });
+      expect(res.isError, JSON.stringify(res.content)).toBeFalsy();
+    }
+
+    const res = await c.callTool({ name: 'zenbrain_health', arguments: {} });
+    const health = JSON.parse((res.content as { text: string }[])[0].text) as {
+      core: { blocks: number };
+    };
+    expect(health.core.blocks).toBe(2);
+  });
+
   it('reports the stored fact in the health check', async () => {
     const c = await connect();
     await c.callTool({
