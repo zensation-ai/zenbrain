@@ -34,6 +34,45 @@ export interface SqliteAdapterConfig {
 }
 
 /**
+ * The one timestamp format this adapter writes: ISO 8601, UTC, milliseconds,
+ * `Z` — the shape `Date.prototype.toISOString()` produces, which is how
+ * `query()` already binds the layers' `Date` parameters.
+ *
+ * NOW() and the column defaults used to write SQLite's `datetime('now')`
+ * (`2026-09-28 21:25:17`, no zone), so one table, sometimes one row, carried
+ * two formats (`created_at` beside `fsrs_next_review`). Measured on 2026-09-28
+ * against the published packages and a real database file: text comparison
+ * puts `' '` before `'T'`, so a fact did not come back from `getDueForReview`
+ * on its due date, and an episode stored today was missing from
+ * `getByTimeRange(today 00:00Z, …)`; and `new Date('2026-09-28 21:25:17')` is
+ * read as local time, so in Berlin every `createdAt` came back two hours early.
+ * With one format, text order is time order and every value parses as UTC.
+ */
+const SQL_NOW_UTC = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
+
+/** The canonical form as a GLOB pattern, to find values written before it. */
+const ISO_UTC_GLOB =
+  '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]Z';
+
+/** Every timestamp column the schema below defines, by table. */
+const TIMESTAMP_COLUMNS: Record<string, readonly string[]> = {
+  episodic_memories: ['created_at'],
+  learned_facts: ['created_at', 'last_accessed', 'fsrs_next_review'],
+  procedural_memories: ['created_at'],
+  core_memory_blocks: ['updated_at'],
+  cross_context_links: ['created_at'],
+  knowledge_entities: ['created_at'],
+};
+
+/**
+ * The schema version this adapter brings a database to, kept in
+ * `PRAGMA user_version` (0 on a file written before versions were recorded).
+ *
+ * 1 — every timestamp in the one format above.
+ */
+export const SCHEMA_VERSION = 1;
+
+/**
  * Translate PostgreSQL-style parameterized queries to SQLite.
  * - $1, $2, $3 → ?1, ?2, ?3 (numbered, so a repeated $1 binds the same value —
  *   the layers' vector queries use $1 twice with a single parameter)
@@ -42,7 +81,7 @@ export interface SqliteAdapterConfig {
  *   zb_cosine_dist() UDF registered on the connection, so similarity search
  *   works on SQLite instead of producing invalid SQL
  * - Replace gen_random_uuid() with a generated UUID
- * - Replace NOW() with datetime('now')
+ * - Replace NOW() with the current time in the one timestamp format above
  * - Remove HNSW/GIN index hints
  */
 function translateQuery(sql: string): string {
@@ -60,8 +99,8 @@ function translateQuery(sql: string): string {
   // We'll use a SQLite-compatible approach
   translated = translated.replace(/gen_random_uuid\(\)/gi, "lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6)))");
 
-  // Replace NOW() with datetime('now')
-  translated = translated.replace(/\bNOW\(\)/gi, "datetime('now')");
+  // Replace NOW() with the current time, ISO 8601 UTC (see SQL_NOW_UTC)
+  translated = translated.replace(/\bNOW\(\)/gi, SQL_NOW_UTC);
 
   // Replace TIMESTAMPTZ with TEXT (SQLite stores dates as text)
   translated = translated.replace(/\bTIMESTAMPTZ\b/gi, 'TEXT');
@@ -141,8 +180,9 @@ export class SqliteAdapter implements StorageAdapter {
     // Enable foreign keys
     this.db.pragma('foreign_keys = ON');
 
-    // Initialize schema
+    // Initialize schema, then bring a file written by an earlier version up to it
     this.initSchema();
+    this.migrate();
 
     this.log.info(`SQLite adapter initialized: ${filename}`);
   }
@@ -231,6 +271,47 @@ export class SqliteAdapter implements StorageAdapter {
   }
 
   /**
+   * Bring a database written by an earlier version to SCHEMA_VERSION.
+   *
+   * Runs once per file; `PRAGMA user_version` records that it ran. Version 1
+   * rewrites every timestamp into the one format, in one transaction. Only
+   * text that SQLite can read as a time is rewritten: a value it cannot read
+   * stays as it is instead of becoming NULL — a migration must not destroy
+   * what it does not understand.
+   *
+   * Column defaults of tables created before version 1 keep `datetime('now')`;
+   * SQLite cannot change a default without rebuilding the table. The layers
+   * never rely on a default — every insert sets its timestamp through NOW() —
+   * so only code that writes these tables directly and leaves the timestamp
+   * out still gets the old format there.
+   */
+  private migrate(): void {
+    const version = this.db.pragma('user_version', { simple: true }) as number;
+    if (version >= SCHEMA_VERSION) return;
+
+    let rewritten = 0;
+    this.db.transaction(() => {
+      for (const [table, columns] of Object.entries(TIMESTAMP_COLUMNS)) {
+        for (const column of columns) {
+          rewritten += this.db
+            .prepare(
+              `UPDATE ${table} SET ${column} = strftime('%Y-%m-%dT%H:%M:%fZ', ${column})
+               WHERE typeof(${column}) = 'text'
+                 AND ${column} NOT GLOB '${ISO_UTC_GLOB}'
+                 AND strftime('%Y-%m-%dT%H:%M:%fZ', ${column}) IS NOT NULL`,
+            )
+            .run().changes;
+        }
+      }
+      this.db.pragma(`user_version = ${SCHEMA_VERSION}`);
+    })();
+
+    if (rewritten > 0) {
+      this.log.info(`SQLite adapter: ${rewritten} timestamp(s) rewritten to ISO 8601 UTC`);
+    }
+  }
+
+  /**
    * Initialize the database schema.
    * Creates all memory tables if they don't exist.
    * Safe to call multiple times (uses IF NOT EXISTS).
@@ -245,7 +326,7 @@ export class SqliteAdapter implements StorageAdapter {
         embedding TEXT, -- JSON array (no pgvector in SQLite)
         emotional_weight REAL,
         metadata TEXT, -- JSON
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        created_at TEXT NOT NULL DEFAULT (${SQL_NOW_UTC})
       );
 
       -- Layer 4: Semantic Long-Term Memory
@@ -259,7 +340,7 @@ export class SqliteAdapter implements StorageAdapter {
         fsrs_difficulty REAL,
         fsrs_stability REAL,
         fsrs_next_review TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at TEXT NOT NULL DEFAULT (${SQL_NOW_UTC}),
         last_accessed TEXT
       );
 
@@ -277,7 +358,7 @@ export class SqliteAdapter implements StorageAdapter {
         embedding TEXT,
         success_rate REAL NOT NULL DEFAULT 1.0,
         execution_count INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        created_at TEXT NOT NULL DEFAULT (${SQL_NOW_UTC})
       );
 
       -- Layer 6: Core Memory Blocks
@@ -286,7 +367,7 @@ export class SqliteAdapter implements StorageAdapter {
         label TEXT UNIQUE NOT NULL,
         content TEXT NOT NULL,
         pinned INTEGER NOT NULL DEFAULT 1,
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        updated_at TEXT NOT NULL DEFAULT (${SQL_NOW_UTC})
       );
 
       -- Layer 7: Cross-Context Links
@@ -294,7 +375,7 @@ export class SqliteAdapter implements StorageAdapter {
         id TEXT PRIMARY KEY,
         entity_a TEXT NOT NULL,
         entity_b TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        created_at TEXT NOT NULL DEFAULT (${SQL_NOW_UTC}),
         UNIQUE(entity_a, entity_b)
       );
 
@@ -304,7 +385,7 @@ export class SqliteAdapter implements StorageAdapter {
         name TEXT NOT NULL,
         type TEXT NOT NULL DEFAULT 'concept',
         embedding TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        created_at TEXT NOT NULL DEFAULT (${SQL_NOW_UTC})
       );
 
       -- Indexes

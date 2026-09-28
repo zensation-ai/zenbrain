@@ -53,6 +53,38 @@ The adapter now binds `true` and `false` as `1` and `0`, next to the `Date` coer
 did, and the core layer hands `pinned` back as a real boolean on both adapters. Tested through
 the coordinator and through `zenbrain_store` over a real SQLite store.
 
+### Fixed — SQLite wrote two timestamp formats, and three queries went wrong because of it
+
+`NOW()` and the column defaults wrote SQLite's `datetime('now')` — `2026-09-28 21:25:17`, no zone
+— while `Date` parameters arrived as ISO strings with `Z`. One table, sometimes one row, held both
+(`created_at` beside `fsrs_next_review`); a project that builds on the schema had to catch a
+crash when comparing the two. Measured on 2026-09-28 against the published packages and a real
+database file, each case with a control that shows the query can find the row at all:
+
+| Case | Before | Control |
+|---|---|---|
+| a fact due for one hour | `getDueForReview` returns nothing | due for 25 hours: returned |
+| an episode stored just now | `getByTimeRange(today 00:00Z, …)` returns nothing | range from yesterday: returned |
+| `created_at` 21:25:17 UTC | `createdAt` 19:25:17Z in Europe/Berlin | — |
+
+Text comparison puts `' '` before `'T'`, so on the day itself the zone-less value always lost;
+and JavaScript reads a date-time without `T` or zone as local time.
+
+The adapter now writes one format everywhere: ISO 8601, UTC, milliseconds, `Z`, the shape
+`Date.prototype.toISOString()` produces. A database written by an earlier version is rewritten
+once when the adapter opens it, in one transaction, and `PRAGMA user_version` records it — schema
+version 1, exported as `SCHEMA_VERSION`. Only text SQLite can read as a time is rewritten;
+anything else stays as it was. Checked on two database files that the published 0.1.6 wrote the
+same day: every timestamp rewritten to the same instant, and the three cases above right.
+
+SQLite cannot change a column default without rebuilding the table, so tables created before
+this version keep `datetime('now')` as their default. The layers never rely on it; code that
+inserts into these tables directly and leaves the timestamp out should write
+`strftime('%Y-%m-%dT%H:%M:%fZ','now')`. The adapter README now documents every table, its
+columns and the timestamp format, and no longer claims that SQLite has no similarity search or
+falls back to recency: it has both a cosine scan and, without an embedding provider, the lexical
+ranking of #95.
+
 ### Added — tests for the two start paths that silenced 0.1.3 on macOS and Windows
 
 does-it-install's weekly runs have listed `@zensation/mcp` as failing on two of three platforms

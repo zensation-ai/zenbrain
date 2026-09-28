@@ -35,9 +35,37 @@ await memory.storeFact('FSRS outperforms SM-2 by 30%', 'research');
 
 ## Limitations
 
-- No vector similarity search (embeddings stored as JSON, not pgvector)
-- Memory layers fall back to recency-based retrieval instead of semantic search
+- Similarity search is a full scan per query: embeddings are stored as JSON arrays and compared
+  by a cosine-distance function, with no ANN index. Fine for development and single-user data
+  volumes; use PostgreSQL with pgvector for large stores.
+- Without an embedding provider, recall ranks by wording, not meaning: synonyms need one.
 - Single-writer concurrency (WAL mode helps with reads)
+
+## Schema
+
+The adapter creates these tables on first open (`CREATE TABLE IF NOT EXISTS`) and records the
+schema version in `PRAGMA user_version` (exported as `SCHEMA_VERSION`, currently 1).
+
+| Layer | Table | Columns |
+|---|---|---|
+| Episodic | `episodic_memories` | `id`, `content`, `context`, `embedding` (JSON array), `emotional_weight`, `metadata` (JSON), `created_at` |
+| Semantic | `learned_facts` | `id`, `content`, `confidence`, `source`, `embedding`, `access_count`, `fsrs_difficulty`, `fsrs_stability`, `fsrs_next_review`, `created_at`, `last_accessed` |
+| Procedural | `procedural_memories` | `id`, `trigger`, `steps` (JSON), `tools` (JSON), `outcome`, `embedding`, `success_rate`, `execution_count`, `created_at` |
+| Core | `core_memory_blocks` | `id`, `label` (one block per label), `content`, `pinned` (1 or 0), `updated_at` |
+| Cross-context | `cross_context_links` | `id`, `entity_a`, `entity_b` (one link per pair), `created_at` |
+| — | `knowledge_entities` | `id`, `name`, `type`, `embedding`, `created_at` |
+
+Working and short-term memory live in the process and have no table. Episodes carry
+`emotional_weight`; `confidence` is a column of facts only.
+
+**Timestamps** are text in one format: ISO 8601, UTC, milliseconds, `Z`
+(`2026-09-28T21:25:17.000Z`), so text order is time order and every value parses as UTC. Code
+that writes these tables directly should use the same format — in SQL,
+`strftime('%Y-%m-%dT%H:%M:%fZ','now')`.
+
+| Schema version | Change |
+|---|---|
+| 1 | One timestamp format. A file written by an earlier version is rewritten once when it is opened; text SQLite cannot read as a time is left as it was. |
 
 ## Configuration
 
