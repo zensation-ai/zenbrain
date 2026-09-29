@@ -2,10 +2,21 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.8] — 2026-09-30
 
-On `main`, not yet published to npm: the versions npm serves were released from `v0.4.7` on
-2026-09-21, and everything below came after.
+**All six packages bumped** (patch only). `@zensation/core` and `@zensation/adapter-sqlite` carry
+the recall fix (#95) and the data fixes from #100. `@zensation/mcp` carries those, starts from any
+working directory, and describes its four tools with their limits (#100, #101).
+`@zensation/algorithms`, `@zensation/adapter-postgres` and `@zensation/ai-sdk` change only in their
+README (#96, #101; for `ai-sdk` also #95): every package page now says where the benchmark results
+are reported instead of printing them. npm reads the README at publish time — without a release the
+package pages would keep the old text.
+
+The recall fix from #95 was merged on 2026-09-26 but never published: until this release, every
+install from npm still answered a query without an embedding provider with the same rows.
+
+**Note on dependencies:** every internal range is a caret (`^0.4.0`, `^0.3.0`, `^0.2.0`), so no
+dependent package falls out of its range with a patch bump.
 
 ### Fixed — recall without an embedding provider answered every query with the same rows (#95)
 
@@ -282,6 +293,18 @@ every unit test stays green and only the new test goes red.
 So one test spawns the built entry point **through a real symlink** and requires an answer on
 the wire, and another drives the no-options path and compares the reported version against the
 manifest rather than against a second literal.
+
+## [0.4.5] — 2026-09-06
+
+**`@zensation/mcp` only** (0.1.3 → 0.1.4), and nothing but the version (#85). No other package is
+bumped; the publish step skips versions already on the registry.
+
+### Changed
+
+- Republished so that the npm search index would take a download snapshot of the package: the
+  index records one at publish time, and a package published only once read zero there.
+  `@zensation/ai-sdk` stayed at 0.1.3 on purpose, as the control. No description, keywords,
+  README or repository field was touched. `packages/mcp/server.json` moved with the version.
 
 ## [0.4.4] — 2026-09-01
 
