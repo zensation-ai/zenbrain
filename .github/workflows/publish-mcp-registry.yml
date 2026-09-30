@@ -25,6 +25,7 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -58,18 +59,24 @@ jobs:
       # The registry validates ownership by reading `mcpName` from the PUBLISHED npm package.
       # A fresh publish needs time to propagate — the same trap that turned the cli release job
       # red on 2026-09-22 while the publish had actually succeeded. Poll, do not assume.
+      #
+      # This job starts on the same tag push as ci.yml, but ci.yml publishes only after build,
+      # lint and tests on three Node versions. At v0.4.8 (2026-09-30) the publish came two
+      # minutes after the tag and npm showed the version about three and a half minutes after
+      # that; the old two-minute wait ran out five seconds before the publish, and the registry
+      # step had to be re-run by hand. Twenty minutes covers the CI run and the propagation.
       - name: Wait for the npm version to be visible
         run: |
           VERSION="${{ steps.v.outputs.version }}"
-          for attempt in $(seq 1 8); do
+          for attempt in $(seq 1 60); do
             if NPMJSON=$(npm view "@zensation/mcp@$VERSION" mcpName 2>/dev/null) && [ -n "$NPMJSON" ]; then
               echo "npm serves @zensation/mcp@$VERSION with mcpName=$NPMJSON (attempt $attempt)"
               exit 0
             fi
-            echo "Attempt $attempt/8: @zensation/mcp@$VERSION not visible on npm yet, waiting 15 s…"
-            sleep 15
+            echo "Attempt $attempt/60: @zensation/mcp@$VERSION not visible on npm yet, waiting 20 s…"
+            sleep 20
           done
-          echo "::error::@zensation/mcp@$VERSION is not on npm after ~2 minutes."
+          echo "::error::@zensation/mcp@$VERSION is not on npm after ~20 minutes."
           echo "::error::Check the npm release job first: if it printed '+ @zensation/mcp@$VERSION', this is propagation, not a failed release."
           exit 1
 
