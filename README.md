@@ -485,6 +485,20 @@ If you use ZenBrain in academic work, please cite:
 }
 ```
 
+## Cited by
+
+Five works cite ZenBrain (as of 28 September 2026): a survey by the Sico team at Microsoft Research, MindMemOS by Huawei's Noah's Ark Lab, the EVD preprint, the HindsightTag manuscript and the Lamperouge manifesto.
+
+- **Agentic Evolution: From Self-Improving Agents to Co-Evolving Human-AI Systems**, a survey by the Sico team at [Microsoft Research](https://www.microsoft.com/en-us/research/publication/agentic-evolution-from-self-improving-agents-to-co-evolving-human-ai-systems/) (2026), calls forgetting "critically understudied": very few of the roughly 100 Memory & Sense papers it surveys implement explicit forgetting. It lists ZenBrain as one of four works in its forgetting/lifecycle group and as its only source for sleep-based consolidation.
+- **MindMemOS** (Huawei's Noah's Ark Lab, [arXiv:2608.12428](https://arxiv.org/abs/2608.12428), August 2026) relies on exactly three references for the foundational claim of its introduction: two field surveys and a single system paper — ZenBrain.
+- **HindsightTag** (manuscript, July 2026) discusses ZenBrain as its closest prior system and uses its `MemoryCoordinator` interface as the integration example.
+- **EVD: An Emotional Valence Dimension for Persistent Agent Memory** (R. J. Vandelinder and I. Vandelinder, Exile Research, [Zenodo](https://doi.org/10.5281/zenodo.20706465), June 2026) places ZenBrain in its related work.
+- **The field measures the wrong thing** (Lamperouge, manifesto, [Zenodo](https://doi.org/10.5281/zenodo.21982684), August 2026) selects ZenBrain among six works on persistent internal state and notes that its "days" are simulation steps.
+
+Each work with the sentence that cites ZenBrain: [zensation.ai/en/publikationen](https://zensation.ai/en/publikationen).
+
+Citing ZenBrain or building on it? Open an issue and we will add you here.
+
 ## Community
 
 - **GitHub Discussions**: [Ask a question, show what you built](https://github.com/zensation-ai/zenbrain/discussions) — help, show-and-tell, feature requests
