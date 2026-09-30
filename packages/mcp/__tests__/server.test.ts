@@ -239,3 +239,57 @@ describe('every tool answers in a shape any MCP client can render', () => {
     }
   });
 });
+
+describe('what the tool definitions promise', () => {
+  // An agent picks one tool out of all four at once. Glama's tool-definition score
+  // (tdqs.dev) grades exactly this: each description should say when to use a
+  // sibling instead, and must not contradict its own annotations — a contradiction
+  // scores the lowest mark on its own.
+  it('names a sibling tool in every description, so a model can tell them apart', async () => {
+    const { tools } = await client.listTools();
+    const names = tools.map((t) => t.name);
+    for (const tool of tools) {
+      const siblings = names.filter((n) => n !== tool.name);
+      expect(
+        siblings.some((s) => tool.description!.includes(s)),
+        `${tool.name} names none of ${siblings.join(', ')}`,
+      ).toBe(true);
+    }
+  });
+
+  it('says what consolidate deletes, since it is annotated as destructive', async () => {
+    const { tools } = await client.listTools();
+    const consolidate = tools.find((t) => t.name === 'zenbrain_consolidate')!;
+    expect(consolidate.annotations?.destructiveHint).toBe(true);
+    // The sentence carries a threshold ('0.01'), so match within it, not up to the first dot.
+    expect(consolidate.description).toMatch(/working-memory slots[^;]*are removed/i);
+    expect(consolidate.description).toMatch(/nothing in long-term memory is deleted/i);
+  });
+
+  it('only lets taskType matter together with includeContext, and says so', async () => {
+    const { tools } = await client.listTools();
+    const recall = tools.find((t) => t.name === 'zenbrain_recall')!;
+    const props = (recall.inputSchema as { properties: Record<string, { description?: string }> }).properties;
+    expect(props.taskType.description).toMatch(/includeContext/);
+  });
+
+  it('returns the health counts as structured content as well as text', async () => {
+    const res = await client.callTool({ name: 'zenbrain_health', arguments: {} });
+    expect(res.isError).toBeFalsy();
+    const out = res.structuredContent as Record<string, Record<string, number>>;
+    expect(out.working.max).toBeGreaterThan(0);
+    for (const [layer, key] of [
+      ['working', 'used'],
+      ['shortTerm', 'interactions'],
+      ['episodic', 'count'],
+      ['semantic', 'count'],
+      ['semantic', 'dueForReview'],
+      ['procedural', 'count'],
+      ['core', 'blocks'],
+    ] as const) {
+      expect(typeof out[layer]?.[key], `${layer}.${key}`).toBe('number');
+    }
+    const text = (res.content as { type: string; text: string }[])[0].text;
+    expect(JSON.parse(text)).toEqual(out);
+  });
+});

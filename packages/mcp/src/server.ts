@@ -95,8 +95,10 @@ export function createZenBrainServer(
         'episode; a `confidence` above 0.9 makes it a pinned core memory; anything else becomes ' +
         'a semantic fact. Set `type` only when you want to override that. Every call adds a new ' +
         'memory, except that storing the same core memory again updates it; the content is also ' +
-        'kept in working memory while the server runs. Returns the id of the stored memory.',
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+        'kept in working memory while the server runs. Returns the id of the stored memory. ' +
+        'If it may already be stored, check with zenbrain_recall first: storing it again adds ' +
+        'a duplicate.',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       inputSchema: {
         content: z.string().min(1).describe('The memory to store, in plain language.'),
         type: z
@@ -164,7 +166,8 @@ export function createZenBrainServer(
         'stored items, held only while the server runs) is searched only when named in ' +
         '`layers`. Returns results ranked by relevance, each tagged with the layer it came ' +
         'from. Use this before answering when the user refers to something from an earlier ' +
-        'session.',
+        'session. Read-only. To see how much is stored rather than what, use zenbrain_health; ' +
+        'to save something, use zenbrain_store.',
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         query: z.string().min(1).describe('What to look for, in plain language.'),
@@ -185,11 +188,17 @@ export function createZenBrainServer(
         includeContext: z
           .boolean()
           .optional()
-          .describe('Boost results matching the current context.'),
+          .describe(
+            'Boost results whose stored context (time of day, weekday, task type) matches the ' +
+              'current one.',
+          ),
         taskType: z
           .string()
           .optional()
-          .describe("Current task, e.g. 'coding', 'writing' — used for context matching."),
+          .describe(
+            "Current task, e.g. 'coding', 'writing'. Only has an effect together with " +
+              '`includeContext: true`.',
+          ),
       },
       outputSchema: {
         count: z.number().describe('How many memories were returned.'),
@@ -246,9 +255,12 @@ export function createZenBrainServer(
       description:
         'Run one consolidation pass: among the 100 most recent episodes, each one with an ' +
         'emotional weight above 0.5 becomes a semantic fact — once, however often the pass ' +
-        'runs — and stale working-memory slots decay. Nothing in long-term memory is deleted. ' +
-        'This is the sleep-like maintenance step — safe to run periodically, not per turn.',
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+        'runs. Working-memory slots lose relevance with age, and slots whose relevance has ' +
+        'dropped to 0.01 or below are removed; that is the only deletion, and nothing in ' +
+        'long-term memory is deleted. Run it between sessions or after a batch of ' +
+        'zenbrain_store calls, not on every turn; compare zenbrain_health before and after ' +
+        'to see the effect.',
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
       inputSchema: {},
       outputSchema: {
         promoted: z.number().describe('Episodes promoted to semantic facts in this pass.'),
@@ -269,15 +281,38 @@ export function createZenBrainServer(
     {
       title: 'Inspect memory state',
       description:
-        'Report how full each of the seven layers is: working-memory slots in use, ' +
-        'interactions held, episodes, facts and how many are due for review, procedures, ' +
-        'core blocks. Use it to check what the agent actually remembers.',
+        'Report how full the memory layers are: working-memory slots in use, interactions held, ' +
+        'episodes, facts and how many are due for review, procedures, core blocks. Read-only ' +
+        'and cheap, safe to call at any time. It returns counts only; to read the memories ' +
+        'themselves, use zenbrain_recall.',
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {},
+      outputSchema: {
+        working: z
+          .object({ used: z.number(), max: z.number() })
+          .describe('Working-memory slots in use and the slot limit.'),
+        shortTerm: z
+          .object({ interactions: z.number() })
+          .describe('Interactions held in short-term memory.'),
+        episodic: z.object({ count: z.number() }).describe('Episodes stored.'),
+        semantic: z
+          .object({ count: z.number(), dueForReview: z.number() })
+          .describe('Facts stored, and how many are due for spaced-repetition review.'),
+        procedural: z.object({ count: z.number() }).describe('Procedures stored.'),
+        core: z.object({ blocks: z.number() }).describe('Core memory blocks.'),
+      },
     },
     async () => {
-      const health = await coordinator.getHealth();
-      return { content: text(health) };
+      const h = await coordinator.getHealth();
+      const payload = {
+        working: { used: h.working.used, max: h.working.max },
+        shortTerm: { interactions: h.shortTerm.interactions },
+        episodic: { count: h.episodic.count },
+        semantic: { count: h.semantic.count, dueForReview: h.semantic.dueForReview },
+        procedural: { count: h.procedural.count },
+        core: { blocks: h.core.blocks },
+      };
+      return { content: text(payload), structuredContent: payload };
     },
   );
 
