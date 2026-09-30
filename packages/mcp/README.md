@@ -43,7 +43,7 @@ npm install -g @zensation/mcp
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ZENBRAIN_DB` | `./zenbrain.db` | Path to the SQLite file. `:memory:` gives a store that is discarded when the process exits. |
+| `ZENBRAIN_DB` | `./zenbrain.db` | Path to the SQLite file. A leading `~/` means your home directory. A relative path is relative to the directory your client starts the server in — some clients, Claude Desktop among them, may start it in `/`, where nothing can be written — so give an absolute or `~/` path. `:memory:` gives a store that is discarded when the process exits. |
 | `ZENBRAIN_CONTEXTS` | `personal,work,learning,creative` | Comma-separated context domains for cross-context memory. |
 
 The server speaks MCP over stdio. Stdout carries protocol traffic only; diagnostics go
