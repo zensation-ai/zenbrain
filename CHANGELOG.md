@@ -124,6 +124,24 @@ keeps other metadata, an earlier verbatim promotion is not copied again, and `pr
 nothing deleted; the same three-pass check runs over MCP. A database file that 0.1.6 wrote with
 three copies of one fact gets no fourth.
 
+### Fixed — the MCP server did not start from `/` with the documented configuration
+
+The README's client config sets `"ZENBRAIN_DB": "~/.zenbrain/memory.db"`. An MCP client passes the
+environment verbatim, and nothing expanded the tilde, so the adapter received a relative path whose
+first directory is literally named `~`. Measured on 2026-09-30 against the published 0.1.6 with
+Node 22.23.3, and against this change with a stand-in home directory:
+
+| Working directory | `ZENBRAIN_DB` | 0.1.6 | Now |
+|---|---|---|---|
+| `/` — where Claude Desktop may start servers | `~/.zenbrain/memory.db` | exits: `ENOENT: mkdir '~/.zenbrain'` | opens `<home>/.zenbrain/memory.db` |
+| `/` | unset, so `./zenbrain.db` | exits: `SqliteError: unable to open database file` | exits, naming `/zenbrain.db` and how to set `ZENBRAIN_DB` |
+| a writable directory | `~/.zenbrain/memory.db` | creates a directory named `~` there | opens `<home>/.zenbrain/memory.db` |
+
+A leading `~/` now means the home directory. Everything else passes through unchanged —
+`:memory:`, absolute paths, and relative paths, which stay relative to the working directory as
+documented. The ready line on stderr names the store's absolute path. Unit tests cover the
+expansion and the message.
+
 ### Added — tests for the two start paths that silenced 0.1.3 on macOS and Windows
 
 does-it-install's weekly runs have listed `@zensation/mcp` as failing on two of three platforms
@@ -158,10 +176,31 @@ put back, five of the eight fail.
   served 0.1.3, three patch versions behind npm. The new workflow runs on every `v*` tag and can
   be started by hand; it checks the result by the registry's `isLatest` flag, not by the first
   entry of the version list.
-- **Every README that prints the LongMemEval-500 figures names the configuration they were
-  measured in** (#96): `nomic-embed-text` as the embedding provider. A default install takes the
-  lexical path above, which is not that configuration. npm shows a README as it was at publish
-  time, so these sentences reach the package pages with the next release.
+- **The repository README names the configuration the LongMemEval-500 figures were measured in**
+  (#96): `nomic-embed-text` as the embedding provider. A default install takes the lexical path
+  above, which is not that configuration.
+- **The package pages carry no paper figures.** The *About ZenBrain* block in all six package
+  READMEs printed the LongMemEval-500 results. A library page now says where they are reported —
+  the paper, with the configuration they were measured in — and that the reproduction packages
+  are on Zenodo. npm shows a README as it was at publish time, so this reaches the package pages
+  with the next release.
+- **The tool definitions say when to use a sibling, and `zenbrain_consolidate` says what it
+  deletes.** It is annotated as destructive, and its description now names the deletion: working-
+  memory slots whose relevance has decayed to 0.01 or below are removed; long-term memory is only
+  added to. Each description names the other tool to use for the cases it does not cover, the
+  `taskType` parameter of `zenbrain_recall` says it only acts together with `includeContext`,
+  `zenbrain_health` returns its counts as structured content with an output schema like the other
+  three, and `store` and `consolidate` declare `openWorldHint: false` like `recall` and `health`.
+  Tests pin each of these; with the previous definitions, all four new ones fail.
+- **`docs/benchmarks.md` still carried the figures retracted on 2026-09-15** after the README and
+  the package pages were corrected in 0.4.7. It now matches them, with a note in the section.
+- **The `@zensation/core` quick start runs as printed.** It passed an `adapter` and an `embedder`
+  it never defined; it now sets up a SQLite store. The package tables in the `core` and
+  `algorithms` READMEs no longer call the SQLite adapter *sqlite-vec* (it uses its own cosine
+  function over `better-sqlite3`) and list the MCP server and the AI SDK middleware.
+- **The README lists all seven examples.** The LlamaIndex.TS and Mastra examples exist (#17 and
+  #18 were closed on 2026-08-14), but the README still offered them as open issues.
+- The 0.4.7 entry below no longer quotes a traffic share in its reason for campaign parameters.
 
 ## [0.4.7] — 2026-09-21
 
@@ -187,7 +226,7 @@ not nine wins.
 ### Changed
 
 - Self-set links to `zensation.ai` now carry campaign parameters, so that referral traffic can be
-  attributed at all. 56 % of visitors currently arrive without an identifiable source.
+  attributed at all.
 - `packages/mcp/server.json` now states the version it is published as; it had been left at 0.1.4
   while npm served 0.1.5.
 

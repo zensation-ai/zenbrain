@@ -238,7 +238,7 @@ Each advanced algorithm has its own sub-path (`@zensation/algorithms/spectral-he
 
 ## Runnable examples
 
-Five self-contained examples live in [`examples/`](./examples):
+Seven self-contained examples live in [`examples/`](./examples):
 
 | Example | Shows |
 |---|---|
@@ -247,12 +247,14 @@ Five self-contained examples live in [`examples/`](./examples):
 | [`with-langchain.ts`](./examples/with-langchain.ts) | ZenBrain as the memory backend of a LangChain agent |
 | [`with-crewai.ts`](./examples/with-crewai.ts) | Multiple agents sharing Working Memory, with Hebbian strengthening |
 | [`with-vercel-ai.ts`](./examples/with-vercel-ai.ts) | A memory-aware system prompt for the Vercel AI SDK `streamText` pattern |
+| [`with-llamaindex.ts`](./examples/with-llamaindex.ts) | ZenBrain as long-term memory for a LlamaIndex.TS agent — LlamaIndex keeps the short-term window, ZenBrain decides what outlives it |
+| [`with-mastra.ts`](./examples/with-mastra.ts) | ZenBrain behind a Mastra agent: a Processor records each turn, and the instructions are rebuilt from what is currently recallable |
 
 ```bash
 npx tsx examples/basic-chatbot.ts
 ```
 
-The integration examples additionally need their respective SDK installed. Want a LlamaIndex.TS or Mastra example? Those are open as [good first issues](https://github.com/zensation-ai/zenbrain/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+The integration examples additionally need their respective SDK installed; [`examples/README.md`](./examples/README.md) lists which. Open [good first issues](https://github.com/zensation-ai/zenbrain/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) are the best way in if you want to contribute.
 
 ## The Science Behind It
 

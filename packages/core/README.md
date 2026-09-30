@@ -18,13 +18,16 @@ The orchestration layer that turns [`@zensation/algorithms`](https://www.npmjs.c
 ## Quick Start
 
 ```bash
-npm install @zensation/core
+npm install @zensation/core @zensation/adapter-sqlite
 ```
 
 ```typescript
 import { MemoryCoordinator } from '@zensation/core';
+import { SqliteAdapter } from '@zensation/adapter-sqlite';
 
-const memory = new MemoryCoordinator({ storage: adapter, embedding: embedder });
+// Storage is pluggable; SQLite needs no server. Without an embedding provider recall ranks
+// by wording; pass `embedding: yourProvider` for semantic matching.
+const memory = new MemoryCoordinator({ storage: new SqliteAdapter({ filename: './memory.db' }) });
 
 // Auto-routes to the right layer (semantic, episodic, procedural, or core)
 await memory.store('User prefers TypeScript', { type: 'auto' });
@@ -70,7 +73,9 @@ This package is part of the [ZenBrain](https://github.com/zensation-ai/zenbrain)
 | `@zensation/algorithms` | Pure algorithms (FSRS, Hebbian, emotional, Bayesian) |
 | **@zensation/core** | Memory layers + coordinator (this package) |
 | `@zensation/adapter-postgres` | PostgreSQL + pgvector storage |
-| `@zensation/adapter-sqlite` | SQLite + sqlite-vec storage |
+| `@zensation/adapter-sqlite` | SQLite storage (better-sqlite3) |
+| `@zensation/mcp` | MCP server: store, recall, consolidate, health |
+| `@zensation/ai-sdk` | Vercel AI SDK memory middleware |
 
 ## License
 
@@ -79,15 +84,12 @@ Apache 2.0 — see [LICENSE](../../LICENSE).
 ## About ZenBrain
 
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. On LongMemEval-500 three of nine
-head-to-head answer-quality comparisons hold against Letta, Mem0 and A-Mem — all three against
-A-Mem, the remaining six are ties, none lost (three competitors x three LLM judges,
-Bonferroni-corrected, version-matched) — reaching 91.3% of a full-context oracle's binary-judge
-accuracy at 1/109.6 of the per-query token cost.
+zero-dependency TypeScript and published under Apache-2.0. The benchmark results, and the
+configuration they were measured in, are reported in the paper; the reproduction packages
+are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. With `nomic-embed-text` as the embedding provider you get the
-configuration those figures were measured in.
+dependencies. The paper's measurements used `nomic-embed-text` as the embedding provider.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
