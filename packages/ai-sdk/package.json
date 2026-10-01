@@ -49,9 +49,9 @@
     "node": ">=22"
   },
   "peerDependencies": {
-    "@ai-sdk/provider": "^3.0.0 || ^4.0.0",
+    "@ai-sdk/provider": "^4.0.0",
     "@zensation/core": "^0.3.0",
-    "ai": "^6.0.0 || ^7.0.0"
+    "ai": "^7.0.0"
   },
   "devDependencies": {
     "@ai-sdk/provider": "^4.0.18",
