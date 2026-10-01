@@ -22,7 +22,7 @@
       "environmentVariables": [
         {
           "name": "ZENBRAIN_DB",
-          "description": "Path to the SQLite file that holds the memory. Use ':memory:' for a store that is discarded when the process exits.",
+          "description": "Path to the SQLite file that holds the memory. A leading ~/ means your home directory; a relative path depends on where the client starts the server (some start it in /), so give an absolute or ~/ path. Use ':memory:' for a store that is discarded when the process exits.",
           "isRequired": false,
           "isSecret": false,
           "default": "./zenbrain.db"

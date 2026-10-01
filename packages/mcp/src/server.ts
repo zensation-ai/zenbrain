@@ -78,10 +78,20 @@ export function createZenBrainServer(
   coordinator: MemoryCoordinator,
   options: ZenBrainServerOptions = {},
 ): McpServer {
-  const server = new McpServer({
-    name: options.name ?? '@zensation/mcp',
-    version: options.version ?? PACKAGE_VERSION,
-  });
+  const server = new McpServer(
+    {
+      name: options.name ?? '@zensation/mcp',
+      version: options.version ?? PACKAGE_VERSION,
+    },
+    {
+      instructions:
+        'Long-term memory that persists across conversations. Call zenbrain_recall before ' +
+        'answering when the user refers to something from an earlier session, and ' +
+        'zenbrain_store when they share something worth keeping (check with zenbrain_recall ' +
+        'first, storing again adds a duplicate). Run zenbrain_consolidate between sessions, ' +
+        'not on every turn; zenbrain_health shows how much is stored.',
+    },
+  );
 
   // ── store ────────────────────────────────────────────────────────────────
   server.registerTool(
@@ -131,7 +141,10 @@ export function createZenBrainServer(
         steps: z
           .array(z.string())
           .optional()
-          .describe("Ordered steps. Required when type is 'procedure'."),
+          .describe(
+            'Ordered steps of a procedure. Optional: without them the steps are taken from ' +
+              'the content (numbered or bulleted lines, otherwise every line).',
+          ),
         tools: z.array(z.string()).optional().describe('Tools a procedure uses.'),
         outcome: z.string().optional().describe('What the procedure achieves.'),
       },
@@ -166,7 +179,7 @@ export function createZenBrainServer(
         'stored items, held only while the server runs) is searched only when named in ' +
         '`layers`. Returns results ranked by relevance, each tagged with the layer it came ' +
         'from. Use this before answering when the user refers to something from an earlier ' +
-        'session. Read-only. To see how much is stored rather than what, use zenbrain_health; ' +
+        'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
       annotations: { readOnlyHint: true, openWorldHint: false },
       inputSchema: {
@@ -178,26 +191,21 @@ export function createZenBrainServer(
             `Restrict the search to these layers. Defaults to ${listed(DEFAULT_RECALL_LAYERS)}; ` +
               "add 'working' to include recently stored items held in memory.",
           ),
-        limit: z.number().int().min(1).max(100).optional().describe('Maximum results (default 10).'),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .optional()
+          .describe('How many results to return at most, after ranking (default 10).'),
         minConfidence: z
           .number()
           .min(0)
           .max(1)
           .optional()
-          .describe('Drop results below this confidence.'),
-        includeContext: z
-          .boolean()
-          .optional()
           .describe(
-            'Boost results whose stored context (time of day, weekday, task type) matches the ' +
-              'current one.',
-          ),
-        taskType: z
-          .string()
-          .optional()
-          .describe(
-            "Current task, e.g. 'coding', 'writing'. Only has an effect together with " +
-              '`includeContext: true`.',
+            'Leave out results whose stored confidence is below this value; results stored ' +
+              'without a confidence count as 1 and are kept.',
           ),
       },
       outputSchema: {
@@ -224,8 +232,6 @@ export function createZenBrainServer(
       };
       if (rest.limit !== undefined) opts.limit = rest.limit;
       if (rest.minConfidence !== undefined) opts.minConfidence = rest.minConfidence;
-      if (rest.includeContext !== undefined) opts.includeContext = rest.includeContext;
-      if (rest.taskType !== undefined) opts.taskType = rest.taskType;
 
       const found: RecallResult[] = await coordinator.recall(query, opts);
 

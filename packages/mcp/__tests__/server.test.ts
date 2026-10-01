@@ -266,11 +266,14 @@ describe('what the tool definitions promise', () => {
     expect(consolidate.description).toMatch(/nothing in long-term memory is deleted/i);
   });
 
-  it('only lets taskType matter together with includeContext, and says so', async () => {
+  it('no longer offers includeContext or taskType, which could not change a result', async () => {
+    // Superseded the v0.4.8 check that taskType names its dependency on includeContext:
+    // no store path writes an encoding context, so both parameters were inert (v0.4.9, F2).
     const { tools } = await client.listTools();
     const recall = tools.find((t) => t.name === 'zenbrain_recall')!;
     const props = (recall.inputSchema as { properties: Record<string, { description?: string }> }).properties;
-    expect(props.taskType.description).toMatch(/includeContext/);
+    expect(props).not.toHaveProperty('includeContext');
+    expect(props).not.toHaveProperty('taskType');
   });
 
   it('returns the health counts as structured content as well as text', async () => {

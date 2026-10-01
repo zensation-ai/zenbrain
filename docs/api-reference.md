@@ -364,11 +364,14 @@ const memory = new MemoryCoordinator({
 });
 ```
 
-#### `store(content, options?): Promise<{ layer, id }>`
-Route content to the appropriate memory layer. Auto-detects type when `type: 'auto'`.
+#### `store(content, options?): Promise<string>`
+Route content to the appropriate memory layer and return the id of the stored memory. Auto-detects type when `type: 'auto'`.
 
 #### `recall(query, options?): Promise<RecallResult[]>`
-Cross-layer search with ranked, deduplicated results.
+Cross-layer search with ranked, deduplicated results. Options: `layers`, `limit` (default 10),
+`minConfidence` (results without a confidence count as 1). `includeContext` / `taskType` boost results
+whose stored encoding context matches the current one — no store path writes that context yet, so
+today these two options change nothing.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic
