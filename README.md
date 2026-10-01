@@ -16,7 +16,7 @@
 <p align="center">
   <sub><strong>Status:</strong> pre-1.0, semver — the public API can still change before <code>1.0</code>.<br/>
   694 tests green on Node 22, 24 and 26 in CI · every release published to npm with build provenance ·
-  every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests get a first response typically within 72 hours.</sub>
+  every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests are answered; replications and counter-results are especially welcome.</sub>
 </p>
 
 ---
@@ -442,7 +442,7 @@ These aren't toy implementations — ZenBrain's algorithms are extracted from [Z
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-Issues and pull requests get a first response typically within 72 hours.
+Issues and pull requests are answered; replications and counter-results are especially welcome.
 
 **Resources:** [API Reference](./docs/api-reference.md) | [Recipes](./docs/recipes.md) | [Architecture](./docs/architecture.md) | [Benchmarks](./docs/benchmarks.md) | [FAQ](./docs/FAQ.md) | [Roadmap](./docs/ROADMAP.md)
 

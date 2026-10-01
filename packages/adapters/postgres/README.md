@@ -29,7 +29,9 @@ Run the included SQL migration to create all tables:
 psql -f node_modules/@zensation/adapter-postgres/sql/001_init.sql -d your_database
 ```
 
-Requires PostgreSQL 15+ with the `pgvector` and `pg_trgm` extensions.
+Requires PostgreSQL 15+ with the `pgvector` and `pg_trgm` extensions. The migration creates its four
+embedding columns as `vector(1536)`, which fits embedding models with 1536 dimensions; for another size,
+change those four columns in the file before running it.
 
 ## Configuration
 
@@ -94,6 +96,6 @@ dependencies. The paper's measurements used `nomic-embed-text` as the embedding 
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
 - Try it in the browser: [zensation.ai/en/playground](https://zensation.ai/en/playground?utm_source=npm&utm_medium=readme&utm_campaign=evergreen)
 - Model card: [huggingface.co/zensation-ai/zenbrain](https://huggingface.co/zensation-ai/zenbrain)
-- Packages: [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [`@zensation/ai-sdk`](https://www.npmjs.com/package/@zensation/ai-sdk) · [`@zensation/cli`](https://www.npmjs.com/package/@zensation/cli)
+- Packages: [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [`@zensation/ai-sdk`](https://www.npmjs.com/package/@zensation/ai-sdk)
 
 License: Apache-2.0
