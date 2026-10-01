@@ -1,7 +1,7 @@
 {
   "name": "@zensation/mcp",
   "version": "0.1.7",
-  "description": "MCP memory server for ZenBrain: agent memory for any Model Context Protocol client \u2014 store, recall, consolidate, health. Local SQLite file, no account.",
+  "description": "MCP memory server for ZenBrain: agent memory for any Model Context Protocol client — store, recall, consolidate, health. Local SQLite file, no account.",
   "mcpName": "ai.zensation/zenbrain",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,11 +13,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./server": {
       "types": "./dist/server.d.ts",
-      "import": "./dist/server.js"
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
     }
   },
   "files": [

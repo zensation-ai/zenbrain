@@ -8,6 +8,8 @@
 npm install @zensation/core @zensation/adapter-postgres
 ```
 
+This package is ESM. `require()` loads it on Node 22.12 and later; on Node 22.0–22.11, use `import`.
+
 ```typescript
 import { SemanticMemory, EpisodicMemory } from '@zensation/core';
 import { PostgresAdapter } from '@zensation/adapter-postgres';

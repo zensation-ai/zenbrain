@@ -10,8 +10,10 @@ the model call, store the turn after it. Works with any provider the AI SDK supp
 because it never touches the provider.
 
 ```bash
-npm install @zensation/ai-sdk @zensation/core @zensation/adapter-sqlite
+npm install @zensation/ai-sdk @zensation/core @zensation/adapter-sqlite ai @ai-sdk/openai
 ```
+
+This package is ESM. `require()` loads it on Node 22.12 and later; on Node 22.0–22.11, use `import`.
 
 ```typescript
 import { generateText, wrapLanguageModel } from 'ai';

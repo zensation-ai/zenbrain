@@ -95,7 +95,7 @@ Worth knowing before you wire it in:
 ## Using it as a library
 
 The server factory is exported, so you can mount ZenBrain's tools on a server of your own
-or drive them in tests:
+or drive them in tests. The package is ESM; `require()` loads it on Node 22.12 and later (on 22.0–22.11, use `import`).
 
 ```typescript
 import { createZenBrainServer } from '@zensation/mcp/server';
