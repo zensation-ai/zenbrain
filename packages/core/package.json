@@ -8,49 +8,94 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./interfaces": {
-      "types": "./dist/interfaces/index.d.ts",
-      "import": "./dist/interfaces/index.js",
-      "require": "./dist/interfaces/index.cjs"
+      "import": {
+        "types": "./dist/interfaces/index.d.ts",
+        "default": "./dist/interfaces/index.js"
+      },
+      "require": {
+        "types": "./dist/interfaces/index.d.cts",
+        "default": "./dist/interfaces/index.cjs"
+      }
     },
     "./layers/working": {
-      "types": "./dist/layers/working.d.ts",
-      "import": "./dist/layers/working.js",
-      "require": "./dist/layers/working.cjs"
+      "import": {
+        "types": "./dist/layers/working.d.ts",
+        "default": "./dist/layers/working.js"
+      },
+      "require": {
+        "types": "./dist/layers/working.d.cts",
+        "default": "./dist/layers/working.cjs"
+      }
     },
     "./layers/short-term": {
-      "types": "./dist/layers/short-term.d.ts",
-      "import": "./dist/layers/short-term.js",
-      "require": "./dist/layers/short-term.cjs"
+      "import": {
+        "types": "./dist/layers/short-term.d.ts",
+        "default": "./dist/layers/short-term.js"
+      },
+      "require": {
+        "types": "./dist/layers/short-term.d.cts",
+        "default": "./dist/layers/short-term.cjs"
+      }
     },
     "./layers/episodic": {
-      "types": "./dist/layers/episodic.d.ts",
-      "import": "./dist/layers/episodic.js",
-      "require": "./dist/layers/episodic.cjs"
+      "import": {
+        "types": "./dist/layers/episodic.d.ts",
+        "default": "./dist/layers/episodic.js"
+      },
+      "require": {
+        "types": "./dist/layers/episodic.d.cts",
+        "default": "./dist/layers/episodic.cjs"
+      }
     },
     "./layers/semantic": {
-      "types": "./dist/layers/semantic.d.ts",
-      "import": "./dist/layers/semantic.js",
-      "require": "./dist/layers/semantic.cjs"
+      "import": {
+        "types": "./dist/layers/semantic.d.ts",
+        "default": "./dist/layers/semantic.js"
+      },
+      "require": {
+        "types": "./dist/layers/semantic.d.cts",
+        "default": "./dist/layers/semantic.cjs"
+      }
     },
     "./layers/procedural": {
-      "types": "./dist/layers/procedural.d.ts",
-      "import": "./dist/layers/procedural.js",
-      "require": "./dist/layers/procedural.cjs"
+      "import": {
+        "types": "./dist/layers/procedural.d.ts",
+        "default": "./dist/layers/procedural.js"
+      },
+      "require": {
+        "types": "./dist/layers/procedural.d.cts",
+        "default": "./dist/layers/procedural.cjs"
+      }
     },
     "./layers/core": {
-      "types": "./dist/layers/core.d.ts",
-      "import": "./dist/layers/core.js",
-      "require": "./dist/layers/core.cjs"
+      "import": {
+        "types": "./dist/layers/core.d.ts",
+        "default": "./dist/layers/core.js"
+      },
+      "require": {
+        "types": "./dist/layers/core.d.cts",
+        "default": "./dist/layers/core.cjs"
+      }
     },
     "./layers/cross-context": {
-      "types": "./dist/layers/cross-context.d.ts",
-      "import": "./dist/layers/cross-context.js",
-      "require": "./dist/layers/cross-context.cjs"
+      "import": {
+        "types": "./dist/layers/cross-context.d.ts",
+        "default": "./dist/layers/cross-context.js"
+      },
+      "require": {
+        "types": "./dist/layers/cross-context.d.cts",
+        "default": "./dist/layers/cross-context.cjs"
+      }
     }
   },
   "files": [

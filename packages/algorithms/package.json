@@ -8,109 +8,214 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./fsrs": {
-      "types": "./dist/fsrs.d.ts",
-      "import": "./dist/fsrs.js",
-      "require": "./dist/fsrs.cjs"
+      "import": {
+        "types": "./dist/fsrs.d.ts",
+        "default": "./dist/fsrs.js"
+      },
+      "require": {
+        "types": "./dist/fsrs.d.cts",
+        "default": "./dist/fsrs.cjs"
+      }
     },
     "./ebbinghaus": {
-      "types": "./dist/ebbinghaus.d.ts",
-      "import": "./dist/ebbinghaus.js",
-      "require": "./dist/ebbinghaus.cjs"
+      "import": {
+        "types": "./dist/ebbinghaus.d.ts",
+        "default": "./dist/ebbinghaus.js"
+      },
+      "require": {
+        "types": "./dist/ebbinghaus.d.cts",
+        "default": "./dist/ebbinghaus.cjs"
+      }
     },
     "./emotional": {
-      "types": "./dist/emotional.d.ts",
-      "import": "./dist/emotional.js",
-      "require": "./dist/emotional.cjs"
+      "import": {
+        "types": "./dist/emotional.d.ts",
+        "default": "./dist/emotional.js"
+      },
+      "require": {
+        "types": "./dist/emotional.d.cts",
+        "default": "./dist/emotional.cjs"
+      }
     },
     "./context-retrieval": {
-      "types": "./dist/context-retrieval.d.ts",
-      "import": "./dist/context-retrieval.js",
-      "require": "./dist/context-retrieval.cjs"
+      "import": {
+        "types": "./dist/context-retrieval.d.ts",
+        "default": "./dist/context-retrieval.js"
+      },
+      "require": {
+        "types": "./dist/context-retrieval.d.cts",
+        "default": "./dist/context-retrieval.cjs"
+      }
     },
     "./hebbian": {
-      "types": "./dist/hebbian.d.ts",
-      "import": "./dist/hebbian.js",
-      "require": "./dist/hebbian.cjs"
+      "import": {
+        "types": "./dist/hebbian.d.ts",
+        "default": "./dist/hebbian.js"
+      },
+      "require": {
+        "types": "./dist/hebbian.d.cts",
+        "default": "./dist/hebbian.cjs"
+      }
     },
     "./bayesian": {
-      "types": "./dist/bayesian.d.ts",
-      "import": "./dist/bayesian.js",
-      "require": "./dist/bayesian.cjs"
+      "import": {
+        "types": "./dist/bayesian.d.ts",
+        "default": "./dist/bayesian.js"
+      },
+      "require": {
+        "types": "./dist/bayesian.d.cts",
+        "default": "./dist/bayesian.cjs"
+      }
     },
     "./similarity": {
-      "types": "./dist/similarity.d.ts",
-      "import": "./dist/similarity.js",
-      "require": "./dist/similarity.cjs"
+      "import": {
+        "types": "./dist/similarity.d.ts",
+        "default": "./dist/similarity.js"
+      },
+      "require": {
+        "types": "./dist/similarity.d.cts",
+        "default": "./dist/similarity.cjs"
+      }
     },
     "./intervals": {
-      "types": "./dist/intervals.d.ts",
-      "import": "./dist/intervals.js",
-      "require": "./dist/intervals.cjs"
+      "import": {
+        "types": "./dist/intervals.d.ts",
+        "default": "./dist/intervals.js"
+      },
+      "require": {
+        "types": "./dist/intervals.d.cts",
+        "default": "./dist/intervals.cjs"
+      }
     },
     "./visualization": {
-      "types": "./dist/visualization.d.ts",
-      "import": "./dist/visualization.js",
-      "require": "./dist/visualization.cjs"
+      "import": {
+        "types": "./dist/visualization.d.ts",
+        "default": "./dist/visualization.js"
+      },
+      "require": {
+        "types": "./dist/visualization.d.cts",
+        "default": "./dist/visualization.cjs"
+      }
     },
     "./sleep-consolidation": {
-      "types": "./dist/sleep-consolidation.d.ts",
-      "import": "./dist/sleep-consolidation.js",
-      "require": "./dist/sleep-consolidation.cjs"
+      "import": {
+        "types": "./dist/sleep-consolidation.d.ts",
+        "default": "./dist/sleep-consolidation.js"
+      },
+      "require": {
+        "types": "./dist/sleep-consolidation.d.cts",
+        "default": "./dist/sleep-consolidation.cjs"
+      }
     },
     "./fsrs-vmPFC": {
-      "types": "./dist/fsrs-vmPFC.d.ts",
-      "import": "./dist/fsrs-vmPFC.js",
-      "require": "./dist/fsrs-vmPFC.cjs"
+      "import": {
+        "types": "./dist/fsrs-vmPFC.d.ts",
+        "default": "./dist/fsrs-vmPFC.js"
+      },
+      "require": {
+        "types": "./dist/fsrs-vmPFC.d.cts",
+        "default": "./dist/fsrs-vmPFC.cjs"
+      }
     },
     "./hebbian-two-factor": {
-      "types": "./dist/hebbian-two-factor.d.ts",
-      "import": "./dist/hebbian-two-factor.js",
-      "require": "./dist/hebbian-two-factor.cjs"
+      "import": {
+        "types": "./dist/hebbian-two-factor.d.ts",
+        "default": "./dist/hebbian-two-factor.js"
+      },
+      "require": {
+        "types": "./dist/hebbian-two-factor.d.cts",
+        "default": "./dist/hebbian-two-factor.cjs"
+      }
     },
     "./sleep-simulation-selection": {
-      "types": "./dist/sleep-simulation-selection.d.ts",
-      "import": "./dist/sleep-simulation-selection.js",
-      "require": "./dist/sleep-simulation-selection.cjs"
+      "import": {
+        "types": "./dist/sleep-simulation-selection.d.ts",
+        "default": "./dist/sleep-simulation-selection.js"
+      },
+      "require": {
+        "types": "./dist/sleep-simulation-selection.d.cts",
+        "default": "./dist/sleep-simulation-selection.cjs"
+      }
     },
     "./spectral-health": {
-      "types": "./dist/spectral-health.d.ts",
-      "import": "./dist/spectral-health.js",
-      "require": "./dist/spectral-health.cjs"
+      "import": {
+        "types": "./dist/spectral-health.d.ts",
+        "default": "./dist/spectral-health.js"
+      },
+      "require": {
+        "types": "./dist/spectral-health.d.cts",
+        "default": "./dist/spectral-health.cjs"
+      }
     },
     "./ib-budget": {
-      "types": "./dist/ib-budget.d.ts",
-      "import": "./dist/ib-budget.js",
-      "require": "./dist/ib-budget.cjs"
+      "import": {
+        "types": "./dist/ib-budget.d.ts",
+        "default": "./dist/ib-budget.js"
+      },
+      "require": {
+        "types": "./dist/ib-budget.d.cts",
+        "default": "./dist/ib-budget.cjs"
+      }
     },
     "./dopamine-routing": {
-      "types": "./dist/dopamine-routing.d.ts",
-      "import": "./dist/dopamine-routing.js",
-      "require": "./dist/dopamine-routing.cjs"
+      "import": {
+        "types": "./dist/dopamine-routing.d.ts",
+        "default": "./dist/dopamine-routing.js"
+      },
+      "require": {
+        "types": "./dist/dopamine-routing.d.cts",
+        "default": "./dist/dopamine-routing.cjs"
+      }
     },
     "./hopfield-stm": {
-      "types": "./dist/hopfield-stm.d.ts",
-      "import": "./dist/hopfield-stm.js",
-      "require": "./dist/hopfield-stm.cjs"
+      "import": {
+        "types": "./dist/hopfield-stm.d.ts",
+        "default": "./dist/hopfield-stm.js"
+      },
+      "require": {
+        "types": "./dist/hopfield-stm.d.cts",
+        "default": "./dist/hopfield-stm.cjs"
+      }
     },
     "./personalized-pagerank": {
-      "types": "./dist/personalized-pagerank.d.ts",
-      "import": "./dist/personalized-pagerank.js",
-      "require": "./dist/personalized-pagerank.cjs"
+      "import": {
+        "types": "./dist/personalized-pagerank.d.ts",
+        "default": "./dist/personalized-pagerank.js"
+      },
+      "require": {
+        "types": "./dist/personalized-pagerank.d.cts",
+        "default": "./dist/personalized-pagerank.cjs"
+      }
     },
     "./surprise-gradient-memory": {
-      "types": "./dist/surprise-gradient-memory.d.ts",
-      "import": "./dist/surprise-gradient-memory.js",
-      "require": "./dist/surprise-gradient-memory.cjs"
+      "import": {
+        "types": "./dist/surprise-gradient-memory.d.ts",
+        "default": "./dist/surprise-gradient-memory.js"
+      },
+      "require": {
+        "types": "./dist/surprise-gradient-memory.d.cts",
+        "default": "./dist/surprise-gradient-memory.cjs"
+      }
     },
     "./temporal-multi-route": {
-      "types": "./dist/temporal-multi-route.d.ts",
-      "import": "./dist/temporal-multi-route.js",
-      "require": "./dist/temporal-multi-route.cjs"
+      "import": {
+        "types": "./dist/temporal-multi-route.d.ts",
+        "default": "./dist/temporal-multi-route.js"
+      },
+      "require": {
+        "types": "./dist/temporal-multi-route.d.cts",
+        "default": "./dist/temporal-multi-route.cjs"
+      }
     }
   },
   "files": [
