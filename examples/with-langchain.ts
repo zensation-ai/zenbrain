@@ -57,7 +57,7 @@ const factStore: StoredFact[] = [];
 function learnFact(content: string): StoredFact {
   const emotion = tagEmotion(content);
   const { consolidationWeight } = computeEmotionalWeight(emotion);
-  const fsrs = initFromDecayClass('good'); // new fact, assume good initial recall
+  const fsrs = initFromDecayClass('normal_decay'); // new fact, average decay
   const fact: StoredFact = { content, fsrs, emotionalWeight: consolidationWeight };
   factStore.push(fact);
   return fact;
@@ -75,7 +75,7 @@ function getRetainedFacts(): string[] {
 function reviewFact(index: number, grade: 1 | 2 | 3 | 4 | 5): void {
   const fact = factStore[index];
   if (!fact) return;
-  fact.fsrs = updateAfterRecall(fact.fsrs, grade);
+  fact.fsrs = updateAfterRecall(fact.fsrs, grade, getRetrievability(fact.fsrs));
   fact.fsrs.nextReview = scheduleNextReview(fact.fsrs);
 }
 
@@ -127,4 +127,7 @@ async function main() {
   console.log('Next review for deadline fact:', factStore[1].fsrs.nextReview);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});

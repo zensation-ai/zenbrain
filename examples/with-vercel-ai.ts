@@ -10,7 +10,7 @@
  * This example demonstrates "Retrieval-Based Learning" (Karpicke & Roediger, 2008):
  * the act of RECALLING information strengthens it more than re-studying.
  * Each time the AI successfully uses a fact in a response, calling
- * `updateAfterRecall(state, grade)` strengthens that memory's stability.
+ * `updateAfterRecall(state, grade, retrievability)` strengthens that memory's stability.
  *
  * The `recallFacts()` function filters by retrievability threshold — mimicking
  * how the brain can't access memories below a certain activation level.
@@ -59,7 +59,7 @@ function storeFact(content: string): void {
   const { consolidationWeight } = computeEmotionalWeight(emotion);
   facts.push({
     content,
-    fsrs: initFromDecayClass('good'),
+    fsrs: initFromDecayClass('normal_decay'),
     priority: consolidationWeight,
   });
 }
@@ -145,9 +145,12 @@ async function main() {
 
   // After the user confirms a fact was useful, strengthen it
   const billingFact = facts[1];
-  billingFact.fsrs = updateAfterRecall(billingFact.fsrs, 5);
+  billingFact.fsrs = updateAfterRecall(billingFact.fsrs, 5, getRetrievability(billingFact.fsrs));
   billingFact.fsrs.nextReview = scheduleNextReview(billingFact.fsrs);
   console.log('SaaS fact next review:', billingFact.fsrs.nextReview.toISOString());
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});

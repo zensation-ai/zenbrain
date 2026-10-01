@@ -247,11 +247,8 @@ describe('initFromDecayClass', () => {
     expect(emotional.stability).toBeCloseTo(base.stability * 2, 3);
   });
 
-  it('unknown decay class falls back to normal_decay', () => {
-    const unknown = initFromDecayClass('unknown_type');
-    const normal = initFromDecayClass('normal_decay');
-    expect(unknown.difficulty).toBeCloseTo(normal.difficulty, 3);
-    expect(unknown.stability).toBeCloseTo(normal.stability, 3);
+  it('unknown decay class throws instead of falling back to normal_decay (N20)', () => {
+    expect(() => initFromDecayClass('unknown_type')).toThrow(RangeError);
   });
 });
 

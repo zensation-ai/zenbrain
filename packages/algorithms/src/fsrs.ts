@@ -61,6 +61,39 @@ const FSRS_A = 0.2;
 const FSRS_B = 0.2;
 const FSRS_C = 0.3;
 
+/** Decay classes accepted by {@link initFromDecayClass}. */
+const DECAY_CLASSES = ['permanent', 'slow_decay', 'normal_decay', 'fast_decay'] as const;
+
+// ===========================================
+// Input checks
+// ===========================================
+// Invalid input used to flow through silently (stability NaN, Invalid Date,
+// unknown decay class → 'normal_decay'). Each check names the argument.
+
+function assertState(state: FSRSState, fn: string): void {
+  if (!Number.isFinite(state?.difficulty)) {
+    throw new RangeError(`${fn}: state.difficulty must be a finite number, got ${state?.difficulty}`);
+  }
+  if (!Number.isFinite(state.stability) || state.stability <= 0) {
+    throw new RangeError(`${fn}: state.stability must be a finite number > 0, got ${state.stability}`);
+  }
+  if (!(state.nextReview instanceof Date) || Number.isNaN(state.nextReview.getTime())) {
+    throw new RangeError(`${fn}: state.nextReview must be a valid Date`);
+  }
+}
+
+function assertProbability(value: number, name: string, fn: string): void {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new RangeError(`${fn}: ${name} must be a number in [0, 1], got ${value}`);
+  }
+}
+
+function assertGrade(grade: number, fn: string): void {
+  if (!Number.isInteger(grade) || grade < 1 || grade > 5) {
+    throw new RangeError(`${fn}: grade must be an integer from 1 to 5, got ${grade}`);
+  }
+}
+
 // ===========================================
 // clampDifficulty
 // ===========================================
@@ -87,6 +120,7 @@ export function clampDifficulty(d: number): number {
  * @param now     Reference time (defaults to now)
  */
 export function getRetrievability(state: FSRSState, now: Date = new Date()): number {
+  assertState(state, 'getRetrievability');
   const { stability, nextReview } = state;
 
   // Derive lastReviewed: the moment when the scheduling interval started
@@ -117,6 +151,10 @@ export function scheduleNextReview(
   targetRetention: number = TARGET_RETENTION,
   now: Date = new Date()
 ): Date {
+  assertState(state, 'scheduleNextReview');
+  if (!Number.isFinite(targetRetention) || targetRetention <= 0 || targetRetention >= 1) {
+    throw new RangeError(`scheduleNextReview: targetRetention must be a number in (0, 1), got ${targetRetention}`);
+  }
   const intervalDays = -state.stability * Math.log(targetRetention);
   return new Date(now.getTime() + intervalDays * MS_PER_DAY);
 }
@@ -139,6 +177,7 @@ export function scheduleNextReview(
  * @param retrievability Current retrievability at time of review
  * @param now           Reference time (defaults to now)
  * @param logger        Optional logger for debug output
+ * @throws RangeError if the state is invalid, grade is not an integer 1–5, or retrievability is not in [0, 1]
  */
 export function updateAfterRecall(
   state: FSRSState,
@@ -147,6 +186,9 @@ export function updateAfterRecall(
   now: Date = new Date(),
   logger: Logger = noopLogger
 ): FSRSState {
+  assertState(state, 'updateAfterRecall');
+  assertGrade(grade, 'updateAfterRecall');
+  assertProbability(retrievability, 'retrievability', 'updateAfterRecall');
   const { difficulty: D, stability: S } = state;
 
   // Stability grows more when retrievability was low (desirable difficulty principle)
@@ -189,6 +231,7 @@ export function updateAfterRecall(
  * @param retrievability Current retrievability at time of review
  * @param now           Reference time (defaults to now)
  * @param logger        Optional logger for debug output
+ * @throws RangeError if the state is invalid or retrievability is not in [0, 1]
  */
 export function updateAfterForgot(
   state: FSRSState,
@@ -196,6 +239,8 @@ export function updateAfterForgot(
   now: Date = new Date(),
   logger: Logger = noopLogger
 ): FSRSState {
+  assertState(state, 'updateAfterForgot');
+  assertProbability(retrievability, 'retrievability', 'updateAfterForgot');
   const { difficulty: D, stability: S } = state;
 
   const decayFactor = Math.max(
@@ -233,7 +278,8 @@ export function updateAfterForgot(
  * emotionalWeight scales stability from 1.0× (no boost) to 2.0× (double stability).
  *
  * @param decayClass     One of: permanent, slow_decay, normal_decay, fast_decay
- * @param emotionalWeight 1.0–2.0 multiplier on base stability (default 1.0)
+ * @param emotionalWeight 1.0–2.0 multiplier on base stability (default 1.0); finite values outside are clamped
+ * @throws RangeError for an unknown decay class or a non-finite emotionalWeight
  */
 export function initFromDecayClass(
   decayClass: string,
@@ -246,7 +292,15 @@ export function initFromDecayClass(
     fast_decay:   { difficulty: 7.5,  stability: 2  },
   };
 
-  const preset = presets[decayClass] ?? presets['normal_decay'];
+  if (!(DECAY_CLASSES as readonly string[]).includes(decayClass)) {
+    throw new RangeError(
+      `initFromDecayClass: decayClass must be one of ${DECAY_CLASSES.join(', ')}, got ${JSON.stringify(decayClass)}`
+    );
+  }
+  if (!Number.isFinite(emotionalWeight)) {
+    throw new RangeError(`initFromDecayClass: emotionalWeight must be a finite number, got ${emotionalWeight}`);
+  }
+  const preset = presets[decayClass];
 
   const difficulty = clampDifficulty(preset.difficulty);
   // Clamp emotional weight to [1.0, 2.0] and apply as multiplier
