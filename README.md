@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">ZenBrain</h1>
   <p align="center"><strong>The neuroscience-inspired memory system for AI agents.</strong></p>
-  <p align="center">7 memory layers. Real neuroscience — FSRS, Hebbian, sleep consolidation, emotional tagging, plus 10 advanced research modules (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, IB budget, Hopfield STM, ...).<br/>Pure TypeScript. Zero dependencies. 795 tests. Extracted from a production AI platform.</p>
+  <p align="center">7 memory layers. Real neuroscience — FSRS, Hebbian, sleep consolidation, emotional tagging, plus 10 advanced research modules (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, IB budget, Hopfield STM, ...).<br/>Pure TypeScript. Zero dependencies. 801 tests. Extracted from a production AI platform.</p>
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 
 <p align="center">
   <sub><strong>Status:</strong> pre-1.0, semver — the public API can still change before <code>1.0</code>.<br/>
-  795 tests green on Node 22, 24 and 26 in CI · every release published to npm with build provenance ·
+  801 tests green on Node 22, 24 and 26 in CI · every release published to npm with build provenance ·
   every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests are answered; replications and counter-results are especially welcome.</sub>
 </p>
 
@@ -434,7 +434,7 @@ function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
 
 These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), a production AI platform. Everything claimed here is verifiable in this repository:
 
-- **795 tests** (489 algorithms · 137 core · 54 adapter-sqlite · 42 adapter-postgres · 55 mcp · 18 ai-sdk), all passing
+- **801 tests** (489 algorithms · 137 core · 54 adapter-sqlite · 48 adapter-postgres · 55 mcp · 18 ai-sdk), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
 - **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.5.0` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience

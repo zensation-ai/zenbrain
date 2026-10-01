@@ -2,6 +2,44 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.10] — 2026-10-01
+
+**Two packages bumped** (patch only). `@zensation/algorithms`, `@zensation/core`,
+`@zensation/adapter-sqlite` and `@zensation/ai-sdk` are unchanged.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/adapter-postgres` | 0.2.5 | 0.2.6 | the schema name can no longer end the `search_path` statement (#116) |
+| `@zensation/mcp` | 0.1.8 | 0.1.9 | `zenbrain_recall` says when `minConfidence` applies (#117); `server.json` |
+
+### Security — `@zensation/adapter-postgres`: schema name in `SET search_path` (#116)
+
+Up to 0.2.5 the `schema` option went unquoted into `SET search_path TO <schema>, public`, in `query()`
+and in `transaction()`. `pg` sends a query without parameters over the simple protocol, which runs
+several statements — so a schema name containing `;` could end that statement and run further SQL.
+Checked against PostgreSQL 16 with the 0.2.5 build: the schema option `x; DROP TABLE public.sentinel; --`
+dropped the table. The schema name comes from the adapter configuration (`schema?: string`, README
+"Multi-Context"); **you are affected if you derive it from input you do not control — then update to 0.2.6.**
+
+From 0.2.6 a plain identifier (`[A-Za-z_][A-Za-z0-9_$]*`) is still used unquoted, so PostgreSQL folds it to
+lower case exactly as before (`Personal` lands in `personal`). Any other name is double-quoted with
+embedded quotes doubled and is read as one identifier; a name with a NUL character is rejected when the
+adapter is created. Same check with the 0.2.6 build: the table stays, and `tenant-1`, which used to fail
+with a syntax error, now works. Six new unit tests. `@zensation/mcp` uses SQLite only and is not affected.
+
+### Fixed — `@zensation/mcp`: what `minConfidence` does in `zenbrain_recall` (#117)
+
+The description did not say when the filter applies or what counts as confidence in each layer.
+Measured in `MemoryCoordinator.recall()`: the filter runs on the merged results before deduplication and the final
+ranking, and the list is cut to `limit` without refilling, so fewer than `limit` results may come back.
+Facts use their stored confidence, procedures their success rate; core blocks, episodes and
+working-memory items count as 1 and are kept. The tool description and the `recall` entry in
+`docs/api-reference.md` now say this. Text only, no behaviour change.
+
+### Docs
+
+- README: 801 tests (the six new adapter-postgres tests), in all three places.
+
 ## [0.4.9] — 2026-10-01
 
 **All six packages bumped.** This release carries the fixes from the package audit of 2026-09-30
