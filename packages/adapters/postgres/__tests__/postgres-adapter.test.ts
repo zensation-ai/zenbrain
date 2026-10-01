@@ -134,6 +134,38 @@ describe('PostgresAdapter.query()', () => {
     expect(mockClientQuery).toHaveBeenCalledWith('SELECT 1', undefined);
   });
 
+  it('quotes a schema name that is not a plain identifier', async () => {
+    const adapter = new PostgresAdapter({ schema: 'tenant-1' });
+    await adapter.query('SELECT 1');
+
+    expect(mockClientQuery).toHaveBeenCalledWith('SET search_path TO "tenant-1", public');
+  });
+
+  it('keeps a schema name with a semicolon inside one quoted identifier', async () => {
+    const adapter = new PostgresAdapter({ schema: 'x; DROP TABLE facts; --' });
+    await adapter.query('SELECT 1');
+
+    expect(mockClientQuery).toHaveBeenCalledWith('SET search_path TO "x; DROP TABLE facts; --", public');
+  });
+
+  it('doubles embedded double quotes in a schema name', async () => {
+    const adapter = new PostgresAdapter({ schema: 'a"b' });
+    await adapter.query('SELECT 1');
+
+    expect(mockClientQuery).toHaveBeenCalledWith('SET search_path TO "a""b", public');
+  });
+
+  it('leaves plain mixed-case names unquoted so PostgreSQL folds them as before', async () => {
+    const adapter = new PostgresAdapter({ schema: 'Tenant_A$1' });
+    await adapter.query('SELECT 1');
+
+    expect(mockClientQuery).toHaveBeenCalledWith('SET search_path TO Tenant_A$1, public');
+  });
+
+  it('rejects a schema name with a NUL character', () => {
+    expect(() => new PostgresAdapter({ schema: 'bad\0name' })).toThrow('NUL');
+  });
+
   it('does not set search_path when no schema configured', async () => {
     mockClientQuery.mockResolvedValue({ rows: [], rowCount: 0 });
 
@@ -311,6 +343,16 @@ describe('PostgresAdapter.transaction()', () => {
 
     const calls = mockClientQuery.mock.calls.map((c: unknown[]) => c[0]);
     expect(calls[0]).toBe('SET search_path TO work, public');
+  });
+
+  it('quotes the schema name in a transaction as well', async () => {
+    const adapter = new PostgresAdapter({ schema: 'tenant-1' });
+    await adapter.transaction(async (tx) => {
+      await tx.query('SELECT 1');
+    });
+
+    const calls = mockClientQuery.mock.calls.map((c: unknown[]) => c[0]);
+    expect(calls[0]).toBe('SET search_path TO "tenant-1", public');
   });
 
   it('provides a working txAdapter that queries through same client', async () => {

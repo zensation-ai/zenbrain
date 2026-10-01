@@ -16,6 +16,23 @@ import type { StorageAdapter, QueryResult } from '@zensation/core';
 /** Transient error codes that trigger automatic retry. */
 const RETRYABLE_ERRORS = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EPIPE', '57P01', '57P03', '53300'];
 
+/**
+ * Render a schema name for `SET search_path`.
+ *
+ * A plain identifier stays unquoted, so PostgreSQL folds it to lower case exactly as
+ * before. Any other name is double-quoted with embedded quotes doubled, so it is always
+ * read as one identifier and can never end the statement.
+ */
+function formatSchemaIdentifier(schema: string): string {
+  if (schema.includes('\0')) {
+    throw new Error('Invalid schema name: contains a NUL character');
+  }
+  if (/^[A-Za-z_][A-Za-z0-9_$]*$/.test(schema)) {
+    return schema;
+  }
+  return `"${schema.replace(/"/g, '""')}"`;
+}
+
 export interface PostgresAdapterConfig {
   /**
    * PostgreSQL connection URL (e.g., postgres://user:pass@host:5432/db).
@@ -45,6 +62,7 @@ export interface PostgresAdapterConfig {
   /**
    * Schema name for search_path isolation.
    * When set, every query runs with `SET search_path TO {schema}, public`.
+   * A plain identifier is used as is; any other name is quoted as one identifier.
    * This enables multi-tenant or multi-context memory isolation.
    */
   schema?: string;
@@ -61,7 +79,7 @@ export interface PostgresAdapterConfig {
 
 export class PostgresAdapter implements StorageAdapter {
   private pool: Pool;
-  private readonly schema?: string;
+  private readonly searchPathSql?: string;
   private readonly maxRetries: number;
   private readonly log: { info: (...args: unknown[]) => void; warn: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 
@@ -91,7 +109,9 @@ export class PostgresAdapter implements StorageAdapter {
     }
 
     this.pool = new Pool(poolConfig);
-    this.schema = config.schema;
+    this.searchPathSql = config.schema
+      ? `SET search_path TO ${formatSchemaIdentifier(config.schema)}, public`
+      : undefined;
     this.maxRetries = config.maxRetries ?? 3;
     this.log = config.logger ?? { info() {}, warn() {}, error() {} };
 
@@ -114,8 +134,8 @@ export class PostgresAdapter implements StorageAdapter {
       const client = await this.pool.connect();
       try {
         // Set search_path for schema isolation
-        if (this.schema) {
-          await client.query(`SET search_path TO ${this.schema}, public`);
+        if (this.searchPathSql) {
+          await client.query(this.searchPathSql);
         }
 
         const result = await client.query(sql, params);
@@ -154,8 +174,8 @@ export class PostgresAdapter implements StorageAdapter {
   async transaction<T>(fn: (adapter: StorageAdapter) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
-      if (this.schema) {
-        await client.query(`SET search_path TO ${this.schema}, public`);
+      if (this.searchPathSql) {
+        await client.query(this.searchPathSql);
       }
       await client.query('BEGIN');
 
