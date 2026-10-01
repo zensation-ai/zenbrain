@@ -1,6 +1,6 @@
 {
   "name": "@zensation/ai-sdk",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Vercel AI SDK memory middleware: agent memory that recalls before a model call and stores the turn after it. Zero runtime dependencies.",
   "type": "module",
   "main": "./dist/index.js",
@@ -51,13 +51,13 @@
   },
   "peerDependencies": {
     "@ai-sdk/provider": "^4.0.0",
-    "@zensation/core": "^0.3.0",
+    "@zensation/core": "^0.3.0 || ^0.4.0",
     "ai": "^7.0.0"
   },
   "devDependencies": {
     "@ai-sdk/provider": "^4.0.18",
     "@zensation/adapter-sqlite": "^0.2.1",
-    "@zensation/core": "^0.3.1",
+    "@zensation/core": "^0.4.0",
     "ai": "^7.0.118",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

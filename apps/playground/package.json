@@ -12,8 +12,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@zensation/algorithms": "^0.4.0",
-    "@zensation/core": "^0.3.0",
+    "@zensation/algorithms": "^0.5.0",
+    "@zensation/core": "^0.4.0",
     "tsx": "^4.23.15"
   },
   "devDependencies": {

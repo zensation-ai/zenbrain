@@ -2,6 +2,84 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.9] — 2026-10-01
+
+**All six packages bumped.** This release carries the fixes from the package audit of 2026-09-30
+(#107–#114). Three packages take a minor bump because their behaviour changes for some callers:
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/algorithms` | 0.4.6 | **0.5.0** | FSRS functions reject invalid input (#111); `require()` types (#107) |
+| `@zensation/core` | 0.3.4 | **0.4.0** | `InMemoryStorage` removed from the public API (#110); `require()` types (#107) |
+| `@zensation/adapter-postgres` | 0.2.4 | 0.2.5 | driver types as dependency (#108), `require()` (#113), README (#114) |
+| `@zensation/adapter-sqlite` | 0.2.4 | 0.2.5 | driver types as dependency (#108), `require()` (#113), README (#114) |
+| `@zensation/mcp` | 0.1.7 | 0.1.8 | tool definitions and `instructions` (#112), `require()` (#113), `server.json` |
+| `@zensation/ai-sdk` | 0.1.5 | **0.2.0** | peers narrowed to `ai ^7` / `@ai-sdk/provider ^4` (#109), `require()` (#113) |
+
+**Note on dependencies:** core now depends on `@zensation/algorithms ^0.5.0`; mcp on `@zensation/core ^0.4.0`;
+the adapter peers accept `@zensation/core ^0.2.0 || ^0.3.0 || ^0.4.0`, the ai-sdk peer `^0.3.0 || ^0.4.0`.
+
+### Removed — `InMemoryStorage` from `@zensation/core` (#110)
+
+It was a test double: it keeps INSERT parameters as `col_0`, `col_1`, … and returns no content through
+the coordinator. Measured before the change with the calls of `examples/with-mastra.ts`: three facts
+stored, recall "green tea" → **0** results; the same steps with `createMemoryAdapter()` from
+`@zensation/adapter-sqlite` → **3**, the tea fact first. **Use `createMemoryAdapter()`** (SQLite in
+memory) for storage without a database server. `FakeEmbeddingProvider` and `InMemoryCache` stay.
+`examples/with-mastra.ts` and `examples/with-llamaindex.ts` now use `createMemoryAdapter()` — until
+now they recalled nothing.
+
+### Changed — FSRS functions reject invalid input (#111, fixes #53)
+
+`getRetrievability`, `scheduleNextReview`, `updateAfterRecall`, `updateAfterForgot` and
+`initFromDecayClass` throw a `RangeError` that names the argument instead of computing on: a state
+without finite `difficulty`, `stability > 0` or a valid `nextReview`; a `grade` outside the integers 1–5;
+a `retrievability` outside [0, 1]; a `targetRetention` outside (0, 1); an unknown decay class (it used
+to fall back to `normal_decay` silently — **this is the change that makes algorithms 0.5.0**); a
+non-finite `emotionalWeight` (finite values are still clamped to 1–2). `updateAfterRecall(state, 5)`
+without a retrievability used to return stability `NaN` and an `Invalid Date` (#53);
+`examples/with-vercel-ai.ts` and `examples/with-langchain.ts` made that call and now pass
+`getRetrievability(state)`; on an error they exit with code 1.
+
+### Changed — `@zensation/ai-sdk` peers (#109)
+
+The middleware uses the `LanguageModelV4*` types, which only `@ai-sdk/provider` 4 (the line under
+`ai` 7) exports. The peers said `ai ^6 || ^7` and `@ai-sdk/provider ^3 || ^4`, so a consumer on ai 6
+installed without a warning and got TS2724. Now `ai ^7.0.0` and `@ai-sdk/provider ^4.0.0`; on ai 6, npm
+reports the peer conflict. **If you are on ai 6, stay on `@zensation/ai-sdk@0.1.5`** — its runtime works there.
+
+### Fixed — types and module loading
+
+- **`require()` gets CommonJS types** in algorithms and core (#107): each `exports` entry now has
+  `import: { types: .d.ts }` and `require: { types: .d.cts }`. `@arethetypeswrong/cli` on the packed
+  tarballs: FalseESM 21 → 0 (algorithms), 9 → 0 (core).
+- **Driver types ship with the adapters** (#108): `@types/pg` and `@types/better-sqlite3` are
+  dependencies, because the published declarations import from `pg` / `better-sqlite3`. A consumer
+  under `--strict` got TS7016 twice; now none.
+- **`require()` loads the ESM-only packages** (#113): adapter-postgres, adapter-sqlite, mcp and ai-sdk
+  have a `default` export condition. `require()` used to fail with `ERR_PACKAGE_PATH_NOT_EXPORTED`; on
+  Node 22.12+ it now loads the ESM build (on 22.0–22.11, use `import`).
+
+### Changed — `@zensation/mcp` tool definitions (#112)
+
+- `zenbrain_recall` no longer offers `includeContext` and `taskType`. No store path writes an encoding
+  context, so neither could change a result; clients that still send them are unaffected. "Read-only."
+  left the description (the annotation says it); `limit` and `minConfidence` say what they do.
+- The server sends `instructions` on `initialize`: when to call each of the four tools.
+- `zenbrain_store` no longer claims `steps` are required for a procedure — without them the steps are
+  taken from the content, as the coordinator always did.
+- `server.json`: the `ZENBRAIN_DB` description carries the `~/` and absolute-path rule from the README.
+
+### Docs
+
+- `docs/api-reference.md`: `store()` returns the id as a `string` (it said `{ layer, id }`); `recall()`
+  lists its options and says that `includeContext` / `taskType` change nothing today (#112).
+- READMEs: response promise without a number (#114); `@zensation/cli` out of the package lists — the
+  CLI is retired and deprecated on npm (#114); postgres embedding dimension `vector(1536)` (#114);
+  ai-sdk install line includes `ai` and `@ai-sdk/openai` (#113).
+- `scripts/verify-zero-dependencies.sh` resolves core together with the algorithms tarball from the
+  same build, so a release that bumps both checks the artifacts being published.
+
 ## [0.4.8] — 2026-09-30
 
 **All six packages bumped** (patch only). `@zensation/core` and `@zensation/adapter-sqlite` carry
