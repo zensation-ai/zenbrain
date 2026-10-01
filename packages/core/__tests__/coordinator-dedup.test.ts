@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryCoordinator, InMemoryStorage, FakeEmbeddingProvider, InMemoryCache } from '../src/index';
+import { MemoryCoordinator, FakeEmbeddingProvider, InMemoryCache } from '../src/index';
+import { InMemoryStorage } from '../src/testing';
 
 describe('MemoryCoordinator deduplication', () => {
   it('should not crash when recall results contain undefined content', async () => {

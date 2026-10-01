@@ -39,5 +39,7 @@ export {
   type MemoryHealth,
 } from './coordinator';
 
-// Testing utilities
-export { InMemoryStorage, FakeEmbeddingProvider, InMemoryCache } from './testing';
+// Testing utilities. There is no in-memory StorageAdapter here: for storage
+// without a database server, use createMemoryAdapter() from
+// @zensation/adapter-sqlite (SQLite in memory).
+export { FakeEmbeddingProvider, InMemoryCache } from './testing';

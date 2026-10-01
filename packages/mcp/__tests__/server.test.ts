@@ -11,10 +11,10 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import {
   MemoryCoordinator,
-  InMemoryStorage,
   FakeEmbeddingProvider,
   InMemoryCache,
 } from '@zensation/core';
+import { InMemoryStorage } from './helpers/in-memory-storage.js';
 import { createZenBrainServer } from '../src/server.js';
 
 let client: Client;

@@ -32,7 +32,7 @@
  * which is exactly the asymmetry the effect describes.
  *
  * Prerequisites:
- *   npm install @zensation/core @mastra/core
+ *   npm install @zensation/core @zensation/adapter-sqlite @mastra/core
  *
  * Verified against @mastra/core 0.24.9 (2026-08-14). Two details differ from
  * some published docs: the Processor identity field is `name` (not `id`), and
@@ -41,18 +41,19 @@
  * Run (no API key needed — the demo stops before the model call):
  *   npx tsx examples/with-mastra.ts
  */
-import { MemoryCoordinator, InMemoryStorage, FakeEmbeddingProvider } from '@zensation/core';
+import { MemoryCoordinator, FakeEmbeddingProvider } from '@zensation/core';
+import { createMemoryAdapter } from '@zensation/adapter-sqlite';
 import type { Processor } from '@mastra/core/processors';
 import type { MastraMessageV2 } from '@mastra/core/agent';
 
 // --- Memory setup ---
-// InMemoryStorage + FakeEmbeddingProvider come from @zensation/core's testing
-// exports, so this file runs with no database and no API key. Swap in
-// @zensation/adapter-sqlite (or -postgres) and a real embedding provider for
-// anything you intend to keep.
+// createMemoryAdapter() is SQLite in memory and FakeEmbeddingProvider needs no
+// API key, so this file runs with no database server and no key. Give
+// @zensation/adapter-sqlite a file path (or use -postgres) and a real embedding
+// provider for anything you intend to keep.
 
 const memory = new MemoryCoordinator({
-  storage: new InMemoryStorage(),
+  storage: createMemoryAdapter(),
   embedding: new FakeEmbeddingProvider(),
   contexts: ['personal', 'work', 'learning'],
 });

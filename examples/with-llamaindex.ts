@@ -30,7 +30,7 @@
  * can *fail* is what makes remembering informative.
  *
  * Prerequisites:
- *   npm install @zensation/core @llamaindex/core llamaindex
+ *   npm install @zensation/core @zensation/adapter-sqlite @llamaindex/core llamaindex
  *
  * Verified against @llamaindex/core 0.6.22 (2026-08-14). Note the import path:
  * `staticBlock` and `createMemory` live in `@llamaindex/core/memory`, not in the
@@ -40,17 +40,18 @@
  * Run (no API key needed — the demo stops before the model call):
  *   npx tsx examples/with-llamaindex.ts
  */
-import { MemoryCoordinator, InMemoryStorage, FakeEmbeddingProvider } from '@zensation/core';
+import { MemoryCoordinator, FakeEmbeddingProvider } from '@zensation/core';
+import { createMemoryAdapter } from '@zensation/adapter-sqlite';
 import { staticBlock } from '@llamaindex/core/memory';
 
 // --- Memory setup ---
-// InMemoryStorage + FakeEmbeddingProvider come from @zensation/core's testing
-// exports, so this file runs with no database and no API key. Swap in
-// @zensation/adapter-sqlite (or -postgres) and a real embedding provider for
-// anything you intend to keep.
+// createMemoryAdapter() is SQLite in memory and FakeEmbeddingProvider needs no
+// API key, so this file runs with no database server and no key. Give
+// @zensation/adapter-sqlite a file path (or use -postgres) and a real embedding
+// provider for anything you intend to keep.
 
 const memory = new MemoryCoordinator({
-  storage: new InMemoryStorage(),
+  storage: createMemoryAdapter(),
   embedding: new FakeEmbeddingProvider(),
   contexts: ['personal', 'work', 'learning'],
 });

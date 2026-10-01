@@ -21,7 +21,6 @@ import {
 import {
   WorkingMemory,
   ShortTermMemory,
-  InMemoryStorage,
   cosineSimilarity,
 } from '@zensation/core';
 
