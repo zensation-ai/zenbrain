@@ -204,8 +204,10 @@ export function createZenBrainServer(
           .max(1)
           .optional()
           .describe(
-            'Leave out results whose stored confidence is below this value; results stored ' +
-              'without a confidence count as 1 and are kept.',
+            'Leave out results whose confidence is below this value. Applied before the final ' +
+              'ranking, so fewer than `limit` results may come back. Facts use their stored ' +
+              'confidence, procedures their success rate; core blocks, episodes and working-memory ' +
+              'items count as 1 and are kept.',
           ),
       },
       outputSchema: {

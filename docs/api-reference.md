@@ -368,10 +368,12 @@ const memory = new MemoryCoordinator({
 Route content to the appropriate memory layer and return the id of the stored memory. Auto-detects type when `type: 'auto'`.
 
 #### `recall(query, options?): Promise<RecallResult[]>`
-Cross-layer search with ranked, deduplicated results. Options: `layers`, `limit` (default 10),
-`minConfidence` (results without a confidence count as 1). `includeContext` / `taskType` boost results
-whose stored encoding context matches the current one — no store path writes that context yet, so
-today these two options change nothing.
+Cross-layer search with ranked, deduplicated results. Options: `layers`, `limit` (default 10; the episodic,
+semantic and procedural layers are searched with it, then the merged list is cut to it), `minConfidence`
+(applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
+confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1).
+`includeContext` / `taskType` boost results whose stored encoding context matches the current one — no store
+path writes that context yet, so today these two options change nothing.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic
