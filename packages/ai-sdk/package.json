@@ -55,10 +55,10 @@
     "ai": "^7.0.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "^4.0.18",
+    "@ai-sdk/provider": "^4.0.21",
     "@zensation/adapter-sqlite": "^0.2.1",
     "@zensation/core": "^0.4.0",
-    "ai": "^7.0.118",
+    "ai": "^7.0.126",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
