@@ -22,7 +22,7 @@ ZenBrain has deeper scientific grounding — every algorithm cites its neuroscie
 
 ### Is ZenBrain production-ready?
 
-The algorithms and core layers are extracted from ZenAI, a production AI platform, and run against real users and real data. The published packages ship 528 tests (429 algorithms + 99 core), all passing.
+The algorithms and core layers were extracted from ZenAI, a production AI platform, where they ran against real users and real data. The repository's 801 tests pass in CI on Node 22, 24 and 26.
 
 That said, ZenBrain is still pre-1.0 — expect API changes before v1.0. We follow semver, and the [CHANGELOG](../CHANGELOG.md) records what changed in each release.
 

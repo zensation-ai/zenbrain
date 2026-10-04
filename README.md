@@ -15,8 +15,12 @@
 
 <p align="center">
   <sub><strong>Status:</strong> pre-1.0, semver — the public API can still change before <code>1.0</code>.<br/>
-  801 tests green on Node 22, 24 and 26 in CI · every release published to npm with build provenance ·
+  801 tests green on Node 22, 24 and 26 in CI · the current version of every package published to npm with build provenance ·
   every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests are answered; replications and counter-results are especially welcome.</sub>
+</p>
+
+<p align="center">
+  <sub><strong>Self-hosted:</strong> the library makes no network calls of its own. Memory lives in SQLite or PostgreSQL that you operate; an embedding model or an LLM is optional and your choice.</sub>
 </p>
 
 ---
