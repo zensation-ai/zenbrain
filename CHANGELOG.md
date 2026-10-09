@@ -9,6 +9,7 @@ All notable changes to ZenBrain are documented in this file. The format is based
 - README status line: only the **current** version of every package carries npm build provenance; 19 of the 64 versions published before provenance was switched on carry no attestation (checked against `dist.attestations` in the npm registry on 2026-10-04).
 - README: new line *Self-hosted* — the library makes no network calls of its own; storage is SQLite or PostgreSQL, embeddings and an LLM are optional (`packages/core/src/types.ts`).
 - `docs/FAQ.md`: test count 528 → 801 (CI run 36929686081, Node 22/24/26), and the production platform the layers were extracted from is described in the past tense.
+- README *Cited by*: the two projects that build the library into their code, ACMS and neurograph-runtime, are listed with repository links; HindsightTag carries its revision date (30 September 2026).
 
 ## [0.4.10] — 2026-10-01
 
