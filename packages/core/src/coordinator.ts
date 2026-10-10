@@ -23,7 +23,6 @@ import { ProceduralMemory } from './layers/procedural';
 import { CoreMemory } from './layers/core';
 import { CrossContextMemory } from './layers/cross-context';
 import { tagEmotion, computeEmotionalWeight } from '@zensation/algorithms/emotional';
-import { captureEncodingContext, calculateContextSimilarity } from '@zensation/algorithms/context-retrieval';
 
 // ===========================================
 // Types
@@ -76,10 +75,6 @@ export interface RecallOptions {
   limit?: number;
   /** Minimum confidence threshold for results. Defaults to 0. */
   minConfidence?: number;
-  /** Apply context-dependent retrieval boost. */
-  includeContext?: boolean;
-  /** Current task type for context matching (e.g., 'coding', 'writing'). */
-  taskType?: string;
 }
 
 export interface RecallResult {
@@ -310,11 +305,11 @@ export class MemoryCoordinator {
   /**
    * Cross-layer recall: search across memory layers and return ranked results.
    *
-   * Searches each requested layer, applies optional context boost,
+   * Searches each requested layer,
    * deduplicates by content similarity, and returns the top N results sorted by score.
    *
    * @param query - The search query
-   * @param options - Layer selection, limits, and context settings
+   * @param options - Layer selection and limits
    * @returns Ranked recall results from across layers
    */
   async recall(query: string, options: RecallOptions = {}): Promise<RecallResult[]> {
@@ -344,21 +339,6 @@ export class MemoryCoordinator {
     }
 
     await Promise.all(searches);
-
-    // Apply context-dependent retrieval boost
-    if (options.includeContext) {
-      const currentCtx = captureEncodingContext(options.taskType ?? 'general');
-      for (const r of results) {
-        const encodingCtx = r.metadata?.encodingContext;
-        if (encodingCtx && typeof encodingCtx === 'object') {
-          const sim = calculateContextSimilarity(
-            encodingCtx as Parameters<typeof calculateContextSimilarity>[0],
-            currentCtx
-          );
-          r.score *= sim.boost;
-        }
-      }
-    }
 
     // Filter by minimum confidence
     const filtered = minConfidence > 0

@@ -33,8 +33,6 @@ export interface ZenBrainMemoryOptions {
         layers?: MemoryLayer[];
         /** Drop memories below this confidence. */
         minConfidence?: number;
-        /** Current task type, used for context-dependent retrieval. */
-        taskType?: string;
       };
 
   /** What to write back after each call. Set to `false` to disable writing. */
@@ -152,7 +150,6 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         const search: RecallOptions = { limit: recallOpts.limit ?? DEFAULT_LIMIT };
         if (recallOpts.layers) search.layers = recallOpts.layers;
         if (recallOpts.minConfidence !== undefined) search.minConfidence = recallOpts.minConfidence;
-        if (recallOpts.taskType !== undefined) search.taskType = recallOpts.taskType;
 
         const results = await coordinator.recall(query, search);
         // `content` is typed as required but assembled from whatever the storage
