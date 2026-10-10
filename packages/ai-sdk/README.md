@@ -105,8 +105,8 @@ unmodified. A memory layer that breaks a chat is worse than one that forgets. Pa
 
 Routing on store is automatic: a general statement becomes a semantic fact, a narrated
 event an episode, a sequence of instructions a procedure. Which layer a memory lands in
-decides how it decays and whether it survives consolidation. The seven layers, their
-retention rules and the algorithms behind them are documented in the
+decides how it is searched, and episodes with an emotional weight above 0.5 become facts when you
+consolidate. The seven layers and the algorithms behind them are documented in the
 [main README](https://github.com/zensation-ai/zenbrain#readme).
 
 Consolidation does not run on its own. Call `coordinator.consolidate()` on a schedule that
