@@ -183,6 +183,54 @@ describe('storing the turn', () => {
     expect(second.stored[1].options).toMatchObject({ context: 'work', source: 'ai' });
   });
 
+  it('skips a turn when shouldStore says no, and stores the next one', async () => {
+    const { coordinator, stored } = stubCoordinator();
+    const seen: { user: string; assistant: string }[] = [];
+    const middleware = zenbrainMemory({
+      coordinator,
+      store: {
+        assistant: true,
+        shouldStore: (turn) => {
+          seen.push(turn);
+          return !turn.user.includes('password');
+        },
+      },
+    });
+
+    for (const prompt of ['My password is hunter2', 'I prefer dark mode']) {
+      const model = new MockLanguageModelV4({ doGenerate: async () => reply('Noted.') });
+      await generateText({ model: wrapLanguageModel({ model, middleware }), prompt });
+    }
+
+    expect(seen).toEqual([
+      { user: 'My password is hunter2', assistant: 'Noted.' },
+      { user: 'I prefer dark mode', assistant: 'Noted.' },
+    ]);
+    expect(stored.map((s) => s.content)).toEqual(['I prefer dark mode', 'Noted.']);
+  });
+
+  it('reports a throwing shouldStore as a store error and answers normally', async () => {
+    const { coordinator, stored } = stubCoordinator();
+    const onError = vi.fn();
+    const model = new MockLanguageModelV4({ doGenerate: async () => reply('ok') });
+
+    const { text } = await generateText({
+      model: wrapLanguageModel({
+        model,
+        middleware: zenbrainMemory({
+          coordinator,
+          onError,
+          store: { shouldStore: () => { throw new Error('policy down'); } },
+        }),
+      }),
+      prompt: 'Hello',
+    });
+
+    expect(text).toBe('ok');
+    expect(stored).toHaveLength(0);
+    expect(onError).toHaveBeenCalledWith(expect.any(Error), 'store');
+  });
+
   it('writes nothing when storing is switched off', async () => {
     const { coordinator, stored } = stubCoordinator();
     const model = new MockLanguageModelV4({ doGenerate: async () => reply('ok') });

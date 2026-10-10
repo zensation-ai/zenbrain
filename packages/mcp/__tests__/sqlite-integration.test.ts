@@ -200,3 +200,35 @@ open('the MCP surface over a real SQLite store', () => {
     expect(health.semantic.count).toBeGreaterThan(0);
   });
 });
+
+open('forgetting over MCP on SQLite', () => {
+  it('recall returns an id that zenbrain_forget accepts, and the memory is gone afterwards', async () => {
+    const c = await connect();
+    const MEMORY = 'The user lives in Hamburg and walks to the harbour.';
+    await c.callTool({ name: 'zenbrain_store', arguments: { content: MEMORY, type: 'fact' } });
+
+    const before = (await c.callTool({ name: 'zenbrain_recall', arguments: { query: 'Hamburg harbour' } }))
+      .structuredContent as { results: { id: string; content: string; layer: string }[] };
+    const hit = before.results.find((r) => r.content === MEMORY);
+    expect(hit, 'stored memory is recalled').toBeDefined();
+    expect(hit!.id).toMatch(/^[0-9a-f-]{36}$/i);
+
+    const out = (await c.callTool({ name: 'zenbrain_forget', arguments: { id: hit!.id, layer: hit!.layer } }))
+      .structuredContent as { forgotten: boolean };
+    expect(out.forgotten).toBe(true);
+
+    const after = (await c.callTool({ name: 'zenbrain_recall', arguments: { query: 'Hamburg harbour' } }))
+      .structuredContent as { results: { content: string }[] };
+    expect(after.results.some((r) => r.content === MEMORY)).toBe(false);
+  });
+
+  it('reports an id the layer does not hold as not forgotten', async () => {
+    const c = await connect();
+    const out = await c.callTool({
+      name: 'zenbrain_forget',
+      arguments: { id: '00000000-0000-4000-8000-000000000000', layer: 'semantic' },
+    });
+    expect(out.isError).toBeFalsy();
+    expect((out.structuredContent as { forgotten: boolean }).forgotten).toBe(false);
+  });
+});

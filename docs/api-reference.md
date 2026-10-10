@@ -373,7 +373,15 @@ semantic and procedural layers are searched with it, then the merged list is cut
 (applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
 confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1).
 `includeContext` / `taskType` boost results whose stored encoding context matches the current one — no store
-path writes that context yet, so today these two options change nothing.
+path writes that context yet, so today these two options change nothing. Every result carries the `id` of
+the memory in its layer, next to `layer`.
+
+#### `forget(id, layer): Promise<boolean>`
+Delete one memory, addressed by the `id` and `layer` of a recall result. Returns `true` if it was deleted,
+`false` if the layer holds no memory with that id (an id that is not a UUID counts as unknown, not as an error).
+Forgetting is explicit and final; nothing is forgotten automatically. To correct a memory, forget it and store
+the corrected version. Working memory keeps a copy of everything stored in the same process; it is not part of
+the default recall, and its result can be forgotten with `layer: 'working'`.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic
@@ -383,8 +391,8 @@ facts, each episode once, and decay working memory. Deletes nothing from long-te
 #### `decay(): { removed: number }`
 Apply Ebbinghaus decay to working memory; returns how many slots were evicted.
 
-#### `getReviewQueue(limit?): Promise<RecallResult[]>`
-Get FSRS-due items for spaced repetition review.
+#### `getReviewQueue(limit?): Promise<{ id, content, confidence }[]>`
+Semantic facts whose FSRS review is due. Nothing reviews them on its own: report each review with `recordReview`.
 
 #### `recordReview(factId, grade): Promise<void>`
 Record recall grade (1-5) for a semantic fact.

@@ -4,6 +4,17 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Added — forgetting by id (`@zensation/core`, `@zensation/mcp`, `@zensation/ai-sdk`)
+
+Until now a memory that was stored could not be taken back through any public surface: the layers had `delete`, but `MemoryCoordinator` had no verb for it and a recall result carried no id to address it with. The Agent Memory Atlas and Glama's completeness review named the same gap (30.09.2026).
+
+- `RecallResult.id`: every recall result carries the id of the memory in its layer.
+- `MemoryCoordinator.forget(id, layer)`: deletes that one memory and returns whether it existed. An unknown or malformed id returns `false` instead of throwing. Nothing is forgotten automatically; to correct a memory, forget it and store the corrected version.
+- `RecallLayer`: the layer union shared by `RecallOptions.layers` and `forget`, now exported.
+- `WorkingMemory.remove(slotId)`.
+- MCP: new tool `zenbrain_forget` (`destructiveHint: true`), taking exactly the `id` and `layer` that `zenbrain_recall` now returns with each result; the server instructions say when to use it. The smoke test stores, recalls, forgets and checks that the next recall no longer returns the memory.
+- ai-sdk: `store.shouldStore(turn)` decides per turn whether it is stored at all, for example to keep secrets out of memory. A throwing predicate is reported through `onError` as a store error and the call answers normally.
+
 ### Documentation
 
 - README status line: only the **current** version of every package carries npm build provenance; 19 of the 64 versions published before provenance was switched on carry no attestation (checked against `dist.attestations` in the npm registry on 2026-10-04).

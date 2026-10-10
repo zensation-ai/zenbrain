@@ -33,6 +33,7 @@ export {
   MemoryCoordinator,
   type CoordinatorConfig,
   type StoreOptions,
+  type RecallLayer,
   type RecallOptions,
   type RecallResult,
   type ConsolidationResult,

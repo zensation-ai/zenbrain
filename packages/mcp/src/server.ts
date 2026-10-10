@@ -88,8 +88,11 @@ export function createZenBrainServer(
         'Long-term memory that persists across conversations. Call zenbrain_recall before ' +
         'answering when the user refers to something from an earlier session, and ' +
         'zenbrain_store when they share something worth keeping (check with zenbrain_recall ' +
-        'first, storing again adds a duplicate). Run zenbrain_consolidate between sessions, ' +
-        'not on every turn; zenbrain_health shows how much is stored.',
+        'first, storing again adds a duplicate). When the user asks you to forget something, or ' +
+        'a stored memory is wrong, call zenbrain_forget with the id and layer zenbrain_recall ' +
+        'returned; to correct it, forget it and store the corrected version. Run ' +
+        'zenbrain_consolidate between sessions, not on every turn; zenbrain_health shows how ' +
+        'much is stored.',
     },
   );
 
@@ -177,8 +180,8 @@ export function createZenBrainServer(
         'Search long-term memory for anything relevant to a query. By default it searches ' +
         `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (a handful of recently ` +
         'stored items, held only while the server runs) is searched only when named in ' +
-        '`layers`. Returns results ranked by relevance, each tagged with the layer it came ' +
-        'from. Use this before answering when the user refers to something from an earlier ' +
+        '`layers`. Returns results ranked by relevance, each with its id and the layer it came ' +
+        'from; zenbrain_forget takes both. Use this before answering when the user refers to something from an earlier ' +
         'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
       annotations: { readOnlyHint: true, openWorldHint: false },
@@ -215,6 +218,7 @@ export function createZenBrainServer(
         results: z
           .array(
             z.object({
+              id: z.string().describe('Pass it with `layer` to zenbrain_forget to delete this memory.'),
               content: z.string(),
               layer: z.string(),
               score: z.number(),
@@ -243,6 +247,7 @@ export function createZenBrainServer(
       // a protocol error for the client. Leave those rows out and say how many.
       const usable = found.filter((r) => typeof r.content === 'string' && r.content.length > 0);
       const results = usable.map((r) => ({
+        id: typeof r.id === 'string' ? r.id : '',
         content: r.content,
         layer: typeof r.layer === 'string' ? r.layer : 'unknown',
         score: typeof r.score === 'number' ? r.score : 0,
@@ -251,6 +256,39 @@ export function createZenBrainServer(
       }));
 
       const payload = { count: results.length, results, skipped: found.length - usable.length };
+      return { content: text(payload), structuredContent: payload };
+    },
+  );
+
+  // ── forget ───────────────────────────────────────────────────────────────
+  server.registerTool(
+    'zenbrain_forget',
+    {
+      title: 'Forget a memory',
+      description:
+        'Permanently delete one memory, addressed by the id and layer that zenbrain_recall ' +
+        'returned for it. Nothing else is deleted, and it cannot be undone. Use it when the ' +
+        'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
+        'forget it and store the corrected version with zenbrain_store. An id the layer does ' +
+        'not hold is reported as not forgotten, not as an error.',
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+      inputSchema: {
+        id: z.string().min(1).describe('The id of one result from zenbrain_recall.'),
+        layer: z
+          .enum(LAYERS)
+          .describe('The layer of that same result, exactly as zenbrain_recall reported it.'),
+      },
+      outputSchema: {
+        forgotten: z
+          .boolean()
+          .describe('True if the memory was deleted, false if the layer held none with that id.'),
+        id: z.string(),
+        layer: z.string(),
+      },
+    },
+    async ({ id, layer }) => {
+      const forgotten = await coordinator.forget(id, layer);
+      const payload = { forgotten, id, layer };
       return { content: text(payload), structuredContent: payload };
     },
   );

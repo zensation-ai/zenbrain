@@ -42,11 +42,11 @@ console.log('✓ the binary started and completed the MCP handshake');
 
 const { tools } = await client.listTools();
 const names = tools.map((t) => t.name).sort();
-const expected = ['zenbrain_consolidate', 'zenbrain_health', 'zenbrain_recall', 'zenbrain_store'];
+const expected = ['zenbrain_consolidate', 'zenbrain_forget', 'zenbrain_health', 'zenbrain_recall', 'zenbrain_store'];
 if (JSON.stringify(names) !== JSON.stringify(expected)) {
   fail(`unexpected tool list: ${names.join(', ')}`);
 }
-console.log(`✓ advertises all four tools: ${names.join(', ')}`);
+console.log(`✓ advertises all five tools: ${names.join(', ')}`);
 
 const MEMORY = 'The smoke test stored this sentence in Hamburg.';
 
@@ -69,6 +69,17 @@ if (!out.results.some((r) => r.content.includes('Hamburg'))) {
   fail(`recall did not return the stored sentence. Got: ${JSON.stringify(out)}`);
 }
 console.log(`✓ recalled it back through a real stdio round trip (${out.count} result(s))`);
+
+const hit = out.results.find((r) => r.content.includes('Hamburg'));
+const forgot = await client.callTool({ name: 'zenbrain_forget', arguments: { id: hit.id, layer: hit.layer } });
+if (forgot.isError || forgot.structuredContent.forgotten !== true) {
+  fail(`forget failed: ${JSON.stringify(forgot.content)}`);
+}
+const again = await client.callTool({ name: 'zenbrain_recall', arguments: { query: 'smoke test Hamburg', limit: 5 } });
+if (again.structuredContent.results.some((r) => r.content.includes('Hamburg'))) {
+  fail('the forgotten memory came back in the next recall');
+}
+console.log(`✓ forgot it by id (${hit.layer}/${hit.id}) and the next recall no longer returns it`);
 
 const health = await client.callTool({ name: 'zenbrain_health', arguments: {} });
 if (health.isError) fail('health failed');
