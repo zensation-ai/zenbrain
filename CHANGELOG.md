@@ -15,6 +15,10 @@ Until now a memory that was stored could not be taken back through any public su
 - MCP: new tool `zenbrain_forget` (`destructiveHint: true`), taking exactly the `id` and `layer` that `zenbrain_recall` now returns with each result; the server instructions say when to use it. The smoke test stores, recalls, forgets and checks that the next recall no longer returns the memory.
 - ai-sdk: `store.shouldStore(turn)` decides per turn whether it is stored at all, for example to keep secrets out of memory. A throwing predicate is reported through `onError` as a store error and the call answers normally.
 
+### Added — `role: 'system' | 'user'` for the injected memories (`@zensation/ai-sdk`)
+
+The middleware puts recalled memories into a system message in front of the prompt, so anything a user once said comes back with system authority (the Agent Memory Atlas flagged the injection as `system`). `role: 'user'` sends them as a user message directly before the latest user turn instead. The default stays `'system'`; the README explains when to switch.
+
 ### Added — `RecallOptions.core: 'always' | 'matching'` (`@zensation/core`, passed through by `@zensation/ai-sdk`)
 
 Every recall adds every core block, scored 0.5, or 0.8 when the block shares a word of more than two letters with the query, and "the" is such a word. Measured on SQLite with fifteen core blocks and one fact: all three test queries returned ten core blocks at 0.8 and not the fact that answers them. `core: 'matching'` keeps only the blocks that share a content word with the query (the tokenizer of the lexical search, with its stopwords). The default stays `'always'`, so nothing changes unless you ask for it. The Agent Memory Atlas named the pattern on 30.09.2026.

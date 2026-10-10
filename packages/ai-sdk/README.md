@@ -78,12 +78,19 @@ zenbrainMemory({
   },
 
   header: 'Relevant memories from earlier sessions:',
+  role: 'system',                  // or 'user': see "Two defaults worth knowing"
 
   onError: (err, phase) => console.warn(`[zenbrain] ${phase} failed`, err),
 });
 ```
 
-### Two defaults worth knowing
+### Three defaults worth knowing
+
+**Memories arrive as a system message.** That is the strongest place in the prompt, and it
+is also why it needs a decision: whatever a user once said comes back with system authority
+when it is recalled. If text you do not trust can reach memory, pass `role: 'user'`. The
+memories then travel as a user message directly before the latest user turn, as context
+rather than instruction. `store.shouldStore` keeps such turns out of memory in the first place.
 
 **Replies are not stored by default.** A model's answer is derived from the question and
 cheap to regenerate; storing both sides doubles the volume and fills semantic memory with
