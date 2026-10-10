@@ -52,7 +52,7 @@
   },
   "dependencies": {
     "@types/pg": "^8.23.1",
-    "pg": "^8.23.0"
+    "pg": "^8.23.1"
   },
   "peerDependencies": {
     "@zensation/core": "^0.2.0 || ^0.3.0 || ^0.4.0 || ^0.5.0"
