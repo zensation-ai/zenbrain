@@ -4,6 +4,21 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-10-10
+
+**Four packages move, two only widen a range.** The round answers outside criticism of the library (Agent Memory Atlas, Glama's completeness review, tesseract, Core Memory Kit): what the system promised and did not do is either built or withdrawn, and the README now says which mechanisms the coordinator runs and which the algorithm library offers as functions.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/core` | 0.4.0 | **0.5.0** | `forget(id, layer)` and `RecallResult.id` (#124); `includeContext`/`taskType` withdrawn (#125); `RecallOptions.core` (#126); procedures work on PostgreSQL (#128) |
+| `@zensation/mcp` | 0.1.9 | **0.2.0** | new tool `zenbrain_forget`, ids in `zenbrain_recall` (#124); depends on core `^0.5.0` |
+| `@zensation/ai-sdk` | 0.2.0 | **0.3.0** | `store.shouldStore` (#124), `recall.taskType` withdrawn (#125), `recall.core` (#126), `role` (#127); peer core `^0.3.0 \|\| ^0.4.0 \|\| ^0.5.0` |
+| `@zensation/adapter-postgres` | 0.2.6 | 0.2.7 | peer range adds core `^0.5.0`; source unchanged |
+| `@zensation/adapter-sqlite` | 0.2.5 | 0.2.6 | peer range adds core `^0.5.0`; source unchanged |
+| `@zensation/algorithms` | 0.5.0 | 0.5.0 | unchanged |
+
+**Breaking (pre-1.0 minor):** `RecallOptions.includeContext` and `taskType`, and the ai-sdk's `recall.taskType`, are gone. They never changed a result; remove them from your calls. `RecallResult` gains a required `id`, which matters only if you construct results yourself.
+
 ### Fixed — procedures could not be stored or recalled on PostgreSQL (`@zensation/core`)
 
 `steps` and `tools` are JSONB columns in `sql/001_init.sql`, which `pg` returns as parsed arrays; the procedural layer parsed them a second time, turned each array into its comma-joined text and threw. Every `store()` of a procedure and every procedural recall failed on PostgreSQL, in every published version; recall swallowed the error and simply returned no procedures. SQLite stores the columns as text and was not affected. The layer now accepts both forms, as the episodic layer already did for `metadata`. Found by the new real-PostgreSQL suite below; the adapter's unit tests mock `pg` and could not see it.
