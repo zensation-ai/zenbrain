@@ -74,9 +74,17 @@ describe('tool definitions', () => {
 
   it('initialize carries instructions that name every tool', () => {
     const instructions = client.getInstructions() ?? '';
-    for (const name of ['zenbrain_store', 'zenbrain_recall', 'zenbrain_consolidate', 'zenbrain_health']) {
+    for (const name of ['zenbrain_store', 'zenbrain_recall', 'zenbrain_forget', 'zenbrain_consolidate', 'zenbrain_health']) {
       expect(instructions, name).toContain(name);
     }
+  });
+
+  it('zenbrain_forget is marked destructive and takes exactly id and layer', async () => {
+    const t = await tool('zenbrain_forget');
+    expect(t.annotations?.destructiveHint).toBe(true);
+    expect(t.annotations?.readOnlyHint).toBe(false);
+    expect(Object.keys(t.inputSchema.properties ?? {}).sort()).toEqual(['id', 'layer']);
+    expect(t.description).toMatch(/cannot be undone/);
   });
 });
 

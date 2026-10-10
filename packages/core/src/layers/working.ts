@@ -118,6 +118,13 @@ export class WorkingMemory {
     }
   }
 
+  /** Remove one slot. Returns `true` if a slot with that id existed. */
+  remove(slotId: string): boolean {
+    const before = this.slots.length;
+    this.slots = this.slots.filter(s => s.id !== slotId);
+    return this.slots.length < before;
+  }
+
   /** Clear all slots. */
   clear(): void {
     this.slots = [];

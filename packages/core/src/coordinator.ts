@@ -63,9 +63,15 @@ export interface StoreOptions {
   outcome?: string;
 }
 
+/** The layers `recall()` can search and `forget()` can delete from. */
+export type RecallLayer = 'working' | 'episodic' | 'semantic' | 'procedural' | 'core';
+
+/** Matches the UUIDs the layers write; anything else cannot be a stored id. */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export interface RecallOptions {
   /** Which layers to search. Defaults to all except working. */
-  layers?: ('working' | 'episodic' | 'semantic' | 'procedural' | 'core')[];
+  layers?: RecallLayer[];
   /** Maximum number of results. Defaults to 10. */
   limit?: number;
   /** Minimum confidence threshold for results. Defaults to 0. */
@@ -77,6 +83,8 @@ export interface RecallOptions {
 }
 
 export interface RecallResult {
+  /** The memory's id in its layer. Pass it with `layer` to `forget()`. */
+  id: string;
   /** The memory content. */
   content: string;
   /** Which layer this result came from. */
@@ -363,6 +371,50 @@ export class MemoryCoordinator {
     // Sort by score descending and return top N
     deduped.sort((a, b) => b.score - a.score);
     return deduped.slice(0, limit);
+  }
+
+  // ===========================================
+  // Forget
+  // ===========================================
+
+  /**
+   * Delete one memory, addressed by the `id` and `layer` of a recall result.
+   *
+   * Forgetting is explicit and final: the memory is deleted from its layer and no
+   * later recall returns it. Nothing is forgotten automatically; consolidation and
+   * decay never delete long-term memories. To correct a memory, forget it and store
+   * the corrected version.
+   *
+   * Working memory also keeps a copy of everything stored in this process. It is not
+   * part of the default recall and empties itself through decay; forget the
+   * working-memory result as well if the copy has to go at once.
+   *
+   * @param id - The `id` of a recall result.
+   * @param layer - The `layer` of the same result.
+   * @returns `true` if a memory was deleted, `false` if the layer holds none with that id.
+   */
+  async forget(id: string, layer: RecallLayer): Promise<boolean> {
+    let removed: boolean;
+    if (layer === 'working') {
+      removed = this.working.remove(id);
+    } else if (!UUID_PATTERN.test(id)) {
+      // Stored ids are UUIDs; anything else is unknown, not an error (PostgreSQL
+      // would otherwise reject the query for its uuid column).
+      removed = false;
+    } else if (layer === 'episodic') {
+      removed = await this.episodic.delete(id);
+    } else if (layer === 'semantic') {
+      removed = await this.semantic.delete(id);
+    } else if (layer === 'procedural') {
+      removed = await this.procedural.delete(id);
+    } else if (layer === 'core') {
+      const block = (await this.core.getBlocks()).find(b => b.id === id);
+      removed = block ? await this.core.deleteBlock(block.label) : false;
+    } else {
+      throw new Error(`Unknown memory layer: ${String(layer)}`);
+    }
+    this.log.debug(`Forget ${layer}/${id}: ${removed ? 'deleted' : 'not found'}`);
+    return removed;
   }
 
   // ===========================================
@@ -718,6 +770,7 @@ export class MemoryCoordinator {
       const slots = await this.working.findRelevant(query, 5);
       for (const slot of slots) {
         results.push({
+          id: slot.id,
           content: slot.content,
           layer: 'working',
           score: slot.relevance,
@@ -735,6 +788,7 @@ export class MemoryCoordinator {
       const episodes = await this.episodic.search(query, limit);
       for (const ep of episodes) {
         results.push({
+          id: ep.id,
           content: ep.content,
           layer: 'episodic',
           score: ep.score,
@@ -753,6 +807,7 @@ export class MemoryCoordinator {
       const facts = await this.semantic.search(query, limit);
       for (const fact of facts) {
         results.push({
+          id: fact.id,
           content: fact.content,
           layer: 'semantic',
           score: fact.score,
@@ -771,6 +826,7 @@ export class MemoryCoordinator {
       const procs = await this.procedural.recall(query, limit);
       for (const proc of procs) {
         results.push({
+          id: proc.id,
           content: `${proc.trigger}\nSteps: ${proc.steps.join(' → ')}\nOutcome: ${proc.outcome}`,
           layer: 'procedural',
           score: proc.score,
@@ -801,6 +857,7 @@ export class MemoryCoordinator {
         const score = hasOverlap ? 0.8 : 0.5;
 
         results.push({
+          id: block.id,
           content: `[${block.label}]: ${block.content}`,
           layer: 'core',
           score,

@@ -39,10 +39,11 @@ afterEach(async () => {
 });
 
 describe('the tool surface', () => {
-  it('advertises exactly the four ZenBrain tools', async () => {
+  it('advertises exactly the five ZenBrain tools', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       'zenbrain_consolidate',
+      'zenbrain_forget',
       'zenbrain_health',
       'zenbrain_recall',
       'zenbrain_store',

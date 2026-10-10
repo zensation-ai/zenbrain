@@ -49,6 +49,12 @@ export interface ZenBrainMemoryOptions {
         context?: string;
         /** Source attribution. Defaults to 'user' / 'ai' per turn. */
         source?: string;
+        /**
+         * Decide per turn whether to store it, for example to keep secrets or small talk
+         * out of memory. Receives the user's message and the model's reply; return
+         * `false` to store neither. Default: every turn is stored.
+         */
+        shouldStore?: (turn: { user: string; assistant: string }) => boolean | Promise<boolean>;
       };
 
   /**
@@ -118,6 +124,9 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
     if (storeOpts.context !== undefined) base.context = storeOpts.context;
 
     try {
+      if (storeOpts.shouldStore && !(await storeOpts.shouldStore({ user: userText, assistant: assistantText }))) {
+        return;
+      }
       if (storeOpts.user !== false && userText) {
         await coordinator.store(userText, { ...base, source: storeOpts.source ?? 'user' });
       }

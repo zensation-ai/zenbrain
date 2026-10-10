@@ -8,13 +8,14 @@ change before 1.0. The memory layers underneath it are the same ones the
 An [MCP](https://modelcontextprotocol.io) server that gives any MCP client — Claude
 Desktop, Claude Code, Cursor, or your own — a memory that survives the conversation.
 
-Four tools, one local SQLite file, no account and no network call.
+Five tools, one local SQLite file, no account and no network call.
 
 | Tool | What it does |
 |---|---|
 | `zenbrain_store` | Write something into long-term memory. Routing is automatic: steps or instructions become a procedure, content with an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again is updated. |
-| `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back ranked, each tagged with the layer it came from. |
-| `zenbrain_consolidate` | One sleep-like maintenance pass: episodes with an emotional weight above 0.5 become semantic facts, each only once, and stale working-memory slots decay. Deletes nothing from long-term memory. |
+| `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back ranked, each with its id and the layer it came from. |
+| `zenbrain_forget` | Delete one memory for good, by the id and layer `zenbrain_recall` returned. Nothing else is touched. To correct a memory, forget it and store the corrected version. |
+| `zenbrain_consolidate` | One maintenance pass: episodes with an emotional weight above 0.5 become semantic facts, each only once, and stale working-memory slots decay. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
 ## Install
