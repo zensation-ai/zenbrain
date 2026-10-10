@@ -33,6 +33,12 @@ export interface ZenBrainMemoryOptions {
         layers?: MemoryLayer[];
         /** Drop memories below this confidence. */
         minConfidence?: number;
+        /**
+         * `'matching'` injects only core blocks that share a content word with the message;
+         * `'always'` (default) injects every core block. With many core blocks and a small
+         * `limit`, `'matching'` keeps them from crowding out the actual hits.
+         */
+        core?: 'always' | 'matching';
       };
 
   /** What to write back after each call. Set to `false` to disable writing. */
@@ -150,6 +156,7 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         const search: RecallOptions = { limit: recallOpts.limit ?? DEFAULT_LIMIT };
         if (recallOpts.layers) search.layers = recallOpts.layers;
         if (recallOpts.minConfidence !== undefined) search.minConfidence = recallOpts.minConfidence;
+        if (recallOpts.core !== undefined) search.core = recallOpts.core;
 
         const results = await coordinator.recall(query, search);
         // `content` is typed as required but assembled from whatever the storage

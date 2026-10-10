@@ -23,6 +23,7 @@ import { ProceduralMemory } from './layers/procedural';
 import { CoreMemory } from './layers/core';
 import { CrossContextMemory } from './layers/cross-context';
 import { tagEmotion, computeEmotionalWeight } from '@zensation/algorithms/emotional';
+import { tokenize } from './lexical';
 
 // ===========================================
 // Types
@@ -75,6 +76,13 @@ export interface RecallOptions {
   limit?: number;
   /** Minimum confidence threshold for results. Defaults to 0. */
   minConfidence?: number;
+  /**
+   * Which core blocks a recall returns. `'always'` (default) adds every core block to
+   * every recall, pinned like a profile. `'matching'` adds only the blocks that share a
+   * content word with the query (stopwords such as "the" do not count), so a large core
+   * memory cannot push the actual hits out of `limit`.
+   */
+  core?: 'always' | 'matching';
 }
 
 export interface RecallResult {
@@ -335,7 +343,7 @@ export class MemoryCoordinator {
       searches.push(this.recallFromProcedural(query, limit, results));
     }
     if (layers.includes('core')) {
-      searches.push(this.recallFromCore(query, results));
+      searches.push(this.recallFromCore(query, results, options.core ?? 'always'));
     }
 
     await Promise.all(searches);
@@ -819,13 +827,17 @@ export class MemoryCoordinator {
     }
   }
 
-  /** Recall from core memory (always loaded, keyword match). */
-  private async recallFromCore(query: string, results: RecallResult[]): Promise<void> {
+  /** Recall from core memory: every block, or with `'matching'` only blocks sharing a content word. */
+  private async recallFromCore(query: string, results: RecallResult[], mode: 'always' | 'matching'): Promise<void> {
     try {
       const blocks = await this.core.getBlocks();
       const queryLower = query.toLowerCase();
+      const queryTokens = new Set(tokenize(query));
 
       for (const block of blocks) {
+        if (mode === 'matching' && !tokenize(`${block.label} ${block.content}`).some(t => queryTokens.has(t))) {
+          continue;
+        }
         // Simple keyword matching for core blocks (they are always relevant)
         const contentLower = block.content.toLowerCase();
         const labelLower = block.label.toLowerCase();
