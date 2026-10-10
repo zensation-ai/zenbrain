@@ -4,6 +4,14 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Fixed — procedures could not be stored or recalled on PostgreSQL (`@zensation/core`)
+
+`steps` and `tools` are JSONB columns in `sql/001_init.sql`, which `pg` returns as parsed arrays; the procedural layer parsed them a second time, turned each array into its comma-joined text and threw. Every `store()` of a procedure and every procedural recall failed on PostgreSQL, in every published version; recall swallowed the error and simply returned no procedures. SQLite stores the columns as text and was not affected. The layer now accepts both forms, as the episodic layer already did for `metadata`. Found by the new real-PostgreSQL suite below; the adapter's unit tests mock `pg` and could not see it.
+
+### Added — CI runs against a real PostgreSQL with pgvector
+
+New job `postgres` (service `pgvector/pgvector:pg16`) runs `adapters/postgres/__tests__/real-postgres.test.ts` through the coordinator: every layer stores and recalls, 1536-dimension embeddings through pgvector, `forget` on the uuid columns (a malformed id is "not found", not a syntax error), consolidation marks an episode once in JSONB, `recordReview` writes the FSRS state, `getHealth` counts. Each run uses a schema of its own and drops it. `ZENBRAIN_REQUIRE_PG=1` makes the suite fail rather than skip in that job, and `publish` now waits for it.
+
 ### Added — forgetting by id (`@zensation/core`, `@zensation/mcp`, `@zensation/ai-sdk`)
 
 Until now a memory that was stored could not be taken back through any public surface: the layers had `delete`, but `MemoryCoordinator` had no verb for it and a recall result carried no id to address it with. The Agent Memory Atlas and Glama's completeness review named the same gap (30.09.2026).
