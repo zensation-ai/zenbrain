@@ -62,10 +62,19 @@ export interface ZenBrainMemoryOptions {
       };
 
   /**
-   * The line placed above the recalled memories in the injected system message.
+   * The line placed above the recalled memories in the injected message.
    * Keep it short; it is spent from the same context budget as the memories.
    */
   header?: string;
+
+  /**
+   * The role the recalled memories travel with. `'system'` (default) puts them in a system
+   * message in front of the prompt, which gives anything a user once said system authority
+   * when it is recalled. If text you do not trust can reach memory, use `'user'`: the
+   * memories then arrive as a user message directly before the latest user turn, as context
+   * rather than instruction.
+   */
+  role?: 'system' | 'user';
 
   /**
    * Called when recall or store throws. Defaults to swallowing the error, because a
@@ -93,12 +102,18 @@ function messageText(message: LanguageModelV4Message | undefined): string {
     .trim();
 }
 
+/** Index of the last message from the user, or -1. */
+function lastUserIndex(prompt: readonly LanguageModelV4Message[]): number {
+  for (let i = prompt.length - 1; i >= 0; i--) {
+    if (prompt[i].role === 'user') return i;
+  }
+  return -1;
+}
+
 /** The last message from the user, which is what a recall should be about. */
 function lastUserText(prompt: readonly LanguageModelV4Message[]): string {
-  for (let i = prompt.length - 1; i >= 0; i--) {
-    if (prompt[i].role === 'user') return messageText(prompt[i]);
-  }
-  return '';
+  const i = lastUserIndex(prompt);
+  return i < 0 ? '' : messageText(prompt[i]);
 }
 
 /**
@@ -116,6 +131,7 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
   const recallOpts = options.recall === false ? false : (options.recall ?? {});
   const storeOpts = options.store === false ? false : (options.store ?? {});
   const header = options.header ?? DEFAULT_HEADER;
+  const role = options.role ?? 'system';
 
   const report = (err: unknown, phase: 'recall' | 'store'): void => {
     if (onError) onError(err, phase);
@@ -172,12 +188,18 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
       // Nothing recalled means nothing to inject. Never spend context on an empty header.
       if (memories.length === 0) return params;
 
-      const memoryMessage: LanguageModelV4Message = {
-        role: 'system',
-        content: `${header}\n${memories.join('\n')}`,
-      };
+      const body = `${header}\n${memories.join('\n')}`;
+
+      if (role === 'user') {
+        // Just before the turn it is about, as context rather than instruction. A query was
+        // found, so there is a user message to put it in front of.
+        const prompt = [...params.prompt];
+        prompt.splice(lastUserIndex(prompt), 0, { role: 'user', content: [{ type: 'text', text: body }] });
+        return { ...params, prompt };
+      }
 
       // Prepended, so the caller's own system prompt keeps the last word.
+      const memoryMessage: LanguageModelV4Message = { role: 'system', content: body };
       return { ...params, prompt: [memoryMessage, ...params.prompt] };
     },
 

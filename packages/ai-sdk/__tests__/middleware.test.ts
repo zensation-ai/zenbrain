@@ -84,6 +84,29 @@ describe('recall injection', () => {
     expect(systemTexts(prompt)[1]).toBe('You are terse.');
   });
 
+  it("with role 'user', puts the memories in a user message right before the latest turn, not in a system message", async () => {
+    const { coordinator } = stubCoordinator([{ content: 'Anna moved to Hamburg.', layer: 'semantic', score: 1 }]);
+    const model = new MockLanguageModelV4({ doGenerate: async () => reply('ok') });
+
+    await generateText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator, role: 'user' }) }),
+      system: 'You are terse.',
+      messages: [
+        { role: 'user', content: 'Hi' },
+        { role: 'assistant', content: 'Hello.' },
+        { role: 'user', content: 'Where does Anna live?' },
+      ],
+    });
+
+    const prompt = model.doGenerateCalls[0].prompt;
+    expect(systemTexts(prompt)).toEqual(['You are terse.']);
+    const roles = prompt.map((m) => m.role);
+    expect(roles).toEqual(['system', 'user', 'assistant', 'user', 'user']);
+    const injected = prompt[3] as { content: { type: string; text: string }[] };
+    expect(injected.content[0].text).toContain('Anna moved to Hamburg.');
+    expect(JSON.stringify(prompt[4])).toContain('Where does Anna live?');
+  });
+
   it('injects nothing when nothing was recalled', async () => {
     const { coordinator } = stubCoordinator([]);
     const model = new MockLanguageModelV4({ doGenerate: async () => reply('ok') });
