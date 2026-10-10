@@ -10,9 +10,9 @@
 
 The orchestration layer that turns [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) into a complete memory system:
 
-- **MemoryCoordinator** — orchestrates all 7 layers: auto-routing `store()`, cross-layer `recall()`, `consolidate()`, `decay()`, FSRS review queue
+- **MemoryCoordinator** — one API over the layers: auto-routing `store()`, cross-layer `recall()`, `forget()`, `consolidate()`, `decay()`, FSRS review queue
 - **7 Memory Layers** — Working, Short-Term, Episodic, Semantic, Procedural, Core, Cross-Context
-- **Sleep Consolidation** — memory replay simulation (Stickgold & Walker, 2013)
+- **Consolidation** — `consolidate()` turns emotionally weighted episodes into semantic facts, once each. The sleep-replay functions live in `@zensation/algorithms` and are not called by the coordinator
 - **Pluggable Adapters** — bring your own storage (`@zensation/adapter-postgres`, `@zensation/adapter-sqlite`)
 
 ## Quick Start
@@ -35,10 +35,13 @@ await memory.store('User prefers TypeScript', { type: 'auto' });
 // Cross-layer search with ranked, deduplicated results
 const results = await memory.recall('programming preferences');
 
-// Consolidate: promote episodic -> semantic, apply decay
+// Forget one memory for good, by the id and layer of a recall result
+await memory.forget(results[0].id, results[0].layer);
+
+// Consolidate: emotionally weighted episodes become facts, once each; working memory decays
 await memory.consolidate();
 
-// FSRS review queue across all layers
+// Facts whose FSRS review is due; report each review with recordReview()
 const dueItems = await memory.getReviewQueue();
 ```
 

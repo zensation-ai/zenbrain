@@ -37,6 +37,7 @@ The options promised a context-dependent retrieval boost, but no store path ever
 
 ### Documentation
 
+- README: new section *What runs on its own, and what you call yourself*, a table per mechanism of what the coordinator does and what `@zensation/algorithms` offers as functions. The README used to describe library functions as the system's behaviour: Hebbian edges, Bayesian propagation, a 30 % context boost, "reviews important facts at optimal intervals", "FSRS review queue across all layers", "apply decay". The coordinator calls few of those functions, and in long-term memory nothing decays on its own (the Agent Memory Atlas, tesseract and Core Memory Kit read it that way, rightly). The science sections now say which side each mechanism is on; the comparison footnote names Letta Code's "dreaming"; the coordinator example shows `forget()`. Same corrections in the `core` and `ai-sdk` package READMEs.
 - README status line: only the **current** version of every package carries npm build provenance; 19 of the 64 versions published before provenance was switched on carry no attestation (checked against `dist.attestations` in the npm registry on 2026-10-04).
 - README: new line *Self-hosted* — the library makes no network calls of its own; storage is SQLite or PostgreSQL, embeddings and an LLM are optional (`packages/core/src/types.ts`).
 - `docs/FAQ.md`: test count 528 → 801 (CI run 36929686081, Node 22/24/26), and the production platform the layers were extracted from is described in the past tense.
