@@ -69,7 +69,6 @@ zenbrainMemory({
     limit: 5,                      // how many memories to inject
     layers: ['semantic', 'core'],  // which layers to search
     minConfidence: 0.6,            // drop anything below this
-    taskType: 'coding',            // context-dependent retrieval hint
   },
 
   store: {                         // or false to switch writing off
