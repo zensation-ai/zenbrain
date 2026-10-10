@@ -8,13 +8,13 @@ that uses them. Neither kind runs from a script in this repository; the one thin
 
 ## LongMemEval-500 (system level)
 
-On LongMemEval-500, **three of nine head-to-head answer-quality comparisons hold** against
+On LongMemEval-500, **three of nine head-to-head comparisons hold** against
 Letta, Mem0 and A-Mem — all three against A-Mem, the remaining six are ties, none lost. Three
 competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched.
 
 | Measure | Result |
 |---|---|
-| Answer-quality comparisons against Letta, Mem0 and A-Mem, three LLM judges each | 3 hold (all against A-Mem), 6 ties, 0 lost |
+| Head-to-head comparisons against Letta, Mem0 and A-Mem, three LLM judges each | 3 hold (all against A-Mem), 6 ties, 0 lost |
 | Significance | Bonferroni-corrected, alpha = 0.05/18, version-matched judges |
 | Share of full-context oracle binary-judge accuracy | 91.3% (47.7% vs. 52.2%) |
 | Per-query token cost against that oracle | 1/109.6 |
@@ -30,7 +30,7 @@ competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and versi
 
 **Where ZenBrain loses.** On LoCoMo, substring-based aggregate F1 favours lexical retrieval
 (BM25) by metric design, and we do not contest that. Retrieval-proper metrics go to a competing
-system. The advantage is most pronounced on judge-graded answer quality and cross-session
+system. The advantage is most pronounced in the judge-graded comparisons and on cross-session
 reasoning.
 
 **Ablations.** Under moderate load, fourteen of the fifteen mechanism ablations look costless.
