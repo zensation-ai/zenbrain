@@ -372,7 +372,9 @@ Cross-layer search with ranked, deduplicated results. Options: `layers`, `limit`
 semantic and procedural layers are searched with it, then the merged list is cut to it), `minConfidence`
 (applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
 confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1).
-Every result carries the `id` of the memory in its layer, next to `layer`.
+`core: 'matching'` returns only the core blocks that share a content word with the query (stopwords do not
+count); the default `'always'` returns every core block with every recall. Every result carries the `id` of
+the memory in its layer, next to `layer`.
 
 #### `forget(id, layer): Promise<boolean>`
 Delete one memory, addressed by the `id` and `layer` of a recall result. Returns `true` if it was deleted,

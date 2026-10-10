@@ -15,6 +15,10 @@ Until now a memory that was stored could not be taken back through any public su
 - MCP: new tool `zenbrain_forget` (`destructiveHint: true`), taking exactly the `id` and `layer` that `zenbrain_recall` now returns with each result; the server instructions say when to use it. The smoke test stores, recalls, forgets and checks that the next recall no longer returns the memory.
 - ai-sdk: `store.shouldStore(turn)` decides per turn whether it is stored at all, for example to keep secrets out of memory. A throwing predicate is reported through `onError` as a store error and the call answers normally.
 
+### Added — `RecallOptions.core: 'always' | 'matching'` (`@zensation/core`, passed through by `@zensation/ai-sdk`)
+
+Every recall adds every core block, scored 0.5, or 0.8 when the block shares a word of more than two letters with the query, and "the" is such a word. Measured on SQLite with fifteen core blocks and one fact: all three test queries returned ten core blocks at 0.8 and not the fact that answers them. `core: 'matching'` keeps only the blocks that share a content word with the query (the tokenizer of the lexical search, with its stopwords). The default stays `'always'`, so nothing changes unless you ask for it. The Agent Memory Atlas named the pattern on 30.09.2026.
+
 ### Removed — `RecallOptions.includeContext` and `taskType` (`@zensation/core`), `recall.taskType` (`@zensation/ai-sdk`)
 
 The options promised a context-dependent retrieval boost, but no store path ever wrote an encoding context and no layer returned one, so they could never change a result (the MCP tool dropped them in 0.4.9; the Agent Memory Atlas found the option without a writer). The dead branch in `recall()` is gone, and core no longer imports `context-retrieval`. The functions themselves stay in `@zensation/algorithms` (`captureEncodingContext`, `calculateContextSimilarity`), tested, for anyone who stores a context of their own. A type fixture with `@ts-expect-error` on both options fails to compile against 0.4.x and passes now.
