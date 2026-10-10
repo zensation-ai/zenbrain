@@ -97,8 +97,43 @@ jobs:
           node scripts/extract-results.mjs run.log fresh/
           node scripts/verify-against-reference.mjs fresh/ results/
 
+  # The unit tests of adapter-postgres mock `pg`, so they never see what PostgreSQL itself
+  # decides: the schema in sql/001_init.sql, uuid and JSONB columns, pgvector. Until this job
+  # nothing in CI ran a single query against PostgreSQL, and procedures could not be stored
+  # on it in any published version. ZENBRAIN_REQUIRE_PG makes the suite fail rather than skip.
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: zenbrain
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      ZENBRAIN_TEST_PG_URL: postgres://postgres:zenbrain@localhost:5432/postgres
+      ZENBRAIN_REQUIRE_PG: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - name: Build algorithms, core and adapter-postgres
+        run: |
+          cd packages/algorithms && npm run build
+          cd ../core && npm run build
+          cd ../adapters/postgres && npm run build
+      - name: Real PostgreSQL suite
+        run: cd packages/adapters/postgres && npx vitest run __tests__/real-postgres.test.ts
+
   publish:
-    needs: test
+    needs: [test, postgres]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:

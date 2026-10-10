@@ -19,8 +19,8 @@ export interface ProceduralMemoryConfig {
 interface ProcedureRow {
   id: string;
   trigger: string;
-  steps: string;
-  tools: string;
+  steps: unknown;
+  tools: unknown;
   outcome: string;
   success_rate: number;
   execution_count: number;
@@ -28,12 +28,30 @@ interface ProcedureRow {
   score?: number;
 }
 
+/**
+ * A list column as strings. SQLite hands `steps` and `tools` back as JSON text, PostgreSQL
+ * (JSONB) as an already parsed array; anything unreadable counts as empty. Parsing the
+ * PostgreSQL array again turned it into its comma-joined text and threw, so every procedure
+ * failed to store and to recall on PostgreSQL (found by the real-PostgreSQL CI suite).
+ */
+function readList(value: unknown): string[] {
+  let list: unknown = value;
+  if (typeof value === 'string') {
+    try {
+      list = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(list) ? list.map(String) : [];
+}
+
 function rowToProcedure(row: ProcedureRow): Procedure {
   return {
     id: row.id,
     trigger: row.trigger,
-    steps: JSON.parse(row.steps || '[]'),
-    tools: JSON.parse(row.tools || '[]'),
+    steps: readList(row.steps),
+    tools: readList(row.tools),
     outcome: row.outcome,
     successRate: row.success_rate,
     executionCount: row.execution_count,
