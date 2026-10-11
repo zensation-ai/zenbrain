@@ -25,8 +25,9 @@ already said "Five tools".
 
 ### Documentation
 
-- `SECURITY.md`: 0.5.x is the current line; 0.4.x receives security fixes until 31 December 2026. The table still
-  named 0.4.x as current after 0.5.0. Moving to 0.5.x needs no code change unless you pass `includeContext` or
+- `SECURITY.md`: 0.5.x is the current line; 0.4.x and 0.3.x receive security fixes until 31 December 2026. The table
+  still named 0.4.x as current after 0.5.0, and promised 0.3.x fixes without an end although Node.js 20, the reason
+  for that line, reached end-of-life on 30 April 2026. Moving to 0.5.x needs no code change unless you pass `includeContext` or
   `taskType` (they never had an effect) or construct `RecallResult` yourself.
 - README: the reproducibility line names `@zensation/algorithms@0.5.1`.
 

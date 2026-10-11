@@ -10,7 +10,7 @@ package versions. One release publishes several packages at different numbers, s
 |---------|-----------|---|
 | 0.5.x   | Yes | Current line. Requires Node.js 22 or newer. |
 | 0.4.x   | Security fixes until 31 December 2026 | Previous line. Moving to 0.5.x needs no code change unless you pass `includeContext` or `taskType` (they never had an effect) or construct `RecallResult` yourself — see [CHANGELOG](CHANGELOG.md#050--2026-10-10). |
-| 0.3.x   | Security fixes only | Last line that runs on Node.js 20 — see [compatibility history](docs/ROADMAP.md#compatibility-history). |
+| 0.3.x   | Security fixes until 31 December 2026 | Last line that runs on Node.js 20, which reached end-of-life on 30 April 2026 — see [compatibility history](docs/ROADMAP.md#compatibility-history). |
 | < 0.3   | No | |
 
 ## Reporting a Vulnerability
