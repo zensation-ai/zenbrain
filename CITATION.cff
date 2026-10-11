@@ -17,8 +17,8 @@ identifiers:
 repository-code: "https://github.com/zensation-ai/zenbrain"
 url: "https://github.com/zensation-ai/zenbrain"
 license: Apache-2.0
-version: 0.4.4
-date-released: 2026-09-01
+version: 0.5.1
+date-released: 2026-10-11
 keywords:
   - ai-memory
   - spaced-repetition
@@ -34,14 +34,16 @@ keywords:
   - context-dependent-retrieval
   - typescript
 abstract: >-
-  ZenBrain is an open-source 7-layer memory system for AI agents,
-  implementing neuroscience-inspired mechanisms: spaced repetition (FSRS),
-  Hebbian learning with homeostatic normalization, Ebbinghaus forgetting
-  curves, emotional memory tagging, sleep consolidation (replay
-  simulation), Bayesian confidence propagation, and context-dependent
-  retrieval. Pure TypeScript, zero runtime dependencies for the core
-  algorithm package. v0.3.x adds 10 advanced algorithms grounded in
-  recent neuroscience and ML research.
+  ZenBrain is an open-source agent memory library for LLM agents: seven
+  neuroscience-inspired memory layers behind a memory coordinator that
+  stores, recalls, forgets and consolidates, and a library of 20 algorithm
+  modules (10 core, 10 advanced research modules) with FSRS spaced
+  repetition, Hebbian learning, Ebbinghaus forgetting curves, emotional
+  tagging, sleep replay, Bayesian confidence propagation and
+  context-dependent retrieval. Which
+  mechanisms the coordinator runs on its own and which the library offers
+  as functions is listed in the repository README. TypeScript; the
+  algorithm package has zero runtime dependencies.
 preferred-citation:
   type: article
   title: "ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems"
