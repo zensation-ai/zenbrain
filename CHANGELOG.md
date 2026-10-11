@@ -4,6 +4,31 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-10-11
+
+**Corrections only, three packages bumped so they reach npm.** No runtime code changed: `packages/*/src` is
+byte-identical to `0.5.0`. Both adapters and `@zensation/ai-sdk` are unchanged.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/mcp` | 0.2.0 | 0.2.1 | the npm description names `forget` (#134); `server.json` |
+| `@zensation/core` | 0.5.0 | 0.5.1 | the README package table lists all five MCP tools (#134) |
+| `@zensation/algorithms` | 0.5.0 | 0.5.1 | same README correction (#134) |
+
+### Fixed — the MCP server was described with four tools (#134)
+
+0.2.0 of `@zensation/mcp` added `zenbrain_forget`, but four places still described the earlier surface: its own
+npm description ("store, recall, consolidate, health"), the package tables of the `core` and `algorithms` READMEs
+(same list) and the root README ("the seven layers as four tools"). npm keeps the description and README a version
+was published with, so the corrected text reaches the package pages only with a new version. The `mcp` README
+already said "Five tools".
+
+### Documentation
+
+- `SECURITY.md`: 0.5.x is the current line; 0.4.x receives security fixes only. The table still named 0.4.x as
+  current after 0.5.0.
+- README: the reproducibility line names `@zensation/algorithms@0.5.1`.
+
 ## [0.5.0] — 2026-10-10
 
 **Four packages move, two only widen a range.** The round answers outside criticism of the library (Agent Memory Atlas, Glama's completeness review, tesseract, Core Memory Kit): what the system promised and did not do is either built or withdrawn, and the README now says which mechanisms the coordinator runs and which the algorithm library offers as functions.

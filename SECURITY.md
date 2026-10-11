@@ -8,7 +8,8 @@ package versions. One release publishes several packages at different numbers, s
 
 | Release | Supported | |
 |---------|-----------|---|
-| 0.4.x   | Yes | Current line. Requires Node.js 22 or newer. |
+| 0.5.x   | Yes | Current line. Requires Node.js 22 or newer. |
+| 0.4.x   | Security fixes only | Previous line. 0.5.0 removed `includeContext` and `taskType` — see [CHANGELOG](CHANGELOG.md#050--2026-10-10). |
 | 0.3.x   | Security fixes only | Last line that runs on Node.js 20 — see [compatibility history](docs/ROADMAP.md#compatibility-history). |
 | < 0.3   | No | |
 

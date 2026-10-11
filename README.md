@@ -469,7 +469,7 @@ These aren't toy implementations — ZenBrain's algorithms are extracted from [Z
 
 - **822 tests** (489 algorithms · 138 core · 61 adapter-sqlite · 54 adapter-postgres, 6 of them against a real PostgreSQL · 58 mcp · 22 ai-sdk), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
-- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.5.0` tarball published on npm
+- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.5.1` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
 
 ## Contributing
