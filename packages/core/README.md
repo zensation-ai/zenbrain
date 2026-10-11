@@ -77,7 +77,7 @@ This package is part of the [ZenBrain](https://github.com/zensation-ai/zenbrain)
 | **@zensation/core** | Memory layers + coordinator (this package) |
 | `@zensation/adapter-postgres` | PostgreSQL + pgvector storage |
 | `@zensation/adapter-sqlite` | SQLite storage (better-sqlite3) |
-| `@zensation/mcp` | MCP server: store, recall, consolidate, health |
+| `@zensation/mcp` | MCP server: store, recall, forget, consolidate, health |
 | `@zensation/ai-sdk` | Vercel AI SDK memory middleware |
 
 ## License
