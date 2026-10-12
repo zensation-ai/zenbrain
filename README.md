@@ -304,7 +304,7 @@ Each layer holds a different kind of memory and is stored and searched in its ow
 
 ### FSRS Spaced Repetition
 
-[FSRS](https://github.com/open-spaced-repetition/fsrs4anki) (Free Spaced Repetition Scheduler) outperforms SM-2 by 30%. It uses the **desirable difficulty** principle: reviewing when retention is low gives a bigger stability boost. In `@zensation/core` every fact gets an FSRS schedule; your application reports each review with `recordReview()`, and FSRS sets the next one.
+[FSRS](https://github.com/open-spaced-repetition/fsrs4anki) (Free Spaced Repetition Scheduler) is the open scheduler Anki offers as an alternative to its legacy SM-2 algorithm; its authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 for the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). It uses the **desirable difficulty** principle: reviewing when retention is low gives a bigger stability boost. In `@zensation/core` every fact gets an FSRS schedule; your application reports each review with `recordReview()`, and FSRS sets the next one.
 
 ### Emotional Memory
 

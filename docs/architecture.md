@@ -73,7 +73,7 @@ Knowledge that spans contexts (e.g., personal + work). When the same entity appe
 
 ### FSRS (Free Spaced Repetition Scheduler)
 
-Based on the [open-spaced-repetition](https://github.com/open-spaced-repetition/fsrs4anki) project. Outperforms SM-2 by ~30%. Uses the desirable difficulty principle: reviewing when retention is low gives a bigger stability boost.
+Based on the [open-spaced-repetition](https://github.com/open-spaced-repetition/fsrs4anki) project, whose authors report 20–30% fewer reviews than SM-2 for the same retention, in simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). The library keeps FSRS's difficulty and stability updates with an exponential forgetting curve. Uses the desirable difficulty principle: reviewing when retention is low gives a bigger stability boost.
 
 ### Hebbian Learning
 

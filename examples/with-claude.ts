@@ -11,7 +11,7 @@
  * 1. FSRS Spaced Repetition (Ebbinghaus, 1885): Facts decay over time following
  *    R = e^(-t/S). The `getRetrievability()` check filters out facts the AI has
  *    "forgotten" — just like how you can't recall a phone number from last week.
- *    FSRS schedules reviews at optimal intervals, outperforming SM-2 by ~30%.
+ *    FSRS-style scheduling sets the next review from stability and difficulty.
  *
  * 2. Emotional Memory Modulation (LaBar & Cabeza, 2006): When the user shares
  *    something emotionally significant, Claude acknowledges it more strongly.

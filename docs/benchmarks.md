@@ -51,53 +51,11 @@ from the paper; this repository does not yet ship a runner that reproduces them.
 
 ## Algorithm-level micro-benchmarks
 
-## FSRS vs SM-2: Retention Accuracy
+## FSRS and SM-2
 
-Based on the [open-spaced-repetition/fsrs4anki](https://github.com/open-spaced-repetition/fsrs4anki) research across millions of Anki review logs:
+The authors of [FSRS](https://github.com/open-spaced-repetition/fsrs4anki) report that users need 20–30% fewer reviews than with SM-2 to reach the same retention level, a figure they base on simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). The public [SRS benchmark](https://github.com/open-spaced-repetition/srs-benchmark) measures something different: how well each algorithm predicts the probability of recall (log loss, RMSE (bins), AUC) across 9,999 Anki collections; SM-2 is not in its current result table.
 
-```
-Day    SM-2 Retention    FSRS Retention    Improvement
-────────────────────────────────────────────────────────
-  1        95%               97%              +2%
-  3        82%               89%              +7%
-  7        68%               78%              +10%
- 14        51%               65%              +14%
- 30        32%               52%              +20%
- 60        18%               38%              +20%
- 90        11%               28%              +17%
-```
-
-**FSRS achieves ~30% better retention** at the 30-day mark compared to SM-2, the algorithm behind Anki.
-
-### Why FSRS Outperforms SM-2
-
-SM-2 uses a fixed multiplier (EaseFactor) that doesn't account for:
-- **Desired difficulty**: Reviewing at low retrievability gives bigger stability boosts
-- **Forgetting curve shape**: SM-2 assumes linear decay, FSRS uses exponential (R = e^(-t/S))
-- **Difficulty-stability interaction**: Harder items need different scheduling than easy ones
-
-FSRS models all three, resulting in more efficient review schedules.
-
-### Forgetting Curve Comparison
-
-```
-Retention
-1.0 ┤ ●
-    │ ●●
-0.8 ┤   ●●  FSRS (stability=7, review at day 5)
-    │     ●●         ●●●●●●●●
-0.6 ┤       ●●      ●
-    │    ○○   ●●   ●
-0.4 ┤  ○○      ●● ●
-    │ ○○        ●●
-0.2 ┤○○    SM-2 (no review)
-    │○
-0.0 ┤○○○○○○○○○○○○○○○○○○○○○○○○
-    └──┬──┬──┬──┬──┬──┬──┬──→ Days
-       5  10  15  20  25  30
-```
-
-A single review at day 5 (when FSRS retention = 0.85) resets the curve with boosted stability, maintaining >60% retention at day 30. Without review (SM-2 baseline), retention drops below 20%.
+`@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates after a review, with an exponential forgetting curve `R = e^(-t/S)`. We have not benchmarked this implementation against SM-2, so this page gives no retention figures of its own.
 
 ---
 

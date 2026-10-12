@@ -4,6 +4,15 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Fixed — the FSRS comparison with SM-2 named the wrong quantity
+
+Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".
+The FSRS authors report something else: users need 20–30% fewer reviews than with SM-2 for the same retention, a
+figure based on simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)).
+`docs/benchmarks.md` also carried a day-by-day retention table and a curve with no source; both are removed. The
+docs now say that `@zensation/algorithms` follows FSRS for difficulty and stability with an exponential forgetting
+curve, and that we have not benchmarked it against SM-2. The `algorithms` README on npm changes with the next release.
+
 ## [0.5.1] — 2026-10-11
 
 **Corrections only, three packages bumped so they reach npm.** No runtime code changed: `packages/*/src` is

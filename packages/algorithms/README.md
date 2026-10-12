@@ -130,7 +130,7 @@ import { computeHebbianStrengthening } from '@zensation/algorithms/hebbian';
 
 ### FSRS vs SM-2
 
-SM-2 (SuperMemo 2, 1990) uses fixed multipliers. FSRS uses the **desirable difficulty** principle: reviewing when retention is low gives a *bigger* stability boost. The result? 30% fewer reviews for the same retention.
+SM-2 (SuperMemo 2, 1990) uses fixed multipliers. FSRS uses the **desirable difficulty** principle: reviewing when retention is low gives a *bigger* stability boost. Its authors report 20–30% fewer reviews for the same retention, in simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)).
 
 ### Emotional Memory
 

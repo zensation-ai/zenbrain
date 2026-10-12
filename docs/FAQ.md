@@ -103,7 +103,7 @@ It's the recommended entry point for most use cases.
 
 Free Spaced Repetition Scheduler — a modern replacement for SM-2 (the algorithm behind Anki). FSRS models memory retention with exponential decay curves and schedules reviews at optimal intervals.
 
-ZenBrain's FSRS outperforms SM-2 by ~30% in retention accuracy (based on the open-spaced-repetition/fsrs4anki research across millions of Anki review logs).
+The FSRS authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 to reach the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). `@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates, with an exponential forgetting curve; we have not benchmarked it against SM-2.
 
 ### What is Hebbian Learning?
 
