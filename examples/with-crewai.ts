@@ -16,12 +16,13 @@
  * - The Researcher discovers concepts → they enter shared Working Memory
  * - Concepts discovered together get Hebbian co-activation (edge strengthening)
  * - The Writer reinforces connections it uses (stronger co-activation)
- * - After 24h, unused connections decay (simulating biological forgetting)
+ * - Maintenance passes decay every edge by a fixed 2 % each (here: 24 passes,
+ *   as if the application ran one per hour); an edge that falls below
+ *   MIN_WEIGHT (0.1) comes back as 0 and is removed
  *
  * Homeostatic normalization (Turrigiano, 2008) prevents runaway strengthening:
- * total edge weight is kept at a constant budget, so strengthening one
- * connection relatively weakens others. This is how the brain maintains
- * stability while learning.
+ * after each round the edge weights are scaled so their average stays 1.0,
+ * so strengthening one connection relatively weakens others.
  *
  * Prerequisites:
  *   npm install @zensation/algorithms @zensation/core
@@ -33,6 +34,8 @@ import { WorkingMemory } from '@zensation/core';
 import {
   computeHebbianStrengthening,
   computeHebbianDecay,
+  computeHomeostaticNormalization,
+  HEBBIAN_CONFIG,
   tagEmotion,
   computeEmotionalWeight,
 } from '@zensation/algorithms';
@@ -51,16 +54,25 @@ function edgeKey(a: string, b: string): string {
 /** When two concepts are active together, strengthen their Hebbian connection. */
 function coactivate(conceptA: string, conceptB: string): void {
   const key = edgeKey(conceptA, conceptB);
-  const current = edges.get(key) ?? 0.1;
-  const strengthened = computeHebbianStrengthening(current, 1.0, 1.0);
-  edges.set(key, strengthened);
+  const current = edges.get(key) ?? HEBBIAN_CONFIG.NEUTRAL_WEIGHT;
+  edges.set(key, computeHebbianStrengthening(current));
 }
 
-/** Decay all edges (call periodically to simulate forgetting). */
-function decayAllEdges(hours: number): void {
+/** Keep the average edge weight at 1.0, so strengthening one edge weakens the others relatively. */
+function normalizeEdges(): void {
+  const keys = [...edges.keys()];
+  const normalized = computeHomeostaticNormalization(
+    keys.map(k => edges.get(k)!),
+    keys.length * HEBBIAN_CONFIG.NEUTRAL_WEIGHT,
+  );
+  keys.forEach((k, i) => edges.set(k, normalized[i]));
+}
+
+/** One maintenance pass: every edge decays by DECAY_RATE (2 %); 0 means "below MIN_WEIGHT, remove". */
+function decayAllEdges(): void {
   for (const [key, strength] of edges) {
-    const decayed = computeHebbianDecay(strength, hours);
-    if (decayed < 0.01) {
+    const decayed = computeHebbianDecay(strength);
+    if (decayed === 0) {
       edges.delete(key);
     } else {
       edges.set(key, decayed);
@@ -88,6 +100,7 @@ async function researcher(topic: string): Promise<AgentResult> {
       coactivate(concepts[i], concepts[j]);
     }
   }
+  normalizeEdges();
   return { agent: 'Researcher', output: `Found ${concepts.length} key concepts for "${topic}"`, concepts };
 }
 
@@ -100,6 +113,7 @@ async function writer(researchOutput: AgentResult): Promise<AgentResult> {
 
   // Writer co-activates the concepts they chose to write about
   coactivate(researchOutput.concepts[0], researchOutput.concepts[1]);
+  normalizeEdges();
 
   return {
     agent: 'Writer',
@@ -139,9 +153,9 @@ async function runCrew(topic: string) {
     console.log(`  ${key.replace('::', ' <-> ')}: ${strength.toFixed(3)}`);
   }
 
-  // Simulate time passing and decay
-  decayAllEdges(24);
-  console.log('\n--- After 24h decay ---');
+  // Simulate a day of hourly maintenance passes
+  for (let pass = 0; pass < 24; pass++) decayAllEdges();
+  console.log('\n--- After 24 maintenance passes (2 % each) ---');
   for (const [key, strength] of edges) {
     console.log(`  ${key.replace('::', ' <-> ')}: ${strength.toFixed(3)}`);
   }

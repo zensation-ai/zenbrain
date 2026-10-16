@@ -74,6 +74,18 @@ unchanged.
 Working-memory slots and sessions fell back to `Math.random()` for their ids when `crypto.randomUUID` was missing
 (CodeQL alert #5). On Node 22 and newer, the engines floor, it never is; the fallback is gone.
 
+### Documentation — examples that did not run as written
+
+- `docs/getting-started.md`: the PostgreSQL quick start called `adapter.initialize()`, `storeFact()` and `searchFacts()`,
+  none of which exist; it now applies the shipped migration and stores and recalls through `MemoryCoordinator`.
+  `getRetrievability` was imported from `@zensation/algorithms/ebbinghaus`, which does not export it.
+- `README.md`: the chatbot use case used `initFromDecayClass` without importing it and a type `MemoryState` that does not
+  exist; the RAG use case used undeclared types and a relation type `'related_to'` that `propagateForRelation()` does not
+  know.
+- `examples/with-crewai.ts` passed hours into the logger parameter of `computeHebbianDecay()` and two extra numbers to
+  `computeHebbianStrengthening()`, and described a homeostatic normalization it never applied. It now calls both with one
+  weight, runs 24 maintenance passes of 2 % each, removes edges at the pruning signal 0 and normalizes the weights.
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".
