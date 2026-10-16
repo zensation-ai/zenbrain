@@ -52,6 +52,68 @@ type-checks. A test compiles the README line.
 retried. Connecting is now part of each attempt. A client that hit a transient error is released with that error, so
 `pg` discards it instead of handing a possibly dead connection to the next query.
 
+### Fixed — eight algorithms did not do what their documentation says
+
+Each fix comes with a test that fails on 0.5.1.
+
+- `tagEmotion`: "!", "?" and words in capitals entered the average of the arousal words. An exclamation mark
+  pulled a strong arousal word down ("This is urgent!" scored 0.70, "This is urgent" 1.00), and "?" or capitals
+  changed nothing without an arousal word ("THE SERVER IS DOWN" 0.20, like the lower-case sentence). They now add
+  on top of the word average, as documented; arousal goes up for such texts, never down.
+- `initFromSM2(0)` returns the documented default (difficulty 5, stability 1) instead of (7.5, 0.5).
+- `ibShouldRetain` / `ibFilterEpisodes`: the module header listed the contexts work, learning, personal and
+  creative, which have no beta, so every episode was dropped without an error. The header now lists the real
+  ones (finance 0.8, people 0.6, operations 0.4, strategy 0.3); the context type is exported as `IBContext`.
+- `applyVFERetrievalBoost` clamps the delta to [−1, 1], so the boost stays within ±alpha (±10 % by default) as
+  the module promises; a delta of 5 used to move a score by 50 %. `signHint` defaults to +1, as the code always
+  did; its documentation said 0 and gave +1 the opposite meaning.
+- `hopfieldRecall` checks convergence after a single step too; with the default `maxIterations: 1` it reported
+  `converged: true` without looking.
+- `detectNegation` and `stripNegation` recognise every n't contraction (can't, won't, didn't, …) with a straight
+  or a typographic apostrophe, and "cannot". The alternative meant for the typographic apostrophe held a second
+  straight one, so "doesn’t" as phones type it was not a negation.
+- `ebbinghaus`: `calculateRetention` computed with one stability and reported another, and
+  `batchCalculateRetention` used a third formula. All now use S × emotional multiplier (clamped to the documented
+  1.0–3.0), floored at 0.1. The module had no test; it has nineteen now.
+- `simulateReplay` no longer lowers a stability that is already above the 365-day cap.
+
+### Changed — out-of-range inputs throw a `RangeError` instead of being stored
+
+Values outside a documented range used to be stored or computed on silently: `computeHebbianStrengthening(-5)`
+returned −4.85, a working-memory relevance of 42 outranked every slot for good, and an `emotionalWeight` of 2
+went into routing. These now throw a `RangeError` naming the argument, before anything is stored:
+Hebbian strengthening and decay (NaN, infinite or negative weights; weights above `MAX_WEIGHT` are still capped),
+`WorkingMemory.add` (relevance outside 0–1), `store()` (`emotionalWeight` or `confidence` outside 0–1),
+`initFromSM2` (negative or non-finite stability) and the `ib-budget` functions (unknown context). Code that
+passed such values gets an exception where it used to get a corrupted value. `SECURITY.md` lists what is checked.
+
+### Fixed — adapter-postgres retries pg-pool's connection timeouts
+
+`query()` promises to retry "a timed-out connection", but pg-pool raises its two connection timeouts ("timeout
+exceeded when trying to connect", "Connection terminated due to connection timeout") without an error code, so
+they were thrown at once. Both are retried now. The README's quick start no longer sets `schema: 'personal'`
+without the steps that create that schema; without them the adapter quietly used `public`.
+
+### Fixed — cross-context memory paired every entity with itself
+
+`knowledge_entities` has no context column in either adapter, so every context reads the same rows, and
+`detectMergeCandidates()` reported each entity as a merge candidate of itself (similarity 1) and every real pair
+once per ordering of the contexts. It now skips an entity's own id and reports each pair once. The layer is
+experimental and not wired into the coordinator; the docs say so instead of "merges and deduplicates", and the
+ROADMAP lists the schema migration it needs.
+
+### Documentation — numbers the repository can measure come from a script
+
+`scripts/measure-docs-numbers.mjs` prints the quick-start values, the Hebbian convergence table, the emotional
+decay multipliers, Hopfield recall quality and time, and bundle sizes. The hand-written tables were off: 100
+co-activations give a weight of 6.71, not 4.0; the full algorithms bundle is 38.8 KB minified, not ~18 KB; a
+Hopfield recall over 600 patterns of 1536 dimensions takes about 2.8 ms (Node 22, Apple M1 Pro), not "sub-ms",
+and at the default beta of 1 its recovered state is close to the average of the patterns (the ranking is right at
+every beta). The emotional table's 30-day retention column had no source and is gone; the PostgreSQL latency
+table had no measurement in this repository and is gone too. `scripts/compare-mechanisms.sh` now clones the
+commits the README's comparison was measured at (27 August 2026) and counts the dependency row as well;
+`--latest` runs it against today's default branches.
+
 ### Security — table names are checked before they reach SQL
 
 Values always went through placeholders, but table names were put into SQL as given: the `tableName` option of the
@@ -173,8 +235,8 @@ The README says every change is recorded here; these five were not.
 - `npx tsc -p examples` type-checks all seven examples. The three third-party SDKs are stubbed in `examples/types/`,
   so the check covers every call into `@zensation/*`, not the third-party APIs.
 - `scripts/verify-test-counts.mjs` compares every sentence that states a test count with what `vitest list`
-  collects. It found the README header still at 822 and the other counts one short (`@zensation/mcp` has 59
-  tests): the documentation now says 854 — 848 on each of Node 22, 24 and 26, and 6 against PostgreSQL.
+  collects. It found the README header still at 822 and the other counts one short (`@zensation/mcp` had 59
+  tests, not 58).
 
 ### Changed — the ablation reproduction calls its nine non-PMA components what the paper calls them
 
