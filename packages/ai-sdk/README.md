@@ -48,7 +48,9 @@ Relevant memories from earlier sessions:
 ## Zero runtime dependencies
 
 The middleware is a plain object; `wrapLanguageModel` is called by you. Nothing here is
-imported from `ai` at runtime — only its types are. So this package installs **nothing**:
+imported from `ai` at runtime — only its types are. So this package has **no runtime
+dependencies**; its peers `ai`, `@ai-sdk/provider` and `@zensation/core` are the packages your
+application already uses (npm 7 and later installs a peer that is missing):
 
 | Package | Runtime dependencies |
 |---|--:|
@@ -56,7 +58,7 @@ imported from `ai` at runtime — only its types are. So this package installs *
 | `@zensation/core` | 1 (`@zensation/algorithms`) |
 | `@zensation/algorithms` | **0** |
 
-That claim is [checked in CI on every push](https://github.com/zensation-ai/zenbrain/blob/main/scripts/verify-zero-dependencies.sh)
+That table is [checked in CI on every push](https://github.com/zensation-ai/zenbrain/blob/main/scripts/verify-zero-dependencies.sh)
 against the packed tarballs rather than the source tree.
 
 ## Options
@@ -74,11 +76,11 @@ zenbrainMemory({
   store: {                         // or false to switch writing off
     user: true,                    // store the user's message (default)
     assistant: false,              // store the reply too (default off)
-    context: 'work',               // context domain for what gets stored
+    context: 'work',               // context domain; kept with episodes only
   },
 
   header: 'Relevant memories from earlier sessions:',
-  role: 'system',                  // or 'user': see "Two defaults worth knowing"
+  role: 'system',                  // or 'user': see "Three defaults worth knowing"
 
   onError: (err, phase) => console.warn(`[zenbrain] ${phase} failed`, err),
 });
@@ -103,10 +105,12 @@ unmodified. A memory layer that breaks a chat is worse than one that forgets. Pa
 
 ## Where the memory lands
 
-Routing on store is automatic: a general statement becomes a semantic fact, a narrated
-event an episode, a sequence of instructions a procedure. Which layer a memory lands in
-decides how it is searched, and episodes with an emotional weight above 0.5 become facts when you
-consolidate. The seven layers and the algorithms behind them are documented in the
+Routing on store is automatic, first match wins: wording such as "How to", "Steps:" or
+"workflow:" makes a procedure, an emotional weight above 0.5 (detected from the text) an
+episode, anything else a semantic fact. A plain narrated event with little emotion is a fact,
+and a numbered list without such wording is too. Which layer a memory lands in decides how it
+is searched; when you consolidate, episodes with an emotional weight above 0.5, among the
+100 most recent, become facts. The seven layers and the algorithms behind them are documented in the
 [main README](https://github.com/zensation-ai/zenbrain#readme).
 
 Consolidation does not run on its own. Call `coordinator.consolidate()` on a schedule that

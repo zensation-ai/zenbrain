@@ -111,6 +111,14 @@ Working-memory slots and sessions fell back to `Math.random()` for their ids whe
 - Every package README said ZenBrain is "built as zero-dependency TypeScript"; only `@zensation/algorithms` and
   `@zensation/core` are.
 
+### Fixed — the ai-sdk README pointed at a CI check that did not check ai-sdk
+
+`scripts/verify-zero-dependencies.sh` packed and checked `@zensation/algorithms` and `@zensation/core` only, while the
+ai-sdk README said its "0 runtime dependencies" were checked there. The script now also packs `@zensation/ai-sdk` and
+requires its packed `package.json` to declare no dependencies (its peers belong to the caller). The README no longer
+says the package "installs nothing" — npm 7 and later installs a missing peer — and its routing description and a
+broken section reference are corrected.
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".
