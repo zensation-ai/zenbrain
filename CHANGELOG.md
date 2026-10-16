@@ -119,6 +119,16 @@ requires its packed `package.json` to declare no dependencies (its peers belong 
 says the package "installs nothing" — npm 7 and later installs a missing peer — and its routing description and a
 broken section reference are corrected.
 
+### Documentation — adapter-postgres schema isolation, checked on PostgreSQL 17
+
+The README showed two adapters with `schema: 'personal'` and `schema: 'work'` but not how to create their tables.
+Run as the obvious steps on a fresh database, the migration installs `vector` and `pg_trgm` into the first schema of
+the search path, and the second schema then fails with `type "vector" does not exist` (measured with PostgreSQL 17.10
+and pgvector 0.8.2). The README now creates both extensions in `public` first and migrates each schema; through the
+adapter each schema then sees only its own facts. It also names pgvector 0.5 as the minimum (HNSW) and says that
+`query()` retries and `transaction()` does not. The adapter-sqlite example no longer stores the "FSRS outperforms
+SM-2 by 30%" sentence corrected above.
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".

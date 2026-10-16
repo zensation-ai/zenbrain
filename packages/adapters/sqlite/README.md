@@ -22,7 +22,7 @@ import { createMemoryAdapter } from '@zensation/adapter-sqlite';
 const testStorage = createMemoryAdapter();
 
 const memory = new SemanticMemory({ storage });
-await memory.storeFact('FSRS outperforms SM-2 by 30%', 'research');
+await memory.storeFact('The user prefers answers in German.', 'conversation');
 ```
 
 ## When to Use

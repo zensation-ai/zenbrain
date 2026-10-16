@@ -31,7 +31,7 @@ Run the included SQL migration to create all tables:
 psql -f node_modules/@zensation/adapter-postgres/sql/001_init.sql -d your_database
 ```
 
-Requires PostgreSQL 15+ with the `pgvector` and `pg_trgm` extensions. The migration creates its four
+Requires PostgreSQL 15+ with the `pgvector` (0.5 or newer, for its HNSW indexes) and `pg_trgm` extensions. The migration creates its four
 embedding columns as `vector(1536)`, which fits embedding models with 1536 dimensions; for another size,
 change those four columns in the file before running it.
 
@@ -60,7 +60,8 @@ const storage = new PostgresAdapter({
   // SSL
   ssl: { rejectUnauthorized: true },
 
-  // Retries for transient errors
+  // query() retries transient errors — a refused, reset or timed-out connection, a server
+  // shutting down or out of connections — up to this many times; transaction() does not retry
   maxRetries: 3,
 
   // Logger
@@ -70,7 +71,17 @@ const storage = new PostgresAdapter({
 
 ## Multi-Context (Schema Isolation)
 
-ZenBrain supports isolating memory into separate schemas:
+ZenBrain supports isolating memory into separate schemas. Each schema needs its own tables, and
+the extensions must live in `public` first: run on a fresh database, the migration creates them in
+the first schema of the search path, and the next schema then fails with `type "vector" does not exist`.
+
+```bash
+psql -d your_database -c 'CREATE EXTENSION IF NOT EXISTS vector SCHEMA public' \
+                      -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public' \
+                      -c 'CREATE SCHEMA personal' -c 'CREATE SCHEMA work'
+PGOPTIONS='-c search_path=personal,public' psql -d your_database -f node_modules/@zensation/adapter-postgres/sql/001_init.sql
+PGOPTIONS='-c search_path=work,public'     psql -d your_database -f node_modules/@zensation/adapter-postgres/sql/001_init.sql
+```
 
 ```typescript
 const personal = new PostgresAdapter({ connectionString: DB_URL, schema: 'personal' });
