@@ -90,8 +90,8 @@ export interface RecallResult {
   id: string;
   /** The memory content. */
   content: string;
-  /** Which layer this result came from. */
-  layer: string;
+  /** Which layer this result came from; pass it with `id` to `forget()`. */
+  layer: RecallLayer;
   /** Relevance score (0-1, higher is better). */
   score: number;
   /** Confidence level, if available. */

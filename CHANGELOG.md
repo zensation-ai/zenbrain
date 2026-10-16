@@ -24,6 +24,13 @@ characters or fewer, so "Locker code is 47" and "Locker code is 81", or "Server 
 counted as the same memory and recall returned only one of them. Every word and number now counts; case and
 punctuation are ignored, so "Paris." and "paris" still match.
 
+### Fixed — the README quick start did not compile
+
+`memory.forget(results[0].id, results[0].layer)` failed type-checking (TS2345) because `RecallResult.layer` was a
+`string` while `forget()` takes a `RecallLayer`. `RecallResult.layer` is now a `RecallLayer`. Code that builds a
+`RecallResult` with a layer name outside `'working' | 'episodic' | 'semantic' | 'procedural' | 'core'` no longer
+type-checks. A test compiles the README line.
+
 ### Fixed — adapter-postgres did not retry a refused connection
 
 `query()` promised automatic retries for transient connection errors, but it opened the connection before its
