@@ -32,13 +32,14 @@ const memory = new MemoryCoordinator({ storage: new SqliteAdapter({ filename: '.
 // Auto-routes to the right layer (semantic, episodic, procedural, or core)
 await memory.store('User prefers TypeScript', { type: 'auto' });
 
-// Cross-layer search with ranked, deduplicated results
+// Cross-layer search: deduplicated results, sorted by each layer's score
 const results = await memory.recall('programming preferences');
 
-// Forget one memory for good, by the id and layer of a recall result
+// Forget one memory by the id and layer of a recall result (a fact consolidated from it stays)
 await memory.forget(results[0].id, results[0].layer);
 
-// Consolidate: emotionally weighted episodes become facts, once each; working memory decays
+// Consolidate: emotionally weighted episodes among the 100 most recent become facts, once each;
+// working memory decays
 await memory.consolidate();
 
 // Facts whose FSRS review is due; report each review with recordReview()

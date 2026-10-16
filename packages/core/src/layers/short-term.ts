@@ -16,6 +16,7 @@ export interface Interaction {
 }
 
 export interface ShortTermMemoryConfig {
+  /** @deprecated Accepted but never used: sessions live in the process. It will be removed in 1.0. */
   storage?: StorageAdapter;
   maxInteractions?: number;
   logger?: Logger;
@@ -34,7 +35,11 @@ export class ShortTermMemory {
     this.log = config.logger ?? noopLogger;
   }
 
-  /** Start or resume a session. */
+  /**
+   * Start a new session. The id is a label only: the interactions of the current session
+   * are cleared, and nothing is loaded for an id used before — a session lives in this
+   * process. (Resuming stored sessions is on the roadmap.)
+   */
   startSession(sessionId?: string): string {
     this.sessionId = sessionId ?? randomId();
     this.interactions = [];

@@ -56,7 +56,7 @@ from the paper; this repository does not yet ship a runner that reproduces them.
 
 The authors of [FSRS](https://github.com/open-spaced-repetition/fsrs4anki) report that users need 20–30% fewer reviews than with SM-2 to reach the same retention level, a figure they base on simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). The public [SRS benchmark](https://github.com/open-spaced-repetition/srs-benchmark) measures something different: how well each algorithm predicts the probability of recall (log loss, RMSE (bins), AUC) across 9,999 Anki collections; SM-2 is not in its current result table.
 
-`@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates after a review, with an exponential forgetting curve `R = e^(-t/S)`. We have not benchmarked this implementation against SM-2, so this page gives no retention figures of its own.
+`@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates after a review, but keeps an exponential forgetting curve `R = e^(-t/S)` where FSRS has used a power curve since v4. Its S is the time constant (R = 1/e after S days); a review is scheduled when R reaches 0.9, after 0.105 × S days. We have not benchmarked this implementation against SM-2 or FSRS, so this page gives no retention figures of its own.
 
 ---
 

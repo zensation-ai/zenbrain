@@ -66,7 +66,7 @@ Each layer maps to a distinct cognitive system in the human brain:
 6. **Core** — Pinned facts always in context (Letta/MemGPT pattern)
 7. **Cross-Context** — links between entities of different domains (experimental, not wired into the coordinator)
 
-These aren't arbitrary — each has its own retrieval and its own place in consolidation. Only working memory decays; only emotional episodes are promoted to facts.
+These aren't arbitrary — each holds a different kind of memory and is stored and searched in its own way. Only working memory decays; only emotional episodes are promoted to facts.
 
 ### Do I need all 7 layers?
 
@@ -89,7 +89,7 @@ Tree-shaking ensures you only bundle what you import.
 
 The coordinator creates all seven layers and works on five of them (working, episodic, semantic, procedural, core); short-term memory goes through its session methods, cross-context memory through a getter:
 - **Auto-routing**: `store()` routes content to a layer
-- **Cross-layer recall**: `recall()` searches multiple layers with ranked results
+- **Cross-layer recall**: `recall()` searches several layers and sorts the results by score (each layer scores differently; see the API reference)
 - **Consolidation**: `consolidate()` promotes emotional episodes to semantic facts when you call it
 - **Decay**: `decay()` and `consolidate()` decay working memory; long-term memory does not decay
 
@@ -101,9 +101,9 @@ It's the recommended entry point for most use cases.
 
 ### What is FSRS?
 
-Free Spaced Repetition Scheduler — a modern replacement for SM-2 (the algorithm behind Anki). FSRS models memory retention with exponential decay curves and schedules reviews at optimal intervals.
+Free Spaced Repetition Scheduler — the open scheduler Anki offers as an alternative to its legacy SM-2. FSRS tracks a difficulty and a stability for each item and schedules the next review for when the predicted recall probability falls to a target; since FSRS v4 its forgetting curve is a power function ([The Algorithm](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm)).
 
-The FSRS authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 to reach the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). `@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates, with an exponential forgetting curve; we have not benchmarked it against SM-2.
+The FSRS authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 to reach the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). `@zensation/algorithms` follows FSRS for the difficulty and stability updates but keeps an exponential forgetting curve, `R = e^(−t/S)`, with S as its time constant: R falls to 1/e after S days, and a review is scheduled when R reaches the target 0.9, after 0.105 × S days. We have not benchmarked it against SM-2 or against FSRS itself.
 
 ### What is Hebbian Learning?
 

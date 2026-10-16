@@ -60,7 +60,7 @@ const n = (s) => (s in WORDS ? WORDS[s] : Number(s));
 
 // [file, pattern, (groups) => list of [what, stated, expected]]
 const CLAIMS = [
-  ['README.md', /Zero dependencies\. (\d+) tests\./,
+  ['README.md', /in algorithms and core\. (\d+) tests\./,
     (g) => [['total', g[1], total]]],
   ['README.md', /(\d+) tests green in CI: (\d+) on each of Node 22, 24 and 26, and (\d+) more against PostgreSQL/,
     (g) => [['total', g[1], total], ['per Node version', g[2], perNode], ['PostgreSQL', g[3], count.pg]]],

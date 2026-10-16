@@ -39,7 +39,7 @@ Convert SM-2 stability value to FSRS state.
 ```typescript
 interface FSRSState {
   difficulty: number;  // 1.0-10.0
-  stability: number;   // days until retention drops to target
+  stability: number;   // time constant of R = e^(-t/S): R = 1/e after S days
   nextReview: Date;
 }
 ```
@@ -201,7 +201,8 @@ import {
 ```
 
 #### `generateRetentionCurve(stability, days?, reviews?, emotionalMultiplier?): CurvePoint[]`
-Generate Ebbinghaus forgetting curve data points for charting.
+Generate forgetting-curve data points for charting. Illustrative: after a review it multiplies stability by a fixed
+factor per grade instead of running the FSRS update, so the curve does not match `updateAfterRecall`.
 
 #### `generateScheduleTimeline(initialDifficulty?, grades?): SchedulePoint[]`
 Generate FSRS scheduling timeline from a simulated grade sequence.
@@ -325,13 +326,17 @@ Personalized PageRank from seed nodes over a weighted graph.
 #### `topKByPageRank(result, k, options?)`
 Top-k nodes by PageRank score.
 
-### Surprise-Gradient (Variational Free Energy) Memory — `./surprise-gradient-memory`
+### Surprise-Gradient Memory — `./surprise-gradient-memory`
+
+A surprise EMA inspired by Titans and the free-energy principle; it computes no gradient and no free energy
+(the `VFE` in the names is historical).
 
 #### `updateVFEDelta(currentDelta, observation, options?): number`
-Update a memory's variational-free-energy delta from a new observation.
+Update a memory's surprise delta (an exponential moving average in [−1, 1]) from a new observation.
 
 #### `applyVFERetrievalBoost(baseScore, vfeDelta, options?): number`
-Boost a retrieval score by surprise (VFE delta).
+Boost a retrieval score by surprise: `score × (1 + α · delta)`, with the delta clamped to [−1, 1], so at most ±α
+(±10 % by default).
 
 #### `applyVFEIntervalShrink(baseInterval, vfeDelta, options?): number`
 Shrink the encoding interval for surprising items.
@@ -380,15 +385,24 @@ semantic and procedural layers are searched with it, then the merged list is cut
 (applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
 confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1).
 `core: 'matching'` returns only the core blocks that share a content word with the query (stopwords do not
-count); the default `'always'` returns every core block with every recall. Every result carries the `id` of
+count); the default `'always'` adds every core block to the candidates, where the blocks compete for `limit`
+like any result (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). Every result carries the `id` of
 the memory in its layer, next to `layer`.
+
+Scores are per layer and not on one scale, yet the merged list is sorted by them: with an embedding provider,
+episodic, semantic and procedural results carry the cosine similarity (−1 to 1); without one, lexical relevance
+(0 to 1), and when nothing matches, recent episodes and facts come back at 0 but procedures at their success rate
+(up to 1). Core blocks score 0.8 when a query word occurs in them, else 0.5. Working-memory results carry the
+slot's relevance, which without an embedding provider does not depend on the query.
 
 #### `forget(id, layer): Promise<boolean>`
 Delete one memory, addressed by the `id` and `layer` of a recall result. Returns `true` if it was deleted,
 `false` if the layer holds no memory with that id (an id that is not a UUID counts as unknown, not as an error).
-Forgetting is explicit and final; nothing in long-term memory is deleted on its own. To correct a memory, forget it
-and store the corrected version. Working memory keeps a copy of the most recent seven stores in the same process;
-it is not part of the default recall, and its result can be forgotten with `layer: 'working'`.
+Forgetting is explicit and final for that one memory; nothing in long-term memory is deleted on its own. A fact that
+`consolidate()` derived from an episode is a memory of its own and stays when the episode is forgotten: if the
+content has to go, recall again and forget whatever still returns it. To correct a memory, forget it and store the
+corrected version. Working memory keeps a copy of the most recent seven stores in the same process; it is not part
+of the default recall, and its result can be forgotten with `layer: 'working'`.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic

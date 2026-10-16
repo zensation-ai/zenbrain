@@ -39,7 +39,10 @@ export interface CoordinatorConfig {
   embedding?: EmbeddingProvider;
   /** LLM provider for consolidation summaries. Optional. */
   llm?: LLMProvider;
-  /** Cache provider. Optional; accepted, but no layer reads or writes it yet. */
+  /**
+   * Cache provider. Accepted, but no layer reads or writes it.
+   * @deprecated Has no effect; it will be removed in 1.0.
+   */
   cache?: CacheProvider;
   /** Context domains for cross-context memory, an experimental layer the coordinator creates but does not call. Defaults to ['personal', 'work', 'learning', 'creative']. */
   contexts?: string[];
@@ -80,10 +83,12 @@ export interface RecallOptions {
   /** Minimum confidence threshold for results. Defaults to 0. */
   minConfidence?: number;
   /**
-   * Which core blocks a recall returns. `'always'` (default) adds every core block to
-   * every recall, pinned like a profile. `'matching'` adds only the blocks that share a
-   * content word with the query (stopwords such as "the" do not count), so a large core
-   * memory cannot push the actual hits out of `limit`.
+   * Which core blocks a recall considers. `'always'` (default) adds every core block to the
+   * candidates of every recall; the blocks then compete for `limit` like any other result
+   * (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). `'matching'` adds only
+   * the blocks that share a content word with the query (stopwords such as "the" do not
+   * count), so a large core memory cannot push the actual hits out of `limit`; a `limit` of
+   * at least the number of blocks plus the hits you want does the same.
    */
   core?: 'always' | 'matching';
 }
@@ -95,7 +100,15 @@ export interface RecallResult {
   content: string;
   /** Which layer this result came from; pass it with `id` to `forget()`. */
   layer: RecallLayer;
-  /** Relevance score (0-1, higher is better). */
+  /**
+   * Score from the result's layer, higher is better. The layers score differently, and
+   * `recall()` sorts all results by this one number: with an embedding provider, episodic,
+   * semantic and procedural results carry the cosine similarity (−1 to 1); without one,
+   * lexical relevance (0 to 1), and a recall that matches nothing returns recent episodes
+   * and facts at 0 but procedures at their success rate (up to 1). Core blocks score 0.8
+   * when a query word occurs in them, else 0.5. Working-memory results carry the slot's
+   * relevance, which without an embedding provider does not depend on the query.
+   */
   score: number;
   /** Confidence level, if available. */
   confidence?: number;
@@ -325,8 +338,9 @@ export class MemoryCoordinator {
   /**
    * Cross-layer recall: search across memory layers and return ranked results.
    *
-   * Searches each requested layer,
-   * deduplicates by content similarity, and returns the top N results sorted by score.
+   * Searches each requested layer, deduplicates by content similarity, and returns the
+   * top N results sorted by score. The scores of different layers are not on one scale
+   * (see `RecallResult.score`).
    *
    * @param query - The search query
    * @param options - Layer selection and limits
@@ -380,10 +394,13 @@ export class MemoryCoordinator {
   /**
    * Delete one memory, addressed by the `id` and `layer` of a recall result.
    *
-   * Forgetting is explicit and final: the memory is deleted from its layer and no
-   * later recall returns it. Nothing in long-term memory is deleted on its own;
-   * consolidation and decay never delete long-term memories. To correct a memory,
-   * forget it and store the corrected version.
+   * Forgetting is explicit and final for this one memory: it is deleted from its layer and
+   * no later recall returns it. A fact that `consolidate()` derived from an episode is a
+   * memory of its own and stays; so does the working-memory copy (below). If the content
+   * has to go, recall again after forgetting and forget whatever still returns it.
+   * Nothing in long-term memory is deleted on its own; consolidation and decay never
+   * delete long-term memories. To correct a memory, forget it and store the corrected
+   * version.
    *
    * Working memory also keeps a copy of the most recent stores in this process (seven
    * slots). It is not part of the default recall, and `decay()` / `consolidate()`

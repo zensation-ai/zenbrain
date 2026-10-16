@@ -14,6 +14,7 @@ export interface WorkingMemoryConfig {
   maxSlots?: number;
   decayRate?: number;
   embedding?: EmbeddingProvider;
+  /** @deprecated Accepted but never read or written; it will be removed in 1.0. */
   cache?: CacheProvider;
   logger?: Logger;
 }

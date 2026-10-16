@@ -58,9 +58,9 @@ Facts with retrieval scheduling. FSRS determines when each fact is due; your app
 ### Layer 6: Core Memory
 
 **Retention:** Permanent (pinned)
-**Key feature:** Always included in context
+**Key feature:** Joins every default recall as a candidate
 
-Pinned facts that are always available — user preferences, system rules, key relationships. Inspired by Letta's core memory blocks. These never decay and are always loaded.
+Pinned facts — user preferences, system rules, key relationships. Inspired by Letta's core memory blocks. They never decay. With the default `core: 'always'`, every recall adds all blocks to its candidates, where they compete for `limit` like any result; `core: 'matching'` adds only the blocks that share a word with the query. `CoreMemory.assembleContext()` returns all blocks for a prompt.
 
 ### Layer 7: Cross-Context Memory (experimental)
 
@@ -77,7 +77,7 @@ context column yet, so every context reads the same `knowledge_entities` table. 
 
 ### FSRS (Free Spaced Repetition Scheduler)
 
-Based on the [open-spaced-repetition](https://github.com/open-spaced-repetition/fsrs4anki) project, whose authors report 20–30% fewer reviews than SM-2 for the same retention, in simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). The library keeps FSRS's difficulty and stability updates with an exponential forgetting curve. Uses the desirable difficulty principle: reviewing when retention is low gives a bigger stability boost.
+Based on the [open-spaced-repetition](https://github.com/open-spaced-repetition/fsrs4anki) project, whose authors report 20–30% fewer reviews than SM-2 for the same retention, in simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). The library keeps FSRS's difficulty and stability updates with an exponential forgetting curve, `R = e^(−t/S)` (FSRS itself has used a power curve since v4): S is the time constant — R falls to 1/e after S days — and a review is scheduled when R reaches the target retention 0.9, after 0.105 × S days. Uses the desirable difficulty principle: reviewing when retention is low gives a bigger stability boost.
 
 ### Hebbian Learning
 
