@@ -24,6 +24,12 @@ characters or fewer, so "Locker code is 47" and "Locker code is 81", or "Server 
 counted as the same memory and recall returned only one of them. Every word and number now counts; case and
 punctuation are ignored, so "Paris." and "paris" still match.
 
+### Fixed — `getHealth()` stopped counting at 1000
+
+`procedural.count` and `semantic.dueForReview` listed rows with `LIMIT 1000` and took the length, so 1001 procedures or
+due facts reported 1000. Both are `COUNT(*)` queries now (`ProceduralMemory.count()`,
+`SemanticMemory.countDueForReview()`), as `episodic.count` and `semantic.count` already were.
+
 ### Fixed — `recordReview()` accepted grades outside 1–5 and ignored unknown ids
 
 The FSRS functions reject a grade outside 1–5, but `recordReview()` checked nothing itself: 0 and 2.5 went through as

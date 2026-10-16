@@ -227,4 +227,13 @@ export class SemanticMemory {
     );
     return parseInt(result.rows[0]?.count ?? '0', 10);
   }
+
+  /** Count the facts whose FSRS review is due (the same condition as `getDueForReview`). */
+  async countDueForReview(): Promise<number> {
+    const result = await this.storage.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM ${this.table}
+       WHERE fsrs_next_review IS NOT NULL AND fsrs_next_review <= NOW()`
+    );
+    return parseInt(result.rows[0]?.count ?? '0', 10);
+  }
 }

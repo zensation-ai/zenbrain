@@ -158,6 +158,14 @@ export class ProceduralMemory {
     return result.rows.map(rowToProcedure);
   }
 
+  /** Count all procedures. */
+  async count(): Promise<number> {
+    const result = await this.storage.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM ${this.table}`
+    );
+    return parseInt(result.rows[0]?.count ?? '0', 10);
+  }
+
   /** Delete a procedure. */
   async delete(id: string): Promise<boolean> {
     const result = await this.storage.query(

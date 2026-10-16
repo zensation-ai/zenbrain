@@ -583,15 +583,13 @@ export class MemoryCoordinator {
     const [episodicCount, semanticCount, dueForReview, coreBlocks] = await Promise.all([
       this.episodic.count(),
       this.semantic.count(),
-      this.semantic.getDueForReview(1000).then(r => r.length),
+      this.semantic.countDueForReview(),
       this.core.getBlocks().then(b => b.length),
     ]);
 
-    // Procedural count via list with a high limit
     let proceduralCount = 0;
     try {
-      const procs = await this.procedural.list(1000);
-      proceduralCount = procs.length;
+      proceduralCount = await this.procedural.count();
     } catch {
       this.log.warn('Failed to count procedural memories');
     }
