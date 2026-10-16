@@ -198,6 +198,13 @@ describe('applyVFERetrievalBoost', () => {
     expect(applyVFERetrievalBoost(0.5, 0)).toBe(0.5);
   });
 
+  // The module promises the boost "can never move a base score by more than ±10 %" (α = 0.10).
+  // A delta outside [-1, 1] (updateVFEDelta allows maxMagnitude > 1) used to move it by 50 %.
+  it('moves a score by at most ±α however large the delta', () => {
+    expect(applyVFERetrievalBoost(1.0, 5)).toBeCloseTo(1.1, 12);
+    expect(applyVFERetrievalBoost(1.0, -5)).toBeCloseTo(0.9, 12);
+  });
+
   it('custom alpha changes the lift magnitude', () => {
     expect(applyVFERetrievalBoost(1.0, 1.0, { alpha: 0.5 })).toBeCloseTo(1.5, 9);
   });

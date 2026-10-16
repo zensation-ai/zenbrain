@@ -1,8 +1,9 @@
 /**
  * Titans Surprise-Gradient Memory Updates.
  *
- * Phase H sprint reference: spec § H6 task 3 (Titans, arXiv:2501.00663)
- * + § A2 (Free-Energy Memory Updates novelty hypothesis).
+ * Based on: Titans (Behrouz et al. 2025, arXiv:2501.00663), with the
+ * free-energy reading of surprise as a motivation. No gradient and no
+ * free-energy term is computed here; see "Why pure-algorithm here".
  *
  * The idea
  * --------
@@ -23,30 +24,31 @@
  *
  *   - **Encoding-time FSRS-interval shrink**: a memory whose vfe_delta
  *     is high (lots of accumulated surprise) should be reviewed sooner.
- *     interval = base × (1 - β · |δ|).  This is the load-bearing
- *     coupling for the A2 research novelty hypothesis (Titans
- *     surprise × FSRS-vmPFC PE-coupling).
+ *     interval = base × (1 - β · |δ|).  This couples Titans-style
+ *     surprise with the prediction-error coupling of `./fsrs-vmPFC`.
  *
  * Why pure-algorithm here
  * -----------------------
  * We don't have access to backbone-model gradients from the backend.
  * What we DO have:
  *
- *   - Prediction-error magnitudes from the existing NeuromodulatorEngine
- *     (Phase 145). When a memory was retrieved and the downstream
+ *   - Prediction-error magnitudes from the caller's own pipeline (in the
+ *     ZenAI platform, its neuromodulator component, which is not part of
+ *     this package). When a memory was retrieved and the downstream
  *     answer didn't match the gold (or the agent's own confidence-
  *     calibration says "I was wrong"), that's an observable surprise.
  *   - Reactivation events with their own prior-vs-actual deltas.
  *
  * This module computes and updates `vfe_delta` from those observable
- * signals via an EMA (Welford-style) with bounded magnitude. The
+ * signals via an exponential moving average (EMA) with bounded magnitude. The
  * algorithm is a pure function — caller composes with their own
  * prediction-error feed.
  *
- * Bounded magnitude: we keep `vfe_delta` in [-1, 1] so the retrieval
- * boost (multiplied by `α = 0.10`) can never move a base score by
- * more than ±10 %. This prevents one anomalous high-surprise event
- * from blowing a memory's rank — the EMA smooths it out.
+ * Bounded magnitude: `updateVFEDelta` keeps `vfe_delta` in [-1, 1] by
+ * default, and `applyVFERetrievalBoost` clamps the delta it is given to
+ * [-1, 1], so the boost (multiplied by `α = 0.10`) never moves a base
+ * score by more than ±10 %. This prevents one anomalous high-surprise
+ * event from blowing a memory's rank — the EMA smooths it out.
  *
  * @module algorithms/surprise-gradient-memory
  */
@@ -57,18 +59,19 @@
 
 /** A single observation feeding the EMA update. */
 export interface SurpriseObservation {
-  /** Observed prediction error magnitude in [0, ∞). The retrieval
-   *  pipeline exposes this as `|p_observed - p_expected|` — see
-   *  NeuromodulatorEngine.computeRPE. */
+  /** Observed prediction error magnitude in [0, ∞), for example
+   *  `|p_observed - p_expected|` from the caller's retrieval pipeline. */
   predictionError: number;
   /** Caller's confidence at prediction time in [0, 1]. High confidence
    *  + high error = strong surprise (the memory was confidently wrong).
    *  Low confidence + same error = weaker surprise (the memory was
    *  hedging). Default 1.0 (treat all error as fully-confident). */
   confidence?: number;
-  /** Sign hint: +1 if the memory aided the prediction (reduce delta
-   *  toward 0 — memory is well-calibrated), -1 if the memory misled
-   *  (push delta toward -1 — anti-helpful), 0 = neutral. Default 0. */
+  /** Sign of the contribution: +1 counts the surprise as informative
+   *  (pushes delta toward +1, which raises retrieval rank), -1 marks
+   *  the memory as misleading (pushes delta toward -1, which lowers
+   *  it), 0 contributes nothing (the EMA only decays delta toward 0).
+   *  Default +1. */
   signHint?: -1 | 0 | 1;
 }
 
@@ -88,15 +91,15 @@ export interface VFEUpdateOptions {
 }
 
 export interface RetrievalBoostOptions {
-  /** Coefficient on `vfe_delta` in the retrieval boost. Default 0.10
-   *  (spec § A2). Production caller can set per-context (e.g. 0.05
-   *  for `finance` where stability matters more than novelty). */
+  /** Coefficient on `vfe_delta` in the retrieval boost. Default 0.10.
+   *  A caller can set it per context (e.g. 0.05 for `finance`, where
+   *  stability matters more than novelty). The boost is at most ±alpha. */
   alpha?: number;
 }
 
 export interface EncodingIntervalOptions {
-  /** Coefficient on `|vfe_delta|` in the interval shrink. Default 0.20
-   *  (spec § A2). Higher = surprising memories reviewed faster. */
+  /** Coefficient on `|vfe_delta|` in the interval shrink. Default 0.20.
+   *  Higher = surprising memories reviewed faster. */
   beta?: number;
   /** Hard floor on the resulting interval as a fraction of the input
    *  interval. Default 0.20 — even maximally-surprising memories keep
@@ -222,9 +225,9 @@ export function batchUpdateVFEDeltas(
  * Apply Titans retrieval-time boost: `score × (1 + α · vfe_delta)`.
  *
  * Pure function — caller passes in the base score and the memory's
- * stored delta, gets back the boosted score. Production caller (e.g.
- * `services/knowledge-graph/hybrid-retriever.ts`'s graph reranker) can
- * loop over results and apply per-row.
+ * stored delta, gets back the boosted score. A reranker can loop over
+ * results and apply it per row. The delta is clamped to [-1, 1] first,
+ * so the score moves by at most ±α (±10 % by default).
  *
  * Note: a NEGATIVE delta REDUCES the score (the memory has a record
  * of being misleading). This is the right direction — anti-helpful
@@ -236,7 +239,7 @@ export function applyVFERetrievalBoost(
   options: RetrievalBoostOptions = {},
 ): number {
   const alpha = options.alpha ?? DEFAULT_ALPHA;
-  const safeDelta = Number.isFinite(vfeDelta) ? vfeDelta : 0;
+  const safeDelta = clamp(Number.isFinite(vfeDelta) ? vfeDelta : 0, -1, 1);
   const boosted = baseScore * (1 + alpha * safeDelta);
   // Don't let the boost flip the sign of the score — clamp at 0 from
   // below. (A baseScore of 0 with negative delta would otherwise stay
