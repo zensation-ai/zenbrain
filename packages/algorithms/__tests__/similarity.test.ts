@@ -124,3 +124,33 @@ describe('detectNegation on adversarial input', () => {
     expect(detectNegation('not here...').negationTarget).toBe('here');
   });
 });
+
+// The contraction patterns were written with an alternative for the typographic apostrophe,
+// but both alternatives were U+0027, so "doesn’t" (as most editors and phones type it) was
+// not a negation; "can't", "won't" and "cannot" were not covered at all.
+describe('detectNegation — contractions', () => {
+  it.each([
+    ['I can\'t swim', 'swim'],
+    ['It won\'t work', 'work'],
+    ['It doesn\u2019t work', 'work'],
+    ['He isn\u2019t here', 'here'],
+    ['We cannot stay', 'stay'],
+    ['They didn\'t call', 'call'],
+  ])('%s is negated, target %s', (text, target) => {
+    const result = detectNegation(text);
+    expect(result.isNegated).toBe(true);
+    expect(result.negationTarget).toBe(target);
+  });
+
+  it('counts a typographic contraction for double negation', () => {
+    const result = detectNegation('I don\u2019t not want it');
+    expect(result.isNegated).toBe(true);
+    expect(result.confidence).toBe(0.3);
+  });
+
+  it('stripNegation removes contractions with either apostrophe', () => {
+    expect(stripNegation('It doesn\u2019t work')).toBe('It work');
+    expect(stripNegation('We cannot stay')).toBe('We stay');
+    expect(stripNegation('They didn\'t call')).toBe('They call');
+  });
+});
