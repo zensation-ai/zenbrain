@@ -95,6 +95,15 @@ describe('simulateReplay', () => {
     expect(result.replayed[0].stabilityAfter).toBe(15); // 10 * 1.5
   });
 
+  // The cap used to apply to stabilities already above it: replaying a memory at 500 days
+  // "boosted" it to 365, and the average increase of [10, 300, 500] came out negative.
+  it('never lowers a stability that is already above the cap', () => {
+    const result = simulateReplay([10, 300, 500].map((stability, i) => createMemory({ id: `m${i}`, stability })));
+    expect(result.replayed[2].stabilityAfter).toBe(500);
+    for (const r of result.replayed) expect(r.stabilityAfter).toBeGreaterThanOrEqual(r.stabilityBefore);
+    expect(result.summary.avgStabilityIncrease).toBeGreaterThanOrEqual(0);
+  });
+
   it('caps stability at MAX_STABILITY (365)', () => {
     const mem = createMemory({ stability: 300 });
     const result = simulateReplay([mem]);

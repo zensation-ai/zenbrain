@@ -89,7 +89,12 @@ export interface ConsolidationResult {
 /**
  * Select memories for replay based on priority scoring.
  *
- * Priority Score = accessCount * 0.3 + emotionalWeight * 0.3 + recency * 0.2 + instability * 0.2
+ * Priority Score = accessCount * 0.3 + emotionalWeight * b + recency * 0.2 + instability * (0.5 - b)
+ *
+ * with accessCount normalized to the largest in the batch, recency = e^(-0.1 * days since access),
+ * instability = 1 - stability / 365, and b = emotionalBiasWeight (default 0.3, which gives
+ * 0.3 / 0.3 / 0.2 / 0.2). The emotional and the instability weight share 0.5: above b = 0.5 the
+ * instability weight turns negative and stable memories rank first.
  *
  * Emotional and frequently-accessed memories are prioritized, matching
  * the brain's preferential consolidation of salient experiences during sleep.
@@ -146,6 +151,8 @@ export function selectForReplay(
  * For each memory:
  * 1. Stability boost: newStability = stability * replayStrengthMultiplier
  * 2. Emotional bonus: if emotionalWeight > 0.5, additional 20% boost
+ *    (the result is capped at MAX_STABILITY, 365 days; a stability already
+ *    above the cap is kept, not lowered)
  * 3. Hebbian strengthening: co-activated edges get +10% weight
  * 4. Weak edge pruning: edges below threshold removed (synaptic homeostasis)
  *
@@ -177,8 +184,8 @@ export function simulateReplay(
       newStability *= SLEEP_CONSOLIDATION_CONFIG.EMOTIONAL_BONUS;
     }
 
-    // Cap at max stability (1 year)
-    newStability = Math.min(newStability, SLEEP_CONSOLIDATION_CONFIG.MAX_STABILITY);
+    // Cap at max stability (1 year) — but never below where the memory already was
+    newStability = Math.min(newStability, Math.max(SLEEP_CONSOLIDATION_CONFIG.MAX_STABILITY, stabilityBefore));
 
     replayed.push({
       id: memory.id,
@@ -234,11 +241,12 @@ export function simulateReplay(
 }
 
 /**
- * Prune weak connections (synaptic homeostasis hypothesis).
+ * Prune weak connections — a threshold rule inspired by the synaptic
+ * homeostasis hypothesis.
  *
- * During sleep, the brain scales down synaptic strength globally,
- * effectively removing connections that are too weak to maintain.
- * This prevents the nervous system from saturating.
+ * The hypothesis says sleep scales synaptic strength down globally, so that
+ * connections too weak to maintain fall away. This function does the second
+ * half only: it splits the edges at a threshold; it does not scale anything.
  *
  * Reference: Tononi & Cirelli (2006) — Synaptic Homeostasis Hypothesis
  *
