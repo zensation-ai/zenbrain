@@ -15,7 +15,7 @@
 
 <p align="center">
   <sub><strong>Status:</strong> pre-1.0, semver — the public API can still change before <code>1.0</code>.<br/>
-  822 tests green in CI, on Node 22, 24 and 26 and against PostgreSQL with pgvector · the current version of every package published to npm with build provenance ·
+  853 tests green in CI: 847 on each of Node 22, 24 and 26, and 6 more against PostgreSQL with pgvector · the current version of every package published to npm with build provenance ·
   every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests are answered; replications and counter-results are especially welcome.</sub>
 </p>
 
@@ -467,7 +467,7 @@ function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
 
 These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), a production AI platform. Everything claimed here is verifiable in this repository:
 
-- **822 tests** (489 algorithms · 138 core · 61 adapter-sqlite · 54 adapter-postgres, 6 of them against a real PostgreSQL · 58 mcp · 22 ai-sdk), all passing
+- **853 tests** (492 algorithms · 161 core · 63 adapter-sqlite · 57 adapter-postgres, 6 of them against a real PostgreSQL · 58 mcp · 22 ai-sdk), all passing
 - **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
 - **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.5.1` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
