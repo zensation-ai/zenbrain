@@ -3,8 +3,6 @@
  *
  * Detects and merges entities across different memory contexts.
  * Uses name similarity (Jaccard) to find duplicate entities.
- *
- * This layer is unique to ZenBrain — most memory systems operate in a single context.
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import { type Logger, noopLogger } from '../types';

@@ -129,6 +129,15 @@ adapter each schema then sees only its own facts. It also names pgvector 0.5 as 
 `query()` retries and `transaction()` does not. The adapter-sqlite example no longer stores the "FSRS outperforms
 SM-2 by 30%" sentence corrected above.
 
+### Fixed — `fsrs-vmPFC` attributed its mechanism to a paper that does not contain it
+
+The module header and the algorithms README named Zou et al. (2025, Cell Reports) as the basis of the
+prediction-error coupling. That work contains no prediction-error signal; the project's correction notice withdrew
+the attribution on 18 September 2026 (doi:10.5281/zenodo.22831087, section 8), and the header now says so. It also
+claimed to be "the first" such extension with "no equivalent" anywhere — a claim nobody here measured — and to
+extend `./fsrs`, which it does not import. The `backend/` copy carried the same text. `cross-context.ts` called its
+layer "unique to ZenBrain"; that line is gone.
+
 ### Documentation — project-wide texts
 
 - `docs/FAQ.md`: the license paragraph said attribution is "not required"; Apache 2.0 section 4 requires keeping the
