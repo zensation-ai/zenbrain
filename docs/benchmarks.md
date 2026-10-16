@@ -3,8 +3,9 @@
 This file collects the numbers behind ZenBrain. The system-level result — the one the
 architecture is judged on — is LongMemEval-500, below. The algorithm-level figures under it are
 a mix: some are measured, and some are taken from the published literature, cited at the table
-that uses them. Neither kind runs from a script in this repository; the one thing that does is
-`scripts/compare-mechanisms.sh`.
+that uses them. Two things here run from this repository: the mechanism comparison,
+`scripts/compare-mechanisms.sh`, and the ablation tables, from `backend/` (`npm run experiments`;
+CI checks every point estimate against `backend/results`).
 
 ## LongMemEval-500 (system level)
 
@@ -40,8 +41,8 @@ systematically underestimates architectural contributions — the paper calls th
 masking.
 
 **Checking it.** The mechanism comparison in the README re-runs from this repository with
-`bash scripts/compare-mechanisms.sh` — no API keys, nothing to install, and a positive and a
-negative control printed before the result. The LongMemEval and LoCoMo figures above come
+`bash scripts/compare-mechanisms.sh` — it needs git and network access for three shallow clones,
+no API keys and no `npm install`, and it prints a positive and a negative control before the result. The LongMemEval and LoCoMo figures above come
 from the paper; this repository does not yet ship a runner that reproduces them.
 
 - Method and full tables: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
@@ -55,25 +56,31 @@ from the paper; this repository does not yet ship a runner that reproduces them.
 
 The authors of [FSRS](https://github.com/open-spaced-repetition/fsrs4anki) report that users need 20–30% fewer reviews than with SM-2 to reach the same retention level, a figure they base on simulations ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). The public [SRS benchmark](https://github.com/open-spaced-repetition/srs-benchmark) measures something different: how well each algorithm predicts the probability of recall (log loss, RMSE (bins), AUC) across 9,999 Anki collections; SM-2 is not in its current result table.
 
-`@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates after a review, with an exponential forgetting curve `R = e^(-t/S)`. We have not benchmarked this implementation against SM-2, so this page gives no retention figures of its own.
+`@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates after a review, but keeps an exponential forgetting curve `R = e^(-t/S)` where FSRS has used a power curve since v4. Its S is the time constant (R = 1/e after S days); a review is scheduled when R reaches 0.9, after 0.105 × S days. We have not benchmarked this implementation against SM-2 or FSRS, so this page gives no retention figures of its own.
 
 ---
 
 ## Emotional Memory Boost
 
-Based on LaBar & Cabeza (2006) and Cahill & McGaugh (1998):
+`computeEmotionalWeight()` turns an emotional tag into two numbers. The decay multiplier is
+`1 + 2 × intensity`, where intensity is the largest of |sentiment|, arousal and significance
+(computed by `scripts/measure-docs-numbers.mjs`):
 
 ```
-Emotional Weight    Decay Multiplier    30-Day Retention
-──────────────────────────────────────────────────────────
-0.0 (neutral)          1.0x                32%
-0.3 (mild)             1.6x                48%
-0.5 (moderate)         2.0x                58%
-0.7 (strong)           2.4x                67%
-1.0 (intense)          3.0x                78%
+Emotional intensity    Decay multiplier
+───────────────────────────────────────
+0.0 (neutral)               1.0x
+0.3 (mild)                  1.6x
+0.5 (moderate)              2.0x
+0.7 (strong)                2.4x
+1.0 (intense)               3.0x
 ```
 
-Emotionally significant memories consolidate up to **3x stronger** and decay proportionally slower. This matches neuroscience findings on amygdala-mediated memory modulation.
+The multiplier stretches the stability in `R = e^(−t / (S × multiplier))`, so emotional memories
+decay up to 3x slower. The other number, the consolidation weight (0–1), decides whether the
+coordinator turns an episode into a fact (above 0.5). The direction follows the findings on
+amygdala-mediated memory modulation (LaBar & Cabeza 2006; Cahill & McGaugh 1998); the size of
+the effect is a design constant, not a measurement.
 
 ---
 
@@ -82,15 +89,18 @@ Emotionally significant memories consolidate up to **3x stronger** and decay pro
 Edge strengthening follows an asymptotic curve (diminishing returns):
 
 ```
-Co-activations    Edge Weight    Growth Rate
-────────────────────────────────────────────
-     0              1.0           (baseline)
-     5              1.4           +0.08/step
-    10              1.7           +0.06/step
-    20              2.2           +0.04/step
-    50              3.1           +0.02/step
-   100              4.0           +0.01/step
+Co-activations    Edge Weight    Growth on that step
+────────────────────────────────────────────────────
+     0              1.00          (baseline)
+     5              1.44          +0.086
+    10              1.86          +0.082
+    20              2.64          +0.074
+    50              4.55          +0.055
+   100              6.71          +0.033
 ```
+
+From a start at 1.0 the weight after n co-activations is `10 − 9 × 0.99^n` (computed by
+`scripts/measure-docs-numbers.mjs`).
 
 The asymptotic formula `growth = LR * (1 - w/MAX)` ensures weights never exceed `MAX_WEIGHT` (10.0), preventing runaway strengthening. Homeostatic normalization keeps the total weight budget constant.
 
@@ -105,16 +115,23 @@ The asymptotic formula `growth = LR * (1 - w/MAX)` ensures weights never exceed 
 | Emotional tagging | O(n) | O(1) | n = words in text |
 | Hebbian strengthening | O(1) | O(1) | Single edge update |
 | Hebbian normalization | O(k) | O(k) | k = edges in context |
-| Bayesian propagation | O(i * e) | O(n) | i = iterations, e = edges, n = nodes |
+| Co-activation pairs (`generatePairs`) | O(n²) | O(n²) | n = co-activated items; it returns every pair |
+| Bayesian propagation | O(1) per edge | O(1) | `propagateForRelation` updates one edge; i passes over e edges in your code cost O(i * e) |
 | Context similarity | O(1) | O(1) | Matrix lookup |
 | Sleep consolidation | O(m * e) | O(m) | m = memories, e = avg edges per memory |
 | String similarity | O(w) | O(w) | w = unique words |
 
-All core algorithms are **constant-time or linear** — no quadratic or exponential operations.
+Per call, the functions are constant-time or linear in their input, with two exceptions: `generatePairs` is
+quadratic, because it returns every pair of the items it is given, and `selectForReplay` sorts its candidates
+(O(m log m)). Two regular expressions that took quadratic
+time on adversarial input (CodeQL alerts #3, #4) are linear now; the CHANGELOG records the fix.
 
 ---
 
 ## Memory Footprint
+
+Estimates from the data layout, not measurements — except the two embedding rows and the FSRS
+state, which are arithmetic (4 bytes per dimension; two numbers and a date).
 
 | Component | Per-Item Size | Notes |
 |-----------|--------------|-------|
@@ -128,6 +145,8 @@ All core algorithms are **constant-time or linear** — no quadratic or exponent
 
 ### Typical Deployment Sizes
 
+Rough estimates from the sizes above, not measured deployments.
+
 | Scale | Facts | Embeddings | DB Size | RAM |
 |-------|-------|-----------|---------|-----|
 | Personal assistant | 1K | 1536D | ~15 MB | ~50 MB |
@@ -138,34 +157,29 @@ All core algorithms are **constant-time or linear** — no quadratic or exponent
 
 ## Bundle Size
 
-ZenBrain is tree-shakeable. Import only what you need:
+ZenBrain is tree-shakeable. Import only what you need. Measured with esbuild 0.27 (`--bundle --minify`, ESM)
+by `scripts/measure-docs-numbers.mjs`; each row exports everything from the import named, except where it says
+otherwise:
 
-| Import | Bundle Size (minified) |
-|--------|----------------------|
-| `@zensation/algorithms` (full) | ~18 KB |
-| `@zensation/algorithms/fsrs` | ~3 KB |
-| `@zensation/algorithms/emotional` | ~8 KB |
-| `@zensation/algorithms/hebbian` | ~1.5 KB |
-| `@zensation/algorithms/bayesian` | ~1.5 KB |
-| `@zensation/core` (full) | ~12 KB |
-| `@zensation/core` (WorkingMemory only) | ~2 KB |
+| Import | Minified | gzip |
+|--------|---------:|-----:|
+| `@zensation/algorithms` (full) | 38.8 KB | 14.2 KB |
+| `@zensation/algorithms/fsrs` | 3.9 KB | 1.4 KB |
+| `@zensation/algorithms/emotional` | 5.2 KB | 2.3 KB |
+| `@zensation/algorithms/hebbian` | 0.9 KB | 0.5 KB |
+| `@zensation/algorithms/bayesian` | 0.7 KB | 0.5 KB |
+| `@zensation/core` (full, includes the algorithms it uses) | 33.2 KB | 10.6 KB |
+| `@zensation/core` (`WorkingMemory` only) | 2.4 KB | 1.0 KB |
 
-**Total for a typical integration: ~15 KB** (FSRS + emotional + working memory).
+**A typical integration — FSRS, emotional tagging and working memory — is 11.5 KB minified, 4.5 KB gzip.**
 
 ---
 
 ## Database Query Performance
 
-Measured with PostgreSQL 16 + pgvector (HNSW index):
-
-| Operation | 1K facts | 10K facts | 100K facts |
-|-----------|---------|----------|-----------|
-| Semantic search (top-5) | 2ms | 5ms | 15ms |
-| FSRS due-for-review | 1ms | 3ms | 8ms |
-| Episodic time-range | 1ms | 2ms | 5ms |
-| Core memory assemble | <1ms | <1ms | <1ms |
-
-**Recommended indexes:**
+This repository ships no database latency benchmark, so this page states no query times; they depend on
+your PostgreSQL, pgvector and hardware. `sql/001_init.sql` of `@zensation/adapter-postgres` already creates
+HNSW indexes on the four embedding columns. If you write your own schema, these are the indexes that matter:
 ```sql
 CREATE INDEX ON learned_facts USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON learned_facts (fsrs_next_review) WHERE fsrs_next_review IS NOT NULL;

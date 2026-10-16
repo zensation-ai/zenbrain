@@ -1,9 +1,12 @@
 /**
- * MemoryCoordinator — Orchestrates all 7 memory layers into a cohesive cognitive system.
+ * MemoryCoordinator — the entry point to ZenBrain's seven memory layers.
  *
- * This is the primary entry point for using ZenBrain. It routes content to the
- * appropriate memory layer, performs cross-layer recall with ranked results,
- * handles memory consolidation (episodic → semantic), and manages decay cycles.
+ * It creates all seven. `store()`, `recall()`, `forget()` and `consolidate()` work on
+ * working, episodic, semantic, procedural and core memory; short-term memory is reached
+ * through the session methods, cross-context memory through `getCrossContextMemory()`.
+ * It routes content to a layer, recalls across layers, promotes emotional episodes to
+ * facts (`consolidate()`), and decays working memory when `decay()` or `consolidate()`
+ * is called — there is no timer.
  *
  * Inspired by the global workspace theory (Baars, 1988) — the coordinator acts
  * as a "conscious workspace" that integrates information across memory systems.
@@ -36,9 +39,12 @@ export interface CoordinatorConfig {
   embedding?: EmbeddingProvider;
   /** LLM provider for consolidation summaries. Optional. */
   llm?: LLMProvider;
-  /** Cache provider for working memory persistence. Optional. */
+  /**
+   * Cache provider. Accepted, but no layer reads or writes it.
+   * @deprecated Has no effect; it will be removed in 1.0.
+   */
   cache?: CacheProvider;
-  /** Context domains for cross-context memory. Defaults to ['personal', 'work', 'learning', 'creative']. */
+  /** Context domains for cross-context memory, an experimental layer the coordinator creates but does not call. Defaults to ['personal', 'work', 'learning', 'creative']. */
   contexts?: string[];
   /** Logger instance. Defaults to no-op. */
   logger?: Logger;
@@ -47,15 +53,15 @@ export interface CoordinatorConfig {
 export interface StoreOptions {
   /** Routing hint: which layer to target. 'auto' uses content heuristics. */
   type?: 'auto' | 'fact' | 'episode' | 'procedure' | 'core';
-  /** Context domain (e.g., 'work', 'personal'). */
+  /** Context domain (e.g., 'work', 'personal'). Episodes keep it; facts, procedures and core blocks do not. */
   context?: string;
-  /** Emotional weight override (0-1). If not provided, auto-detected from content. */
+  /** Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing, above 0.5 makes the memory an episode. */
   emotionalWeight?: number;
-  /** Confidence score (0-1). High confidence (>0.9) routes to core memory. */
+  /** Confidence score (0-1), stored with facts. In auto routing, above 0.9 routes to core memory — unless steps, procedural wording or an emotional weight above 0.5 routed it first. */
   confidence?: number;
   /** Source attribution (e.g., 'user', 'ai', 'import'). */
   source?: string;
-  /** Steps for procedural memory. Required when type='procedure'. */
+  /** Steps for procedural memory. Optional: when omitted, numbered or bulleted lines of the content become the steps (otherwise each line). */
   steps?: string[];
   /** Tools used in the procedure. */
   tools?: string[];
@@ -77,10 +83,12 @@ export interface RecallOptions {
   /** Minimum confidence threshold for results. Defaults to 0. */
   minConfidence?: number;
   /**
-   * Which core blocks a recall returns. `'always'` (default) adds every core block to
-   * every recall, pinned like a profile. `'matching'` adds only the blocks that share a
-   * content word with the query (stopwords such as "the" do not count), so a large core
-   * memory cannot push the actual hits out of `limit`.
+   * Which core blocks a recall considers. `'always'` (default) adds every core block to the
+   * candidates of every recall; the blocks then compete for `limit` like any other result
+   * (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). `'matching'` adds only
+   * the blocks that share a content word with the query (stopwords such as "the" do not
+   * count), so a large core memory cannot push the actual hits out of `limit`; a `limit` of
+   * at least the number of blocks plus the hits you want does the same.
    */
   core?: 'always' | 'matching';
 }
@@ -90,9 +98,17 @@ export interface RecallResult {
   id: string;
   /** The memory content. */
   content: string;
-  /** Which layer this result came from. */
-  layer: string;
-  /** Relevance score (0-1, higher is better). */
+  /** Which layer this result came from; pass it with `id` to `forget()`. */
+  layer: RecallLayer;
+  /**
+   * Score from the result's layer, higher is better. The layers score differently, and
+   * `recall()` sorts all results by this one number: with an embedding provider, episodic,
+   * semantic and procedural results carry the cosine similarity (−1 to 1); without one,
+   * lexical relevance (0 to 1), and a recall that matches nothing returns recent episodes
+   * and facts at 0 but procedures at their success rate (up to 1). Core blocks score 0.8
+   * when a query word occurs in them, else 0.5. Working-memory results carry the slot's
+   * relevance, which without an embedding provider does not depend on the query.
+   */
   score: number;
   /** Confidence level, if available. */
   confidence?: number;
@@ -105,7 +121,7 @@ export interface RecallResult {
 export interface ConsolidationResult {
   /** Number of episodic memories promoted to semantic facts in this pass. */
   promoted: number;
-  /** Number of working memory slots decayed. */
+  /** Number of working-memory slots that decay removed (relevance at or below 0.01). Every slot loses relevance; only removed ones are counted. */
   decayed: number;
   /** Always 0: consolidation deletes nothing from long-term memory. Kept for the result's shape. */
   pruned: number;
@@ -242,18 +258,27 @@ export class MemoryCoordinator {
    *
    * Routing logic (in order of precedence):
    * 1. Explicit `type` in options overrides auto-detection.
-   * 2. 'procedure' or procedural-looking content → ProceduralMemory
-   * 3. 'episode' or emotionalWeight > 0.5 → EpisodicMemory
-   * 4. 'core' or confidence > 0.9 → CoreMemory (pinned)
-   * 5. 'fact' or default → SemanticMemory
+   * 2. `steps`, or content starting "How to", "Step 1", "Steps:" or containing
+   *    "workflow:", "recipe:", "procedure:", "instructions:", "step-by-step" → ProceduralMemory
+   * 3. emotionalWeight > 0.5 (given or detected) → EpisodicMemory
+   * 4. confidence > 0.9 → CoreMemory (pinned)
+   * 5. otherwise → SemanticMemory
    *
-   * All stored content is also added to WorkingMemory for immediate access.
+   * Every stored content is also added to working memory, which keeps the most
+   * recent seven in this process and is not part of the default recall.
    *
    * @param content - The text content to store
    * @param options - Routing hints and metadata
    * @returns The ID of the stored memory
+   * @throws RangeError if options.emotionalWeight or options.confidence is not a number from 0 to 1
    */
   async store(content: string, options: StoreOptions = {}): Promise<string> {
+    for (const key of ['emotionalWeight', 'confidence'] as const) {
+      const value = options[key];
+      if (value !== undefined && (typeof value !== 'number' || !(value >= 0 && value <= 1))) {
+        throw new RangeError(`store: options.${key} must be a number from 0 to 1, got ${value}`);
+      }
+    }
     const type = this.resolveStoreType(content, options);
     let storedId: string;
 
@@ -300,7 +325,7 @@ export class MemoryCoordinator {
       }
     }
 
-    // Also add to working memory for immediate access
+    // Also add to working memory (most recent seven; not part of the default recall)
     await this.working.add(content, 'fact', 1.0);
 
     return storedId;
@@ -313,8 +338,9 @@ export class MemoryCoordinator {
   /**
    * Cross-layer recall: search across memory layers and return ranked results.
    *
-   * Searches each requested layer,
-   * deduplicates by content similarity, and returns the top N results sorted by score.
+   * Searches each requested layer, deduplicates by content similarity, and returns the
+   * top N results sorted by score. The scores of different layers are not on one scale
+   * (see `RecallResult.score`).
    *
    * @param query - The search query
    * @param options - Layer selection and limits
@@ -368,14 +394,18 @@ export class MemoryCoordinator {
   /**
    * Delete one memory, addressed by the `id` and `layer` of a recall result.
    *
-   * Forgetting is explicit and final: the memory is deleted from its layer and no
-   * later recall returns it. Nothing is forgotten automatically; consolidation and
-   * decay never delete long-term memories. To correct a memory, forget it and store
-   * the corrected version.
+   * Forgetting is explicit and final for this one memory: it is deleted from its layer and
+   * no later recall returns it. A fact that `consolidate()` derived from an episode is a
+   * memory of its own and stays; so does the working-memory copy (below). If the content
+   * has to go, recall again after forgetting and forget whatever still returns it.
+   * Nothing in long-term memory is deleted on its own; consolidation and decay never
+   * delete long-term memories. To correct a memory, forget it and store the corrected
+   * version.
    *
-   * Working memory also keeps a copy of everything stored in this process. It is not
-   * part of the default recall and empties itself through decay; forget the
-   * working-memory result as well if the copy has to go at once.
+   * Working memory also keeps a copy of the most recent stores in this process (seven
+   * slots). It is not part of the default recall, and `decay()` / `consolidate()`
+   * remove its stale slots; forget the working-memory result as well if the copy has
+   * to go at once.
    *
    * @param id - The `id` of a recall result.
    * @param layer - The `layer` of the same result.
@@ -462,7 +492,7 @@ export class MemoryCoordinator {
    * file: three passes, three identical facts. An episode an earlier version
    * already promoted verbatim is recognised by that fact and only marked.
    *
-   * @returns Counts of promoted episodes, decayed working-memory slots, and pruned items (0).
+   * @returns Counts of promoted episodes, working-memory slots removed by decay, and pruned items (0).
    */
   async consolidate(): Promise<ConsolidationResult> {
     let promoted = 0;
@@ -517,9 +547,9 @@ export class MemoryCoordinator {
   // ===========================================
 
   /**
-   * Apply Ebbinghaus time-based decay to working memory slots.
-   *
-   * Reduces relevance of older slots and evicts those below the minimum threshold.
+   * Apply exponential time-based decay to working-memory slots: each slot loses
+   * relevance for the minutes since it was last decayed, and slots at 0.01 or below
+   * are removed. Long-term memory is not touched.
    *
    * @returns Object with the number of slots removed.
    */
@@ -558,11 +588,14 @@ export class MemoryCoordinator {
    * Record a recall attempt for FSRS scheduling.
    *
    * @param factId - The fact identifier.
-   * @param grade - Recall quality grade (1-5: 1=forgot, 5=perfect).
+   * @param grade - An integer from 1 to 5: 1 and 2 count as forgotten, 3 to 5 as recalled
+   *   (3 neutral, 5 perfect). Anything else throws a RangeError.
+   * @returns `true` if the fact exists and was updated, `false` if there is no fact with that id.
    */
-  async recordReview(factId: string, grade: number): Promise<void> {
-    await this.semantic.recordRecall(factId, grade);
-    this.log.debug(`Review recorded: fact=${factId}, grade=${grade}`);
+  async recordReview(factId: string, grade: number): Promise<boolean> {
+    const updated = await this.semantic.recordRecall(factId, grade);
+    this.log.debug(`Review recorded: fact=${factId}, grade=${grade}, found=${updated}`);
+    return updated;
   }
 
   // ===========================================
@@ -570,9 +603,9 @@ export class MemoryCoordinator {
   // ===========================================
 
   /**
-   * Aggregate health statistics from all memory layers.
+   * Health statistics from six layers (cross-context memory has no counter).
    *
-   * @returns MemoryHealth snapshot across all layers.
+   * @returns MemoryHealth snapshot: working, short-term, episodic, semantic, procedural, core.
    */
   async getHealth(): Promise<MemoryHealth> {
     const capacity = this.working.capacity;
@@ -580,15 +613,13 @@ export class MemoryCoordinator {
     const [episodicCount, semanticCount, dueForReview, coreBlocks] = await Promise.all([
       this.episodic.count(),
       this.semantic.count(),
-      this.semantic.getDueForReview(1000).then(r => r.length),
+      this.semantic.countDueForReview(),
       this.core.getBlocks().then(b => b.length),
     ]);
 
-    // Procedural count via list with a high limit
     let proceduralCount = 0;
     try {
-      const procs = await this.procedural.list(1000);
-      proceduralCount = procs.length;
+      proceduralCount = await this.procedural.count();
     } catch {
       this.log.warn('Failed to count procedural memories');
     }
@@ -864,8 +895,8 @@ export class MemoryCoordinator {
 
   /**
    * Deduplicate results by content similarity.
-   * If two results have Jaccard similarity > 0.9 on their content words,
-   * keep only the higher-scored one.
+   * If two results have Jaccard similarity > 0.9 on their words and numbers
+   * (case and punctuation ignored), keep only the higher-scored one.
    */
   private deduplicateResults(results: RecallResult[]): RecallResult[] {
     if (results.length <= 1) {
@@ -901,15 +932,20 @@ export class MemoryCoordinator {
 
   /**
    * Simple Jaccard content similarity for deduplication.
-   * Compares word overlap between two strings.
+   * Compares the sets of words and numbers of two strings, ignoring case and
+   * punctuation. Every token counts: short ones are often what tells two
+   * memories apart ("Locker code is 47" / "Locker code is 81", "Server A" /
+   * "Server B"), so dropping them made distinct memories look identical.
    */
   private contentSimilarity(a: string, b: string): number {
     if (!a || !b) return 0;
-    const wordsA = new Set(a.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-    const wordsB = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+    const tokens = (s: string) => new Set(s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean));
+    const wordsA = tokens(a);
+    const wordsB = tokens(b);
 
-    if (wordsA.size === 0 && wordsB.size === 0) return 1.0;
-    if (wordsA.size === 0 || wordsB.size === 0) return 0;
+    if (wordsA.size === 0 || wordsB.size === 0) {
+      return a.trim().toLowerCase() === b.trim().toLowerCase() ? 1.0 : 0;
+    }
 
     let intersection = 0;
     for (const word of wordsA) {

@@ -10,6 +10,7 @@ import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type MemoryFact, type Logger, noopLogger, formatForPgVector } from '../types';
 import { getRetrievability, updateAfterRecall, updateAfterForgot, initFromDecayClass } from '@zensation/algorithms/fsrs';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 export interface SemanticMemoryConfig {
   storage: StorageAdapter;
@@ -53,7 +54,7 @@ export class SemanticMemory {
   constructor(config: SemanticMemoryConfig) {
     this.storage = config.storage;
     this.embedding = config.embedding;
-    this.table = config.tableName ?? 'learned_facts';
+    this.table = assertSqlIdentifier(config.tableName ?? 'learned_facts', 'tableName');
     this.log = config.logger ?? noopLogger;
   }
 
@@ -103,7 +104,7 @@ export class SemanticMemory {
     return row ? rowToFact(row) : null;
   }
 
-  /** Retrieve facts by semantic similarity. */
+  /** Retrieve facts: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
   async search(query: string, limit = 5): Promise<(MemoryFact & { score: number })[]> {
     if (!this.embedding) {
       return this.lexicalSearch(query, limit);
@@ -128,8 +129,8 @@ export class SemanticMemory {
    * Non-vector retrieval: rank a bounded recency window by lexical relevance.
    *
    * This branch used to hand back `getRecent()` with `score: 0`, discarding the query.
-   * Every SQLite user lands here, because the vector branch above is pgvector-only — so
-   * the default `npx @zensation/mcp` install answered every question with the same rows.
+   * Every user without an embedding provider lands here — among them the default
+   * `npx @zensation/mcp` install, which answered every question with the same rows.
    *
    * A score of 0 now carries information: it means nothing matched lexically, and the
    * rows are the recency fallback. Before, 0 meant "this path does not rank at all".
@@ -158,14 +159,23 @@ export class SemanticMemory {
     return result.rows.map(rowToFact);
   }
 
-  /** Record a recall event (FSRS update). */
-  async recordRecall(factId: string, grade: number): Promise<void> {
+  /**
+   * Record a review of a fact and update its FSRS state.
+   *
+   * @param grade - An integer from 1 to 5. 1 and 2 count as forgotten (stability falls),
+   *   3 to 5 as recalled (3 neutral, 5 perfect). Anything else throws a RangeError.
+   * @returns `true` if the fact exists and was updated, `false` if there is no fact with that id.
+   */
+  async recordRecall(factId: string, grade: number): Promise<boolean> {
+    if (!Number.isInteger(grade) || grade < 1 || grade > 5) {
+      throw new RangeError(`recordRecall: grade must be an integer from 1 to 5, got ${grade}`);
+    }
     const result = await this.storage.query<FactRow>(
       `SELECT * FROM ${this.table} WHERE id = $1`,
       [factId]
     );
     const row = result.rows[0];
-    if (!row) return;
+    if (!row) return false;
 
     const state = {
       difficulty: row.fsrs_difficulty ?? 5,
@@ -187,6 +197,7 @@ export class SemanticMemory {
     );
 
     this.log.debug(`Recall recorded for fact ${factId}: grade=${grade}, next=${updated.nextReview}`);
+    return true;
   }
 
   /** Get facts due for review (FSRS scheduling). */
@@ -213,6 +224,15 @@ export class SemanticMemory {
   async count(): Promise<number> {
     const result = await this.storage.query<{ count: string }>(
       `SELECT COUNT(*) as count FROM ${this.table}`
+    );
+    return parseInt(result.rows[0]?.count ?? '0', 10);
+  }
+
+  /** Count the facts whose FSRS review is due (the same condition as `getDueForReview`). */
+  async countDueForReview(): Promise<number> {
+    const result = await this.storage.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM ${this.table}
+       WHERE fsrs_next_review IS NOT NULL AND fsrs_next_review <= NOW()`
     );
     return parseInt(result.rows[0]?.count ?? '0', 10);
   }

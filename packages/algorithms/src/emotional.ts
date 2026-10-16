@@ -44,9 +44,9 @@ export interface EmotionalWeight {
 /**
  * Contextual valence adjusts emotional valence based on the domain context.
  *
- * - Work: urgency words get higher arousal but neutral valence
+ * - Work: with urgency words, valence is pulled 20 % toward neutral (busy, not bad); arousal is unchanged
  * - Personal: emotional words get amplified valence
- * - Learning: difficulty words get neutral valence (challenges are expected)
+ * - Learning: with difficulty words and negative valence, valence is pulled 10 % toward neutral
  * - Creative: emotional intensity gets moderate amplification
  */
 export interface ContextualValence {
@@ -84,10 +84,11 @@ const DIFFICULTY_WORDS = new Set([
  * Compute context-adjusted valence for a given text and domain.
  *
  * Different domains interpret emotional signals differently:
- * - Work context: urgency is not negative, just high-arousal neutral
+ * - Work context: with urgency words, valence moves 20 % toward neutral (urgency is not negative)
  * - Personal context: emotions are amplified (personal relevance)
- * - Learning context: difficulty is expected, not negative
+ * - Learning context: with difficulty words and negative valence, valence moves 10 % toward neutral
  * - Creative context: moderate emotional amplification
+ * Arousal is not adjusted by context.
  *
  * @param text - The text to analyze
  * @param contextDomain - The domain: 'work', 'personal', 'learning', 'creative'
@@ -233,7 +234,9 @@ const SIGNIFICANCE_WORDS: ReadonlyMap<string, number> = new Map([
  *
  * Returns a multidimensional emotional profile:
  * - sentiment: overall positive/negative polarity
- * - arousal: activation/excitement level
+ * - arousal: activation/excitement level — 0.2, plus the average intensity of the arousal words
+ *   (or 0.1 when there are none but other emotional words), plus up to 0.5 for "!", 0.2 for "?" and
+ *   0.3 for words in capitals; at most 1
  * - valence: pleasantness (mapped from sentiment to 0-1)
  * - significance: personal importance/relevance
  *
@@ -288,24 +291,20 @@ export function tagEmotion(text: string, contextDomain?: string, logger: Logger 
     }
   }
 
+  // Punctuation and capitals boost arousal on top of the word average below. Folding them into
+  // that average would let "!" pull a strong arousal word down, and "?" or capitals would do
+  // nothing without an arousal word.
   // Exclamation marks boost arousal
   const exclamationCount = (text.match(/!/g) || []).length;
-  if (exclamationCount > 0) {
-    arousalScore += Math.min(exclamationCount * 0.15, 0.5);
-    arousalHits++;
-  }
+  const exclamationBoost = Math.min(exclamationCount * 0.15, 0.5);
 
   // Question marks slightly boost arousal (curiosity/uncertainty)
   const questionCount = (text.match(/\?/g) || []).length;
-  if (questionCount > 0) {
-    arousalScore += Math.min(questionCount * 0.05, 0.2);
-  }
+  const questionBoost = Math.min(questionCount * 0.05, 0.2);
 
   // ALL CAPS words boost arousal
   const capsWords = text.match(/\b[A-Z]{2,}\b/g) || [];
-  if (capsWords.length > 0) {
-    arousalScore += Math.min(capsWords.length * 0.1, 0.3);
-  }
+  const capsBoost = Math.min(capsWords.length * 0.1, 0.3);
 
   // Compute sentiment
   const totalEmotional = positiveHits + negativeHits;
@@ -318,11 +317,12 @@ export function tagEmotion(text: string, contextDomain?: string, logger: Logger 
     sentiment = rawSentiment * (0.5 + 0.5 * density);
   }
 
-  // Compute arousal
+  // Compute arousal: average intensity of the arousal words, then the boosts above
   const baseArousal = 0.2;
-  const arousal = arousalHits > 0
-    ? Math.min(baseArousal + arousalScore / Math.max(arousalHits, 1), 1.0)
+  const wordArousal = arousalHits > 0
+    ? baseArousal + arousalScore / arousalHits
     : baseArousal + (totalEmotional > 0 ? 0.1 : 0);
+  const arousal = Math.min(wordArousal + exclamationBoost + questionBoost + capsBoost, 1.0);
 
   // Compute valence: map sentiment (-1,1) to (0,1)
   const valence = (sentiment + 1) / 2;
@@ -367,10 +367,11 @@ export function tagEmotion(text: string, contextDomain?: string, logger: Logger 
  *
  * Based on amygdala modulation of memory consolidation:
  * - High arousal + high significance = strong consolidation (flashbulb memories)
- * - Emotional memories get 3x longer decay half-life
+ * - Emotional memories decay up to 3x slower
  *
  * Consolidation weight formula: arousal * 0.4 + significance * 0.6
- * Decay multiplier: 1.0 (neutral) to 3.0 (highly emotional)
+ * Decay multiplier: 1 + 2 × max(|sentiment|, arousal, significance), from 1.0 to 3.0.
+ * A neutral sentence gets 1.4, since tagEmotion starts arousal at 0.2; only empty text gets 1.0.
  */
 export function computeEmotionalWeight(tag: EmotionalTag): EmotionalWeight {
   const consolidationWeight = tag.arousal * 0.4 + tag.significance * 0.6;
@@ -389,8 +390,9 @@ export function computeEmotionalWeight(tag: EmotionalTag): EmotionalWeight {
 }
 
 /**
- * Quick check: is this text emotionally significant enough to warrant tagging?
- * Used as a fast pre-filter before full analysis.
+ * Convenience wrapper: is this text emotionally significant enough to warrant
+ * tagging? It runs the full analysis (`tagEmotion` + `computeEmotionalWeight`)
+ * and compares the consolidation weight with the threshold.
  */
 export function isEmotionallySignificant(text: string, threshold = 0.3): boolean {
   const tag = tagEmotion(text);

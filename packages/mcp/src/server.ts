@@ -90,7 +90,9 @@ export function createZenBrainServer(
         'zenbrain_store when they share something worth keeping (check with zenbrain_recall ' +
         'first, storing again adds a duplicate). When the user asks you to forget something, or ' +
         'a stored memory is wrong, call zenbrain_forget with the id and layer zenbrain_recall ' +
-        'returned; to correct it, forget it and store the corrected version. Run ' +
+        'returned, then recall again: a fact consolidated from it, or the working-memory copy, ' +
+        'is a separate memory, so forget those results too. To correct a memory, forget it and ' +
+        'store the corrected version. Run ' +
         'zenbrain_consolidate between sessions, not on every turn; zenbrain_health shows how ' +
         'much is stored.',
     },
@@ -103,12 +105,15 @@ export function createZenBrainServer(
       title: 'Store a memory',
       description:
         'Write something into long-term memory so it survives this conversation. ' +
-        'Routing is automatic by default: steps or instructions become a procedure; content ' +
-        'with an emotional weight above 0.5 (detected, or set via `emotionalWeight`) becomes an ' +
-        'episode; a `confidence` above 0.9 makes it a pinned core memory; anything else becomes ' +
-        'a semantic fact. Set `type` only when you want to override that. Every call adds a new ' +
-        'memory, except that storing the same core memory again updates it; the content is also ' +
-        'kept in working memory while the server runs. Returns the id of the stored memory. ' +
+        'Routing is automatic by default, first match wins: `steps`, or wording such as "How to", ' +
+        '"Steps:" or "workflow:", make a procedure; an emotional weight above 0.5 (detected, or ' +
+        'set via `emotionalWeight`) an episode; a `confidence` above 0.9 a pinned core memory; ' +
+        'anything else a semantic fact. Set `type` only when you want to override that. Every ' +
+        'call adds a new memory, except that storing the same core memory again updates it; the ' +
+        'content is also kept in working memory (the most recent seven) while the server runs, ' +
+        'so once seven are held each store replaces the oldest copy there. Long-term memory is ' +
+        'never changed by a store. ' +
+        'Returns the id of the stored memory. ' +
         'If it may already be stored, check with zenbrain_recall first: storing it again adds ' +
         'a duplicate.',
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -121,13 +126,13 @@ export function createZenBrainServer(
         context: z
           .string()
           .optional()
-          .describe("Context domain, e.g. 'work', 'personal', 'learning'."),
+          .describe("Context domain, e.g. 'work', 'personal', 'learning'. Kept with episodes only."),
         confidence: z
           .number()
           .min(0)
           .max(1)
           .optional()
-          .describe('How certain this is (0–1). Above 0.9 routes to core memory.'),
+          .describe('How certain this is (0–1), kept with facts. Above 0.9 routes to core memory unless an earlier routing rule matched.'),
         emotionalWeight: z
           .number()
           .min(0)
@@ -135,12 +140,12 @@ export function createZenBrainServer(
           .optional()
           .describe(
             'Emotional significance (0–1). Detected from the content when omitted. ' +
-              'Above 0.5 routes to episodic memory.',
+              'Above 0.5 routes to episodic memory unless steps or procedural wording matched first.',
           ),
         source: z
           .string()
           .optional()
-          .describe("Where this came from, e.g. 'user', 'ai', 'import'."),
+          .describe("Where this came from, e.g. 'user', 'ai', 'import'. Kept with facts and episodes."),
         steps: z
           .array(z.string())
           .optional()
@@ -178,10 +183,13 @@ export function createZenBrainServer(
       title: 'Recall memories',
       description:
         'Search long-term memory for anything relevant to a query. By default it searches ' +
-        `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (a handful of recently ` +
-        'stored items, held only while the server runs) is searched only when named in ' +
-        '`layers`. Returns results ranked by relevance, each with its id and the layer it came ' +
-        'from; zenbrain_forget takes both. Use this before answering when the user refers to something from an earlier ' +
+        `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (the most recent stores, ` +
+        'held only while the server runs, returned whatever the query) is searched only when ' +
+        'named in `layers`. Returns results sorted by score, each with its id and the layer it ' +
+        'came from; zenbrain_forget takes both. Scores are per layer: lexical relevance from 0 ' +
+        'to 1 for a match; when nothing matches, recent episodes and facts come back at 0 but ' +
+        'procedures at their success rate, and core blocks always come at 0.5 or 0.8 — so not ' +
+        'every top result is a hit. Use this before answering when the user refers to something from an earlier ' +
         'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
       annotations: { readOnlyHint: true, openWorldHint: false },
@@ -192,7 +200,7 @@ export function createZenBrainServer(
           .optional()
           .describe(
             `Restrict the search to these layers. Defaults to ${listed(DEFAULT_RECALL_LAYERS)}; ` +
-              "add 'working' to include recently stored items held in memory.",
+              "add 'working' to include the most recent stores held in memory (returned whatever the query).",
           ),
         limit: z
           .number()
@@ -226,10 +234,13 @@ export function createZenBrainServer(
               emotionalWeight: z.number().optional(),
             }),
           )
-          .describe('Matching memories, most relevant first.'),
+          .describe('Memories sorted by score, highest first; scores are per layer (see the tool description).'),
         skipped: z
           .number()
-          .describe('Rows that carried no readable content and were left out of `results`.'),
+          .describe(
+            'Rows without readable content that this server left out of `results`. When recall finds more ' +
+              'than one row, the coordinator drops such rows while deduplicating, before they reach this count.',
+          ),
       },
     },
     async ({ query, ...rest }) => {
@@ -267,7 +278,10 @@ export function createZenBrainServer(
       title: 'Forget a memory',
       description:
         'Permanently delete one memory, addressed by the id and layer that zenbrain_recall ' +
-        'returned for it. Nothing else is deleted, and it cannot be undone. Use it when the ' +
+        'returned for it. Only this memory is deleted, and that cannot be undone: a fact that ' +
+        'zenbrain_consolidate made from an episode, and the working-memory copy of a recent ' +
+        'store, are memories of their own — recall again and forget what still returns the ' +
+        'content. Use it when the ' +
         'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
         'forget it and store the corrected version with zenbrain_store. An id the layer does ' +
         'not hold is reported as not forgotten, not as an error.',
@@ -310,7 +324,7 @@ export function createZenBrainServer(
       inputSchema: {},
       outputSchema: {
         promoted: z.number().describe('Episodes promoted to semantic facts in this pass.'),
-        decayed: z.number().describe('Working-memory slots decayed.'),
+        decayed: z.number().describe('Working-memory slots removed by decay (relevance at or below 0.01).'),
         pruned: z.number().describe('Always 0: consolidation deletes nothing from long-term memory.'),
       },
     },

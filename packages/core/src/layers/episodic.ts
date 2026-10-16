@@ -9,6 +9,7 @@ import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type Episode, type Logger, noopLogger, formatForPgVector, cosineSimilarity } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 /**
  * An episode's metadata as an object. SQLite hands the column back as JSON
@@ -42,7 +43,7 @@ export class EpisodicMemory {
   constructor(config: EpisodicMemoryConfig) {
     this.storage = config.storage;
     this.embedding = config.embedding;
-    this.table = config.tableName ?? 'episodic_memories';
+    this.table = assertSqlIdentifier(config.tableName ?? 'episodic_memories', 'tableName');
     this.log = config.logger ?? noopLogger;
   }
 
@@ -106,7 +107,7 @@ export class EpisodicMemory {
     ]);
   }
 
-  /** Search episodes by semantic similarity (requires embedding provider). */
+  /** Search episodes: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
   async search(query: string, limit = 5): Promise<(Episode & { score: number })[]> {
     if (!this.embedding) {
       // Was: return the most recent episodes and drop the query on the floor. The warning

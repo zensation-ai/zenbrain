@@ -1,20 +1,17 @@
 /**
  * vmPFC Prediction-Error Coupled FSRS
  *
- * 
- * Extends the FSRS scheduler from @zensation/algorithms with a novel
- * KG-derived prediction-error signal for adaptive interval scheduling.
+ * Adds a KG-derived prediction-error signal to FSRS-style interval scheduling. The
+ * module computes its own interval adjustment; it does not call ./fsrs.
  *
- * Based on: Zou et al. (Cell Reports 2025) — "Benefits of spaced learning
- * are predicted by the re-encoding of past experience in ventromedial
- * prefrontal cortex"
+ * The prediction-error coupling is this project's own construction. Earlier versions
+ * attributed it to Zou et al. (2025, Cell Reports 44(2), 115232); that work contains no
+ * prediction-error signal, and the published correction notice withdraws the attribution
+ * (doi:10.5281/zenodo.22831087, section 8).
  *
  * Couples FSRS interval scheduling with a KG-derived prediction error signal.
  * Low PE at review = extend interval (no re-encoding benefit).
  * High PE at review = shorten interval (ideal re-encoding window).
- *
- * This is the first biologically-motivated adaptive FSRS extension.
- * No equivalent exists in Anki, SuperMemo, FSRS-5, or any other SRS.
  *
  */
 
@@ -109,7 +106,7 @@ export function computeAdaptiveFSRSInterval(
 }
 
 // ===========================================
-// PMA 4.8.2: Natural Recall -> FSRS Coupling
+// Natural recall -> FSRS coupling
 // ===========================================
 
 /**
@@ -119,12 +116,13 @@ export function computeAdaptiveFSRSInterval(
  *
  * Grade scale: 1 (barely recalled) to 5 (instant, effortless).
  * Default grade 4 = "Good" (recalled without difficulty).
+ * Pass `enabled: false` to switch the coupling off (it then returns null).
  */
 export function recordNaturalRecall(
   factId: string,
   grade: number = 4,
-  pmaEnabled: boolean = true,
+  enabled: boolean = true,
 ): { factId: string; grade: number; recordedAt: Date } | null {
-  if (!pmaEnabled) return null;
+  if (!enabled) return null;
   return { factId, grade, recordedAt: new Date() };
 }

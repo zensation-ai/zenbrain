@@ -18,7 +18,10 @@ export const noopLogger: Logger = {
   error() {},
 };
 
-/** Configuration for a memory layer. */
+/**
+ * A shared shape for layer configuration. Kept for compatibility: no layer or the
+ * coordinator takes a `LayerConfig`; each layer has its own config type.
+ */
 export interface LayerConfig {
   storage: import('./interfaces/storage').StorageAdapter;
   embedding?: import('./interfaces/embedding').EmbeddingProvider;

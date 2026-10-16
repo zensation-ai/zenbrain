@@ -26,7 +26,7 @@ export const HEBBIAN_CONFIG = {
   MAX_WEIGHT: 10.0,
   /** Fraction by which idle edges decay per batch cycle. */
   DECAY_RATE: 0.02,
-  /** Weight floor; edges below this are pruned (reset to NEUTRAL). */
+  /** Weight floor; computeHebbianDecay returns 0 below it, the signal to prune the edge. */
   MIN_WEIGHT: 0.1,
   /** Homeostatic target for the sum of weights in a context. */
   TARGET_SUM: 50.0,
@@ -38,17 +38,25 @@ export const HEBBIAN_CONFIG = {
 // Pure computation functions
 // ===========================================
 
+function assertWeight(weight: number, fn: string): void {
+  if (typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0) {
+    throw new RangeError(`${fn}: currentWeight must be a finite number >= 0, got ${weight}`);
+  }
+}
+
 /**
  * Asymptotic Hebbian strengthening.
  *
  * Formula: new = old + LR * (1 - old / MAX)
  * Growth diminishes as weight approaches MAX_WEIGHT.
  *
- * @param currentWeight - Current edge weight
+ * @param currentWeight - Current edge weight (a finite number >= 0)
  * @param logger - Optional logger for debug output
  * @returns New strengthened weight (capped at MAX_WEIGHT)
+ * @throws RangeError if currentWeight is NaN, infinite or negative
  */
 export function computeHebbianStrengthening(currentWeight: number, logger?: Logger): number {
+  assertWeight(currentWeight, 'computeHebbianStrengthening');
   const growth = HEBBIAN_CONFIG.LEARNING_RATE * (1 - currentWeight / HEBBIAN_CONFIG.MAX_WEIGHT);
   const newWeight = currentWeight + Math.max(0, growth);
   (logger ?? noopLogger).debug?.('Hebbian strengthening', { currentWeight, newWeight });
@@ -61,11 +69,13 @@ export function computeHebbianStrengthening(currentWeight: number, logger?: Logg
  * Formula: new = old * (1 - DECAY_RATE)
  * Returns 0 as a pruning signal when the result drops below MIN_WEIGHT.
  *
- * @param currentWeight - Current edge weight
+ * @param currentWeight - Current edge weight (a finite number >= 0)
  * @param logger - Optional logger for debug output
  * @returns Decayed weight, or 0 as a pruning signal
+ * @throws RangeError if currentWeight is NaN, infinite or negative
  */
 export function computeHebbianDecay(currentWeight: number, logger?: Logger): number {
+  assertWeight(currentWeight, 'computeHebbianDecay');
   const decayed = currentWeight * (1 - HEBBIAN_CONFIG.DECAY_RATE);
   (logger ?? noopLogger).debug?.('Hebbian decay', { currentWeight, decayed, pruned: decayed < HEBBIAN_CONFIG.MIN_WEIGHT });
   if (decayed < HEBBIAN_CONFIG.MIN_WEIGHT) {

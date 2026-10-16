@@ -13,7 +13,9 @@
  * - Temporal: time of day, day of week
  * - Task: what type of work the user is doing
  *
- * Context boost formula: 1.0 + (similarity * 0.3) → max 30% boost
+ * Context boost formula: 1.0 + (similarity * 0.3), at most 1.3. The 0.3 is a design
+ * constant, not a measured effect; even unrelated contexts score a small similarity
+ * (the boost then is about 1.04).
  *
  * @packageDocumentation
  * @module @zensation/algorithms/context-retrieval
@@ -38,7 +40,7 @@ export interface EncodingContext {
 }
 
 export interface ContextSimilarityResult {
-  /** Raw cosine similarity between encoding and current context (0-1) */
+  /** Weighted average of the per-dimension similarities (0-1) — not a cosine */
   similarity: number;
   /** Retrieval boost factor: 1.0 + (similarity * 0.3) */
   boost: number;
@@ -175,7 +177,7 @@ function normalizeTaskType(taskType: string): string {
 /**
  * Calculate similarity between an encoding context and the current context.
  *
- * Uses a weighted cosine-like similarity across three dimensions:
+ * A weighted average of per-dimension similarities from lookup tables:
  * - Temporal (time of day): 40% weight
  * - Day of week: 20% weight
  * - Task type: 40% weight

@@ -1,28 +1,25 @@
 /**
  * Modern Hopfield Network for Short-Term Memory.
  *
- * Phase H sprint reference: spec § H6 task 4 (ARMT Hopfield basins,
- * arXiv:2407.04841 + Ramsauer et al. 2021 arXiv:2008.02217).
+ * Based on: Ramsauer et al. 2021 (arXiv:2008.02217) and the ARMT
+ * Hopfield-basin work (arXiv:2407.04841).
  *
  * Why a Hopfield STM
  * ------------------
- * The current short-term-memory backend stores raw patterns and
- * recalls by linear similarity scan. That works for small N but
- * doesn't scale to long LoCoMo conversations where the in-context
- * STM can hold dozens to hundreds of working slots.
+ * A short-term memory that stores raw patterns and recalls by a
+ * similarity scan returns the best match but no completed pattern.
+ * A Modern Hopfield Network (MHN) returns both: the ranking of the
+ * stored patterns and a state pulled towards the best one.
  *
- * Modern Hopfield Networks (MHN, Ramsauer et al. 2021) are a drop-in
- * upgrade with three load-bearing properties for STM:
+ * Three properties of MHN (Ramsauer et al. 2021) matter here:
  *
- *   1. **O(1) recall** — one softmax-weighted update converges to the
- *      nearest attractor (vs. iterative passes for classical Hopfield).
- *      The MHN paper proves this is a single forward pass equivalent
- *      to one transformer self-attention step.
+ *   1. **Single-step recall** — one softmax-weighted update, the same
+ *      operation as one transformer self-attention step. It still
+ *      scans all N patterns: each recall is O(N · d) (see below).
  *
- *   2. **Exponential capacity** — the basin-of-attraction count scales
- *      exponentially in `d` (vs. linearly for classical Hopfield).
- *      For LoCoMo's d≈1536 embedding dimension this means STM can
- *      store thousands of distinct patterns without interference.
+ *   2. **Exponential capacity** — the paper shows storage capacity
+ *      exponential in `d` for well-separated patterns. That is a
+ *      property of the model, not a measurement of this module.
  *
  *   3. **Energy minimisation** — the recall step is provably a step
  *      down the energy surface, with discrete attractor states for
@@ -37,8 +34,12 @@
  *
  *     ξ_new = X · softmax(β · X^T · ξ)
  *
- * Under mild conditions on the patterns (separated, unit-norm), this
- * converges in 1 step to the nearest attractor. The MHN energy:
+ * For separated, unit-norm patterns and a large enough β, one step
+ * lands on the nearest attractor. How large is large enough depends on
+ * N and d: with N = 600 random unit vectors of d = 1536 (measured,
+ * scripts/measure-docs-numbers.mjs) the weight on the queried pattern is
+ * 0.005 at β = 1, 0.08 at β = 4, 0.83 at β = 8 and above 0.99 from β = 16.
+ * The ranking (`matches[0]`) was the queried pattern at every β. The MHN energy:
  *
  *     E(ξ) = -1/β · log(Σ_i exp(β · ξ^T · X_i)) + 1/2 · ξ^T · ξ
  *
@@ -50,11 +51,15 @@
  * Performance notes
  * -----------------
  * - Time: O(N · d) per update step (one matrix-vector multiply each
- *   way). For N≈600, d≈1536, this is ~1M FLOPs per recall — sub-ms.
+ *   way), plus one more pass for the energy. For N = 600, d = 1536 that
+ *   is about 2.8 million multiply-adds per recall; measured 2.8 ms on
+ *   Node 22, Apple M1 Pro (scripts/measure-docs-numbers.mjs).
  * - Space: O(N · d) for the pattern matrix. The caller owns the
  *   storage (we do not copy patterns into a private buffer).
- * - β=∞ would give a pure argmax (one-hot softmax). In practice β=1–4
- *   is enough for clean retrieval on unit-norm embeddings.
+ * - β=∞ would give a pure argmax (one-hot softmax). The default β = 1
+ *   ranks correctly but returns a state close to the average of the
+ *   patterns; pass a larger β (see the measurement above) when you use
+ *   `recoveredVector`.
  *
  * @module algorithms/hopfield-stm
  */
@@ -78,15 +83,16 @@ export interface HopfieldPattern<T = unknown> {
 
 export interface HopfieldOptions {
   /** Inverse temperature. Higher → sharper attractor, more like argmax;
-   *  lower → smoother averaging across patterns. Default 1.0. For
-   *  LoCoMo-scale (d≈1536, N≈600) values 1–4 work well. */
+   *  lower → smoother averaging across patterns. Default 1.0. The
+   *  ranking does not depend on β; the recovered state does — at
+   *  N = 600, d = 1536 it needs β ≈ 16 to sit on the stored pattern. */
   beta?: number;
-  /** Maximum recall iterations. Modern Hopfield converges in 1 step
-   *  for separated patterns. Default 1. Set higher when patterns are
-   *  expected to be highly correlated. */
+  /** Maximum recall iterations. Default 1. One step suffices for
+   *  separated patterns at a large enough β; set it higher when the
+   *  patterns are correlated or β is small. */
   maxIterations?: number;
   /** L2-norm change threshold for declaring convergence. Default 1e-4.
-   *  Only consulted when `maxIterations > 1`. */
+   *  Checked after every step, the first one included. */
   convergenceTol?: number;
 }
 
@@ -259,18 +265,14 @@ export function hopfieldRecall<T>(
   for (let step = 0; step < maxIter; step++) {
     const { state: newState, weights, scores } = hopfieldUpdate(state, patterns, beta);
     iterations = step + 1;
-    // Convergence check (only meaningful when maxIter > 1).
-    if (maxIter > 1) {
-      let delta2 = 0;
-      for (let i = 0; i < newState.length; i++) {
-        const d = newState[i] - state[i];
-        delta2 += d * d;
-      }
-      if (Math.sqrt(delta2) < tol) converged = true;
-    } else {
-      // Single-step: declare converged (the MHN paper's main claim).
-      converged = true;
+    // Converged when this step moved the state by less than tol — also for
+    // the first step: a single step only "settles" if it started at a fixed point.
+    let delta2 = 0;
+    for (let i = 0; i < newState.length; i++) {
+      const d = newState[i] - state[i];
+      delta2 += d * d;
     }
+    if (Math.sqrt(delta2) < tol) converged = true;
     state = newState;
     lastWeights = weights;
     lastScores = scores;

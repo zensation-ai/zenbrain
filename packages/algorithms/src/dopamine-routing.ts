@@ -1,44 +1,37 @@
 /**
- * D-MEM Dopamine-modulated Retrieval Routing.
+ * Dopamine-inspired retrieval routing.
  *
- * Phase H sprint reference: spec § H6 task 1 (D-MEM, arXiv:2603.14597).
+ * Inspired by D-MEM (Song & Xin 2026, "D-MEM: Dopamine-Gated Agentic Memory via
+ * Reward Prediction Error Routing", arXiv:2603.14597), which routes incoming
+ * information by reward prediction error: routine inputs take a fast path,
+ * surprising ones trigger the expensive memory-evolution pipeline. Its authors
+ * report over 80 % less token consumption. This module applies the same
+ * fast/slow idea to retrieval queries — our own adaptation, not part of D-MEM:
+ * a query whose predicted difficulty is low can be answered from a fast cache,
+ * a difficult one needs the deeper walk through the memory store.
  *
- * Why dopamine-gated routing
- * --------------------------
- * The existing `NeuromodulatorEngine` triggers phasic-dopamine bursts
- * on prediction-error during ENCODING. D-MEM (Doya & Kimura 2024)
- * extends the same signal to RETRIEVAL: a query whose difficulty is
- * low (predicted RPE ≈ 0) is unlikely to benefit from a full
- * memory-scan and can be answered from a fast cache; a query with
- * high predicted difficulty (predicted RPE elevated) needs the deeper
- * walk through the memory store.
- *
- * On LoCoMo this maps cleanly:
+ * The intended mapping onto LoCoMo question types:
  *   - Cat 4 (Single-Hop) — simple lookup, low surprise → fast path.
  *   - Cat 1 (Multi-Hop)  — high uncertainty, needs full scan.
  *   - Cat 2 (Temporal)   — medium-uncertainty, depends on recency
  *                          markers (`yesterday` / `last year`).
  *   - Cat 3 (Open-domain)— typically high.
- *
- * D-MEM's reported gain: ~40 % mean-latency reduction without
- * accuracy regression. The mechanism is a "predicted-difficulty"
- * critic that runs in microseconds — much cheaper than the full
- * retrieval it would otherwise trigger.
+ * No latency or accuracy effect of this module is measured in this repository.
+ * The "predicted-difficulty" critic itself runs in microseconds.
  *
  * Why pure-algorithm here
  * -----------------------
  * The critic is a small bundle of regex / token heuristics over the
- * query string. No DB, no LLM, no logger. Production callers
- * (`hybrid-retriever`, `arag/iterative-retriever`, `general-chat`)
- * compose the routing decision with their own retrieval surface.
+ * query string. No DB, no LLM, no logger. Callers compose the routing
+ * decision with their own retrieval surface.
  *
  * Score-fusion math
  * -----------------
  * The difficulty signal is a sum of zero-or-positive heuristic
- * contributors, normalised to [0, 1]. Each contributor is
- * deliberately small (≤ 0.30) so no single signal dominates. Eval
- * harness can sweep `surpriseThreshold` (default 0.5) without
- * retraining a critic.
+ * contributors, multiplied by `scale` and clamped to [0, 1]. Each
+ * contributor is deliberately small (≤ 0.20) so no single signal
+ * dominates. An evaluation can sweep `surpriseThreshold` (default 0.5)
+ * without retraining a critic.
  *
  *   - long-query bonus     (+0..0.20)  — long queries are usually complex
  *   - multi-clause bonus   (+0..0.20)  — `,` / `and` / `or` separators
@@ -47,8 +40,10 @@
  *   - multi-entity bonus   (+0..0.20)  — > 1 capitalized noun-like token
  *   - temporal anchors     (+0.10)     — `last year`, `yesterday`, dates
  *   - negation markers     (+0.10)     — `not`, `except`, `besides`
+ *   - question head        (+0.05)     — the query starts like a question
+ *   - recent misses        (+0..0.10)  — earlier queries in the conversation missed the cache
  *
- * Sum is clamped to [0, 1].
+ * The maxima add up to 1.35; the sum is clamped to [0, 1].
  *
  * @module algorithms/dopamine-routing
  */
@@ -295,12 +290,12 @@ function clamp(x: number, lo: number, hi: number): number {
 }
 
 // ===========================================================================
-// Convenience: routing-decision helpers for production callers
+// Convenience: routing-decision helpers
 // ===========================================================================
 
 /**
  * Convenience that turns a route into an `enableX` flag bag — useful
- * for production callers that want to translate D-MEM's decision into
+ * for callers that want to translate the routing decision into
  * existing retriever options without rewriting the whole flag matrix.
  *
  * The interpretation:

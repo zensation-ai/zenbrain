@@ -176,7 +176,7 @@ export {
 } from './spectral-health';
 
 // Information Bottleneck Budget ()
-export type { IBEpisode } from './ib-budget';
+export type { IBEpisode, IBContext } from './ib-budget';
 export {
   IB_BETA,
   ibShouldRetain,
@@ -221,7 +221,7 @@ export {
   undirectedToDirected,
 } from './personalized-pagerank';
 
-// Surprise-Gradient Memory (Variational Free Energy)
+// Surprise-Gradient Memory (a surprise EMA, inspired by Titans and the free-energy principle)
 export type {
   SurpriseObservation,
   VFEUpdateOptions,

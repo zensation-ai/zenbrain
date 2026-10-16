@@ -51,7 +51,8 @@ export function computeLaplacian(adjacency: number[][]): number[][] {
 }
 
 /**
- * Compute smallest non-zero eigenvalue of Laplacian (Fiedler value).
+ * Compute the second-smallest eigenvalue λ2 of the Laplacian (Fiedler value);
+ * it is 0 when the graph is disconnected.
  *
  * Pipeline: Laplacian -> Householder tridiagonalization -> QL iteration.
  *

@@ -5,6 +5,9 @@
 #
 #   @zensation/algorithms  must resolve to exactly 1 package (itself)
 #   @zensation/core        must resolve to exactly 2 (itself + algorithms)
+#   @zensation/ai-sdk      must declare no runtime dependencies at all (its packed
+#                          package.json; its peers — ai, @ai-sdk/provider, core — are
+#                          the caller's, so a resolved tree would count them)
 #
 # Runs in CI on every push and pull request, so the claim cannot quietly stop being
 # true between releases. Run it yourself: bash scripts/verify-zero-dependencies.sh
@@ -18,8 +21,10 @@ trap 'rm -rf "$WORK"' EXIT
 echo "Packing the publishable artifacts…"
 ALG_TGZ="$(cd "$ROOT/packages/algorithms" && npm pack --silent --pack-destination "$WORK")"
 CORE_TGZ="$(cd "$ROOT/packages/core" && npm pack --silent --pack-destination "$WORK")"
+AISDK_TGZ="$(cd "$ROOT/packages/ai-sdk" && npm pack --silent --pack-destination "$WORK")"
 echo "  $ALG_TGZ"
 echo "  $CORE_TGZ"
+echo "  $AISDK_TGZ"
 
 count_tree () {  # name tarball... -> number of packages in the resolved tree
   local dir="$WORK/probe-$1"; shift
@@ -50,6 +55,11 @@ if [ "$alg" -eq 1 ]; then echo "OK"; else echo "FAIL"; fail=1; fi
 
 printf '  %-26s %s package(s), expected 2  ' "@zensation/core" "$core"
 if [ "$core" -eq 2 ]; then echo "OK"; else echo "FAIL"; fail=1; fi
+
+aisdk=$(tar -xOzf "$WORK/$AISDK_TGZ" package/package.json \
+  | node -e "const p = JSON.parse(require('fs').readFileSync(0, 'utf8')); console.log(Object.keys(p.dependencies || {}).length)")
+printf '  %-26s %s runtime dependency(ies), expected 0  ' "@zensation/ai-sdk" "$aisdk"
+if [ "$aisdk" -eq 0 ]; then echo "OK"; else echo "FAIL"; fail=1; fi
 
 echo
 if [ "$fail" -ne 0 ]; then

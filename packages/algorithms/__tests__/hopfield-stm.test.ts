@@ -146,10 +146,18 @@ describe('hopfieldRecall — correctness', () => {
     }
   });
 
-  it('reports converged=true after single step', () => {
+  // `converged` used to be true after any single step, unchecked. At beta 1 the first step
+  // moves [1, 0, 0, 0] far towards the average of the patterns, so it has not settled.
+  it('a single step that moves the state by more than the tolerance is not converged', () => {
     const r = hopfieldRecall([1, 0, 0, 0], PATTERNS, { beta: 1.0 });
-    expect(r.converged).toBe(true);
     expect(r.iterations).toBe(1);
+    expect(r.converged).toBe(false);
+  });
+
+  it('a single step from a fixed point is converged', () => {
+    const r = hopfieldRecall([1, 0, 0, 0], PATTERNS, { beta: 60 });
+    expect(r.iterations).toBe(1);
+    expect(r.converged).toBe(true);
   });
 
   it('respects maxIterations > 1', () => {

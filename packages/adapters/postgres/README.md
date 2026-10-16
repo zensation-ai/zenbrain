@@ -16,7 +16,8 @@ import { PostgresAdapter } from '@zensation/adapter-postgres';
 
 const storage = new PostgresAdapter({
   connectionString: process.env.DATABASE_URL,
-  schema: 'personal', // optional: schema isolation
+  // schema: 'personal' isolates memory in its own schema; it needs the steps under
+  // "Multi-Context (Schema Isolation)" below first, or its queries fall back to the tables in public
 });
 
 const memory = new SemanticMemory({ storage });
@@ -31,13 +32,13 @@ Run the included SQL migration to create all tables:
 psql -f node_modules/@zensation/adapter-postgres/sql/001_init.sql -d your_database
 ```
 
-Requires PostgreSQL 15+ with the `pgvector` and `pg_trgm` extensions. The migration creates its four
+Requires PostgreSQL 15+ with the `pgvector` (0.5 or newer, for its HNSW indexes) and `pg_trgm` extensions. The migration creates its four
 embedding columns as `vector(1536)`, which fits embedding models with 1536 dimensions; for another size,
 change those four columns in the file before running it.
 
 ## Configuration
 
-```typescript
+```typescript prelude=postgres-page
 const storage = new PostgresAdapter({
   // Connection (URL or individual fields)
   connectionString: 'postgres://user:pass@host:5432/db',
@@ -60,7 +61,8 @@ const storage = new PostgresAdapter({
   // SSL
   ssl: { rejectUnauthorized: true },
 
-  // Retries for transient errors
+  // query() retries transient errors — a refused, reset or timed-out connection, a server
+  // shutting down or out of connections — up to this many times; transaction() does not retry
   maxRetries: 3,
 
   // Logger
@@ -70,9 +72,19 @@ const storage = new PostgresAdapter({
 
 ## Multi-Context (Schema Isolation)
 
-ZenBrain supports isolating memory into separate schemas:
+ZenBrain supports isolating memory into separate schemas. Each schema needs its own tables, and
+the extensions must live in `public` first: run on a fresh database, the migration creates them in
+the first schema of the search path, and the next schema then fails with `type "vector" does not exist`.
 
-```typescript
+```bash
+psql -d your_database -c 'CREATE EXTENSION IF NOT EXISTS vector SCHEMA public' \
+                      -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public' \
+                      -c 'CREATE SCHEMA personal' -c 'CREATE SCHEMA work'
+PGOPTIONS='-c search_path=personal,public' psql -d your_database -f node_modules/@zensation/adapter-postgres/sql/001_init.sql
+PGOPTIONS='-c search_path=work,public'     psql -d your_database -f node_modules/@zensation/adapter-postgres/sql/001_init.sql
+```
+
+```typescript prelude=postgres-page
 const personal = new PostgresAdapter({ connectionString: DB_URL, schema: 'personal' });
 const work = new PostgresAdapter({ connectionString: DB_URL, schema: 'work' });
 
@@ -86,13 +98,14 @@ Apache 2.0
 
 ## About ZenBrain
 
-ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. The benchmark results, and the
+ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
+TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
+dependencies. The benchmark results, and the
 configuration they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
-Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. The paper's measurements used `nomic-embed-text` as the embedding provider.
+Works out of the box without an embedding provider — lexical ranking, nothing extra
+to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

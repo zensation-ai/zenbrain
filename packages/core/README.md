@@ -11,7 +11,7 @@
 The orchestration layer that turns [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) into a complete memory system:
 
 - **MemoryCoordinator** — one API over the layers: auto-routing `store()`, cross-layer `recall()`, `forget()`, `consolidate()`, `decay()`, FSRS review queue
-- **7 Memory Layers** — Working, Short-Term, Episodic, Semantic, Procedural, Core, Cross-Context
+- **7 Memory Layers** — Working, Short-Term, Episodic, Semantic, Procedural, Core, Cross-Context (experimental: not wired into the coordinator)
 - **Consolidation** — `consolidate()` turns emotionally weighted episodes into semantic facts, once each. The sleep-replay functions live in `@zensation/algorithms` and are not called by the coordinator
 - **Pluggable Adapters** — bring your own storage (`@zensation/adapter-postgres`, `@zensation/adapter-sqlite`)
 
@@ -32,13 +32,14 @@ const memory = new MemoryCoordinator({ storage: new SqliteAdapter({ filename: '.
 // Auto-routes to the right layer (semantic, episodic, procedural, or core)
 await memory.store('User prefers TypeScript', { type: 'auto' });
 
-// Cross-layer search with ranked, deduplicated results
+// Cross-layer search: deduplicated results, sorted by each layer's score
 const results = await memory.recall('programming preferences');
 
-// Forget one memory for good, by the id and layer of a recall result
+// Forget one memory by the id and layer of a recall result (a fact consolidated from it stays)
 await memory.forget(results[0].id, results[0].layer);
 
-// Consolidate: emotionally weighted episodes become facts, once each; working memory decays
+// Consolidate: emotionally weighted episodes among the 100 most recent become facts, once each;
+// working memory decays
 await memory.consolidate();
 
 // Facts whose FSRS review is due; report each review with recordReview()
@@ -86,13 +87,14 @@ Apache 2.0 — see [LICENSE](../../LICENSE).
 
 ## About ZenBrain
 
-ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. The benchmark results, and the
+ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
+TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
+dependencies. The benchmark results, and the
 configuration they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
-Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. The paper's measurements used `nomic-embed-text` as the embedding provider.
+Works out of the box without an embedding provider — lexical ranking, nothing extra
+to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

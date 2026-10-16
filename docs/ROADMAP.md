@@ -30,10 +30,10 @@ external deadlines; the items below are directions, not dated commitments.
 
 ### v0.1 — Foundation (March 2026)
 
-- Initial public release: the 7-layer memory architecture and 10 core
-  neuroscience-inspired algorithms (FSRS, Ebbinghaus, Hebbian, Bayesian,
-  emotional, context-retrieval, similarity, intervals, visualization,
-  sleep-consolidation, shared types).
+- Initial public release: the 7-layer memory architecture and 7
+  neuroscience-inspired algorithm modules (FSRS, Ebbinghaus, Hebbian, Bayesian,
+  emotional, context-retrieval, similarity) plus shared types; v0.2 added
+  intervals, visualization and sleep consolidation, completing the 10 core modules.
 - Pluggable storage / embedding / LLM provider interfaces; Apache-2.0.
 
 ---
@@ -53,6 +53,14 @@ may change or be dropped based on evidence and contributor interest.
 - Batch FSRS scheduling for large fact sets.
 - Episodic memory compression (summarize older episodes).
 - Event-driven consolidation (trigger sleep cycles on inactivity).
+- A power forgetting curve as an option (`curve: 'power'`, the form FSRS has used since v4) next to today's
+  exponential curve. Only after a measurement shows it holds better here: it would move every existing review date.
+
+**Memory layers**
+- Cross-context layer: a context column for entities (a schema migration in both adapters), a write path, and
+  a coordinator that uses the layer. Until then it is experimental and not wired in.
+- Resumable short-term sessions: `startSession(id)` continuing a stored conversation (needs its own table).
+  Today a session lives in the process.
 
 **Reproducibility & evaluation**
 - A reproducible, comparative benchmark suite against other open-source memory
@@ -89,6 +97,7 @@ installations never move across a break on their own, and opting in is an explic
 
 | Release | Break | Why |
 |---|---|---|
+| `0.5.0` (2026-10-10) | **`RecallOptions.includeContext` and `taskType` removed** (and the ai-sdk's `recall.taskType`); `RecallResult` gains a required `id` | The options never changed a result: no store path wrote an encoding context. The `id` is what `forget()` takes. Migration: remove the two options from your calls; only code that constructs a `RecallResult` itself has to add `id`. |
 | `0.4.0` (2026-08-05) | **Node.js 18/20 dropped, 22+ required** | The declared `>=18` was never accurate — `@zensation/adapter-sqlite` depended on `better-sqlite3@^12`, which itself requires Node 20 or newer, so a Node 18 install failed on a transitive dependency while our metadata claimed support. Adopting `better-sqlite3@13` (N-API, ABI-independent prebuilds) sets the real floor at 22. Both dropped lines are end of life. |
 
 Migration for `0.4.0`: move to Node 22 LTS or newer, then raise the ranges — `@zensation/algorithms` to

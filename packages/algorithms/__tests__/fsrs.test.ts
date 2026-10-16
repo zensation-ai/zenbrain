@@ -274,6 +274,19 @@ describe('initFromSM2', () => {
   it('preserves stability value', () => {
     expect(initFromSM2(14).stability).toBeCloseTo(14, 1);
   });
+
+  // The doc says "null or 0 → default"; 0 used to land in the "< 3" branch (D 7.5, S 0.5).
+  it('0 → default D:5, S:1, like null', () => {
+    const state = initFromSM2(0);
+    expect(state.difficulty).toBe(5);
+    expect(state.stability).toBe(1);
+  });
+
+  // A negative value used to be clamped to 0.5 without a word; NaN and Infinity failed only
+  // inside scheduleNextReview, whose name the error then carried.
+  it.each([Number.NaN, -1, Number.POSITIVE_INFINITY])('rejects SM-2 stability %s', (value) => {
+    expect(() => initFromSM2(value)).toThrow(/^initFromSM2: /);
+  });
 });
 
 // ===========================================

@@ -87,6 +87,19 @@ jobs:
       - name: Verify every package ships what it promises
         run: bash scripts/verify-package-contents.sh
 
+      # A code block in a README is a claim that this code works. Until 0.5.2 nothing checked it:
+      # the PostgreSQL quick start called three methods the adapter does not have, for months.
+      # Compile every TypeScript block in the docs against the built packages, and type-check the
+      # examples (the three third-party SDKs are stubbed in examples/types/).
+      - name: Documentation snippets compile
+        run: node scripts/check-doc-snippets.mjs
+      - name: Examples type-check
+        run: npx tsc -p examples
+
+      # Every sentence that states how many tests there are must state what vitest collects.
+      - name: Test counts in the docs match the suites
+        run: node scripts/verify-test-counts.mjs
+
       # The paper prints a reproduction procedure and an abstract sentence that says the
       # ablation tables reproduce in under a minute. Run it, and compare the numbers it
       # produces against the ones the published tables were generated from — otherwise

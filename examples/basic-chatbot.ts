@@ -19,6 +19,9 @@
  * ZenBrain mirrors this: emotionally significant messages get higher relevance
  * in working memory and stronger consolidation weights.
  *
+ * Prerequisites:
+ *   npm install @zensation/algorithms @zensation/core
+ *
  * Run: npx tsx examples/basic-chatbot.ts
  */
 import { WorkingMemory, ShortTermMemory } from '@zensation/core';
@@ -51,7 +54,7 @@ async function processMessage(userMessage: string) {
 
   // 2. Emotional analysis (amygdala modulation simulation)
   // tagEmotion() analyzes text for sentiment, arousal, valence, and significance
-  // using a 400+ keyword lexicon. computeEmotionalWeight() converts these to
+  // using about 170 weighted keywords. computeEmotionalWeight() converts these to
   // memory parameters: consolidationWeight (how strongly to store) and
   // decayMultiplier (how slowly to forget — emotional memories last 1-3x longer).
   const emotion = tagEmotion(userMessage);

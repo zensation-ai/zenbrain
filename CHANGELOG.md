@@ -4,6 +4,292 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-10-16
+
+**Fixes and corrected texts, all six packages.** A review of 414 claims the packages and their docs make, 67 of
+which did not hold, found bugs in working memory, recall, eight algorithms, the PostgreSQL
+retry and the cross-context layer, and texts that promised more than the code does. This release fixes the bugs,
+each with a test that fails on 0.5.1, and makes the texts say what the code does. No API is removed; values
+outside a documented range now throw a `RangeError` (see *Changed* below). Three CI checks now keep the docs'
+code blocks, examples and test counts true.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/algorithms` | 0.5.1 | 0.5.2 | eight algorithm fixes, input checks, two linear-time regexes, module texts |
+| `@zensation/core` | 0.5.1 | 0.5.2 | working memory, recall dedup, `getHealth`, `recordReview`, table names, ids, input checks, cross-context, texts |
+| `@zensation/adapter-postgres` | 0.2.7 | 0.2.8 | retries a refused connection and pg-pool's timeouts; schema isolation documented |
+| `@zensation/adapter-sqlite` | 0.2.6 | 0.2.7 | README (it ships in the tarball) |
+| `@zensation/mcp` | 0.2.1 | 0.2.2 | tool texts, start error, `server.json` |
+| `@zensation/ai-sdk` | 0.3.0 | 0.3.1 | README and JSDoc |
+
+The ranges between the packages are unchanged.
+
+### Fixed — working memory dropped the newest slot and decayed twice
+
+Every `store()` adds its content to working memory at relevance 1.0, and nothing decays between stores, so a full
+working memory is all ties. `WorkingMemory.add()` sorted by relevance and evicted the last slot; the sort is stable,
+so the last slot was the new one. Once seven memories had been stored in a process, working memory kept those seven
+and dropped every later one at once. It now evicts the least relevant slot and, among equals, the oldest. Without an
+embedding provider, `findRelevant()` returns the most relevant slots, newest first among equals; it used to return
+them in array order.
+
+`decay()` multiplied each slot by e^(−rate × age) on every call, counting the age from when the slot was added, so a
+slot ten minutes old fell to 0.61, 0.37 or 0.22 after one, two or three calls. Each call now counts only the minutes
+since the slot was last decayed: how often `consolidate()` runs no longer changes how long a slot lives.
+
+### Fixed — recall merged memories that differ only in a short word or number
+
+Recall drops a result whose words overlap another result's by more than 90 %. The overlap ignored every word of two
+characters or fewer, so "Locker code is 47" and "Locker code is 81", or "Server A is up" and "Server B is up",
+counted as the same memory and recall returned only one of them. Every word and number now counts; case and
+punctuation are ignored, so "Paris." and "paris" still match.
+
+### Fixed — `getHealth()` stopped counting at 1000
+
+`procedural.count` and `semantic.dueForReview` listed rows with `LIMIT 1000` and took the length, so 1001 procedures or
+due facts reported 1000. Both are `COUNT(*)` queries now (`ProceduralMemory.count()`,
+`SemanticMemory.countDueForReview()`), as `episodic.count` and `semantic.count` already were.
+
+### Fixed — `recordReview()` accepted grades outside 1–5 and ignored unknown ids
+
+The FSRS functions reject a grade outside 1–5, but `recordReview()` checked nothing itself: 0 and 2.5 went through as
+"forgotten", and 6 threw only when the fact existed. The grade is now checked first, with the same rule and a
+`RangeError`. An unknown id resolved silently, so a typo in a review loop went unseen; `recordReview()` now returns
+`true` when it updated a fact and `false` when there is none (`SemanticMemory.recordRecall()` likewise). The docs say
+what the grades mean: 1 and 2 count as forgotten, 3 to 5 as recalled.
+
+### Fixed — the README quick start did not compile
+
+`memory.forget(results[0].id, results[0].layer)` failed type-checking (TS2345) because `RecallResult.layer` was a
+`string` while `forget()` takes a `RecallLayer`. `RecallResult.layer` is now a `RecallLayer`. Code that builds a
+`RecallResult` with a layer name outside `'working' | 'episodic' | 'semantic' | 'procedural' | 'core'` no longer
+type-checks. A test compiles the README line.
+
+### Fixed — adapter-postgres did not retry a refused connection
+
+`query()` promised automatic retries for transient connection errors, but it opened the connection before its
+`try`, so `ECONNREFUSED` or `ECONNRESET` while connecting failed at once; only errors of an already open client were
+retried. Connecting is now part of each attempt. A client that hit a transient error is released with that error, so
+`pg` discards it instead of handing a possibly dead connection to the next query.
+
+### Fixed — eight algorithms did not do what their documentation says
+
+Each fix comes with a test that fails on 0.5.1.
+
+- `tagEmotion`: "!", "?" and words in capitals entered the average of the arousal words. An exclamation mark
+  pulled a strong arousal word down ("This is urgent!" scored 0.70, "This is urgent" 1.00), and "?" or capitals
+  changed nothing without an arousal word ("THE SERVER IS DOWN" 0.20, like the lower-case sentence). They now add
+  on top of the word average, as documented; arousal goes up for such texts, never down.
+- `initFromSM2(0)` returns the documented default (difficulty 5, stability 1) instead of (7.5, 0.5).
+- `ibShouldRetain` / `ibFilterEpisodes`: the module header listed the contexts work, learning, personal and
+  creative, which have no beta, so every episode was dropped without an error. The header now lists the real
+  ones (finance 0.8, people 0.6, operations 0.4, strategy 0.3); the context type is exported as `IBContext`.
+- `applyVFERetrievalBoost` clamps the delta to [−1, 1], so the boost stays within ±alpha (±10 % by default) as
+  the module promises; a delta of 5 used to move a score by 50 %. `signHint` defaults to +1, as the code always
+  did; its documentation said 0 and gave +1 the opposite meaning.
+- `hopfieldRecall` checks convergence after a single step too; with the default `maxIterations: 1` it reported
+  `converged: true` without looking.
+- `detectNegation` and `stripNegation` recognise every n't contraction (can't, won't, didn't, …) with a straight
+  or a typographic apostrophe, and "cannot". The alternative meant for the typographic apostrophe held a second
+  straight one, so "doesn’t" as phones type it was not a negation.
+- `ebbinghaus`: `calculateRetention` computed with one stability and reported another, and
+  `batchCalculateRetention` used a third formula. All now use S × emotional multiplier (clamped to the documented
+  1.0–3.0), floored at 0.1. The module had no test; it has nineteen now.
+- `simulateReplay` no longer lowers a stability that is already above the 365-day cap.
+
+### Changed — out-of-range inputs throw a `RangeError` instead of being stored
+
+Values outside a documented range used to be stored or computed on silently: `computeHebbianStrengthening(-5)`
+returned −4.85, a working-memory relevance of 42 outranked every slot for good, and an `emotionalWeight` of 2
+went into routing. These now throw a `RangeError` naming the argument, before anything is stored:
+Hebbian strengthening and decay (NaN, infinite or negative weights; weights above `MAX_WEIGHT` are still capped),
+`WorkingMemory.add` (relevance outside 0–1), `store()` (`emotionalWeight` or `confidence` outside 0–1),
+`initFromSM2` (negative or non-finite stability) and the `ib-budget` functions (unknown context). Code that
+passed such values gets an exception where it used to get a corrupted value. `SECURITY.md` lists what is checked.
+
+### Fixed — adapter-postgres retries pg-pool's connection timeouts
+
+`query()` promises to retry "a timed-out connection", but pg-pool raises its two connection timeouts ("timeout
+exceeded when trying to connect", "Connection terminated due to connection timeout") without an error code, so
+they were thrown at once. Both are retried now. The README's quick start no longer sets `schema: 'personal'`
+without the steps that create that schema; without them the adapter quietly used `public`.
+
+### Fixed — cross-context memory paired every entity with itself
+
+`knowledge_entities` has no context column in either adapter, so every context reads the same rows, and
+`detectMergeCandidates()` reported each entity as a merge candidate of itself (similarity 1) and every real pair
+once per ordering of the contexts. It now skips an entity's own id and reports each pair once. The layer is
+experimental and not wired into the coordinator; the docs say so instead of "merges and deduplicates", and the
+ROADMAP lists the schema migration it needs.
+
+### Documentation — the FAQ compares with Mem0, Letta and Zep only where the README measured
+
+The FAQ's comparison table claimed layer counts (7 / 2 / 3 / 2) and a flat "No" for every other system, with no
+source and no date; the README's comparison is measured at pinned commits and says what a missing term means. The
+FAQ now summarises ZenBrain and links to that comparison.
+
+### Documentation — numbers the repository can measure come from a script
+
+`scripts/measure-docs-numbers.mjs` prints the quick-start values, the Hebbian convergence table, the emotional
+decay multipliers, Hopfield recall quality and time, and bundle sizes. The hand-written tables were off: 100
+co-activations give a weight of 6.71, not 4.0; the full algorithms bundle is 38.8 KB minified, not ~18 KB; a
+Hopfield recall over 600 patterns of 1536 dimensions takes about 2.8 ms (Node 22, Apple M1 Pro), not "sub-ms",
+and at the default beta of 1 its recovered state is close to the average of the patterns (the ranking is right at
+every beta). The emotional table's 30-day retention column had no source and is gone; the PostgreSQL latency
+table had no measurement in this repository and is gone too. `scripts/compare-mechanisms.sh` now clones the
+commits the README's comparison was measured at (27 August 2026) and counts the dependency row as well;
+`--latest` runs it against today's default branches.
+
+### Security — table names are checked before they reach SQL
+
+Values always went through placeholders, but table names were put into SQL as given: the `tableName` option of the
+episodic, semantic, procedural and core layers, and the `entityTable` and `linkTable` parameters of
+`CrossContextMemory.detectMergeCandidates()` and `createLink()`. A name like `x; DROP TABLE learned_facts; --` reached
+the query. Each is now checked against a plain identifier (letters, digits, underscores, optionally `schema.table`, at
+most 63 characters a part) and anything else throws a `TypeError`. `SECURITY.md` said "never string concatenation"; it
+now says what holds.
+
+### Security — two regular expressions took quadratic time (CodeQL alerts #3, #4)
+
+`detectNegation()` trimmed trailing punctuation off the negation target with `/[.,!?;:]+$/`, and
+`decomposeTemporalQuery()` trimmed separators with `/^[\s,?.]+|[\s,?.]+$/g`. Both backtrack over every run of those
+characters that is not at the end, so `'not ' + '.'.repeat(100000) + 'x'` and `'when did a' + ','.repeat(100000) + 'b'`
+took about 16 seconds each. Both trims are loops now and finish in milliseconds; results for ordinary input are
+unchanged.
+
+### Security — ids never come from `Math.random`
+
+Working-memory slots and sessions fell back to `Math.random()` for their ids when `crypto.randomUUID` was missing
+(CodeQL alert #5). On Node 22 and newer, the engines floor, it never is; the fallback is gone.
+
+### Documentation — examples that did not run as written
+
+- `docs/getting-started.md`: the PostgreSQL quick start called `adapter.initialize()`, `storeFact()` and `searchFacts()`,
+  none of which exist; it now applies the shipped migration and stores and recalls through `MemoryCoordinator`.
+  `getRetrievability` was imported from `@zensation/algorithms/ebbinghaus`, which does not export it.
+- `README.md`: the chatbot use case used `initFromDecayClass` without importing it and a type `MemoryState` that does not
+  exist; the RAG use case used undeclared types and a relation type `'related_to'` that `propagateForRelation()` does not
+  know.
+- `examples/with-crewai.ts` passed hours into the logger parameter of `computeHebbianDecay()` and two extra numbers to
+  `computeHebbianStrengthening()`, and described a homeostatic normalization it never applied. It now calls both with one
+  weight, runs 24 maintenance passes of 2 % each, removes edges at the pruning signal 0 and normalizes the weights.
+
+### Documentation — what core and the algorithms actually do
+
+- `docs/architecture.md`: short-term memory keeps 50 interactions by default (not 20), in the process only, and does not
+  resume sessions; episodes and facts are kept until forgotten (not "days to weeks"); consolidation turns emotional
+  episodes into one fact each rather than "extracting patterns"; the coordinator keeps no knowledge graph and runs no
+  Bayesian propagation; procedures are recorded through `store()` and scored through `feedback()`, not "adapted"; the
+  emotion lexicon has about 170 weighted keywords, not "400+"; the context boost is capped at 1.3 by a design constant,
+  not a measured "up to 30%".
+- `docs/recipes.md`: a serverless handler that never consolidates loses nothing it stored; decay touches only working
+  memory, which the default recall does not search; `initFromDecayClass('good', …)` threw.
+- JSDoc and `docs/api-reference.md`: routing order, which options a layer keeps (`context` only on episodes), `steps`
+  optional, `decayed` counts removed slots, `getHealth()` covers six layers, the `cache` option and `LayerConfig` are
+  unused, the lexical path is for every setup without an embedding provider (not only SQLite).
+
+### Documentation — the MCP server's tool texts and README
+
+- `zenbrain_store`: the routing rules in the order they apply (first match wins), and which options a memory keeps
+  (`context` only on episodes, `confidence` only on facts); working memory keeps the most recent seven.
+- `zenbrain_consolidate`: only the 100 most recent episodes are looked at; `decayed` counts removed slots.
+- `ZENBRAIN_CONTEXTS` (README and `server.json`): no tool uses the cross-context layer, so the value has no effect yet.
+- README: the five tools reach five of the seven layers; long-term memory does not decay; no tool records an FSRS
+  review; SQLite keeps `-wal` and `-shm` files next to the store.
+- Every package README said ZenBrain is "built as zero-dependency TypeScript"; only `@zensation/algorithms` and
+  `@zensation/core` are.
+- The start error for a store that cannot be opened told an absolute `ZENBRAIN_DB` to "set an absolute path"; it now
+  says to check the directory, and calls `~/…` what it is (a path the server expands, not an absolute one).
+- `zenbrain_recall` says how the layers score (a procedure or core block that does not match can rank above a real
+  hit) and that working memory ignores the query; `zenbrain_forget` and the server instructions say that a fact
+  consolidated from an episode, and the working-memory copy, stay when one memory is forgotten; `zenbrain_store`
+  says that each store replaces the oldest working-memory copy once seven are held; `skipped` says what it counts;
+  `server.json` lists the five layers the tools reach instead of "seven-layer".
+
+### Documentation — the ai-sdk README says what the middleware does in this release
+
+Without a lexical match, recall falls back to the most recent memories, and the middleware injects them like any
+other result; the README now says so. An aborted or failed stream stores nothing, not even the user's turn (the
+README said the user's turn was kept). `store.context` is kept with episodes only.
+
+### Fixed — the ai-sdk README pointed at a CI check that did not check ai-sdk
+
+`scripts/verify-zero-dependencies.sh` packed and checked `@zensation/algorithms` and `@zensation/core` only, while the
+ai-sdk README said its "0 runtime dependencies" were checked there. The script now also packs `@zensation/ai-sdk` and
+requires its packed `package.json` to declare no dependencies (its peers belong to the caller). The README no longer
+says the package "installs nothing" — npm 7 and later installs a missing peer — and its routing description and a
+broken section reference are corrected.
+
+### Documentation — adapter-postgres schema isolation, checked on PostgreSQL 17
+
+The README showed two adapters with `schema: 'personal'` and `schema: 'work'` but not how to create their tables.
+Run as the obvious steps on a fresh database, the migration installs `vector` and `pg_trgm` into the first schema of
+the search path, and the second schema then fails with `type "vector" does not exist` (measured with PostgreSQL 17.10
+and pgvector 0.8.2). The README now creates both extensions in `public` first and migrates each schema; through the
+adapter each schema then sees only its own facts. It also names pgvector 0.5 as the minimum (HNSW) and says that
+`query()` retries and `transaction()` does not. The adapter-sqlite example no longer stores the "FSRS outperforms
+SM-2 by 30%" sentence corrected above.
+
+### Fixed — `fsrs-vmPFC` attributed its mechanism to a paper that does not contain it
+
+The module header and the algorithms README named Zou et al. (2025, Cell Reports) as the basis of the
+prediction-error coupling. That work contains no prediction-error signal; the project's correction notice withdrew
+the attribution on 18 September 2026 (doi:10.5281/zenodo.22831087, section 8), and the header now says so. It also
+claimed to be "the first" such extension with "no equivalent" anywhere — a claim nobody here measured — and to
+extend `./fsrs`, which it does not import. The `backend/` copy carried the same text. `cross-context.ts` called its
+layer "unique to ZenBrain"; that line is gone.
+
+### Documentation — what each layer scores, and what `forget` leaves
+
+`RecallResult.score`, `recall()` and the API reference say how each layer scores — cosine similarity (−1 to 1) with
+an embedding provider, lexical relevance (0 to 1) without; when nothing matches, recent episodes and facts at 0 but
+procedures at their success rate; core blocks at 0.8 or 0.5; working memory without regard to the query — and that
+the merged list is sorted by these unlike scales. `forget()` is final for the one memory it deletes: a fact that
+`consolidate()` made from an episode, and the working-memory copy, stay, so recall again and forget what still
+returns the content. Core blocks with the default `core: 'always'` compete for `limit` (12 blocks and `limit: 10`
+gave 9 blocks and 1 hit). The `cache` option and `ShortTermMemory`'s `storage` are deprecated (accepted, never
+used; removed in 1.0); `startSession(id)` starts a fresh session. Recipe 5 no longer stores a fact with an
+`emotionalWeight` the coordinator ignores for facts; it builds the FSRS state itself. The FSRS texts say that the
+library keeps an exponential curve with S as its time constant, while FSRS has used a power curve since v4.
+
+### Documentation — project-wide texts
+
+- `docs/FAQ.md`: the license paragraph said attribution is "not required"; Apache 2.0 section 4 requires keeping the
+  license and the copyright and attribution notices when redistributing. 0.4.0 was not the only breaking change
+  (0.5.0 withdrew two recall options). Five algorithm modules do not cite a source yet. Semantic search depends on
+  an embedding provider, not on pgvector: SQLite compares vectors by full scan, and without a provider the layers rank
+  by wording, not by recency. Only working memory decays.
+- `docs/ROADMAP.md`: v0.1 shipped 7 algorithm modules, not 10; the compatibility history now lists 0.5.0.
+- `AGENTS.md`: a breaking change takes a minor bump below 1.0 (as the ROADMAP says), not a major one; the project maps
+  in `AGENTS.md` and `CONTRIBUTING.md` include `mcp`, `ai-sdk`, `backend` and `scripts`.
+- `docs/benchmarks.md`: the ablation tables run from `backend/` too; `generatePairs` is quadratic by nature; Bayesian
+  propagation is one edge per call.
+- `README.md`: emotional tagging runs only with automatic routing; consolidation looks at the 100 most recent episodes;
+  the MCP server reaches five of the seven layers; zero runtime dependencies holds for algorithms and core.
+- `examples/`: `with-mastra` needs `@zensation/adapter-sqlite`; `basic-chatbot` has its install line.
+
+### Maintenance — changes since 0.5.1 this file had not recorded
+
+The README says every change is recorded here; these five were not.
+
+- `@zensation/mcp`: runtime dependency `@modelcontextprotocol/sdk` ^1.30.1 → ^1.32.1 (#133).
+- `@zensation/adapter-postgres`: runtime dependency `pg` (and `@types/pg`) ^8.23.0 → ^8.23.1 (#120).
+- Development dependencies: `turbo`, `ai`, `@ai-sdk/provider`, `@types/node` (#131).
+- `CITATION.cff` describes v0.5.1, archived as a new version of the software record (#136).
+- CI: the workflow token is read-only by default (#137).
+
+### Added — CI checks that keep the documentation's code and numbers true
+
+- `scripts/check-doc-snippets.mjs` compiles every TypeScript block in the README files and `docs/` against the
+  built packages (`tsc --strict`, each block as its own module). A block that continues an earlier one says so on
+  its fence (```` ```ts prelude=memory ````), which adds type declarations and nothing else. Run against the 0.5.1
+  `getting-started.md`, it reports the four errors that page had.
+- `npx tsc -p examples` type-checks all seven examples. The three third-party SDKs are stubbed in `examples/types/`,
+  so the check covers every call into `@zensation/*`, not the third-party APIs.
+- `scripts/verify-test-counts.mjs` compares every sentence that states a test count with what `vitest list`
+  collects. It found the README header still at 822 and the other counts one short (`@zensation/mcp` had 59
+  tests, not 58).
+
 ### Changed — the ablation reproduction calls its nine non-PMA components what the paper calls them
 
 `backend/` carried an old working label for the nine components of the ablation that are not PMA components. They
@@ -11,10 +297,10 @@ are now `harness`, the paper's word for them ("harness mechanisms" — the mecha
 the nine library algorithms), and the configuration without the PMA components is `No PMA (harness mechanisms only)`,
 as in the paper's ablation table. The rename covers the three reference files in `backend/results/`, the ablation
 suite that produces them, the integration-cascade suite and six module headers; all 722 point estimates are unchanged
-(`scripts/verify-against-reference.mjs`: 722 identical, 0 drifted). The headers no longer call five of the modules unpublished — all five ship in
-`@zensation/algorithms` — and the `fsrs-vmPFC` copy drops the Zou et al. attribution and the claim to be the first
-such extension (correction notice doi:10.5281/zenodo.22831087, section 8). Reproduction packages already archived on
-Zenodo keep their original labels.
+(`scripts/verify-against-reference.mjs`: 722 identical, 0 drifted). The headers no longer call five of the modules
+unpublished — all five ship in `@zensation/algorithms` — and the `fsrs-vmPFC` copy drops the Zou et al. attribution
+and the claim to be the first such extension (correction notice doi:10.5281/zenodo.22831087, section 8).
+Reproduction packages already archived on Zenodo keep their original labels (#140).
 
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 

@@ -1,8 +1,8 @@
 /**
  * Provider interface for key-value caching.
  *
- * Implement this with Redis, in-memory Map, or any cache backend.
- * All methods are optional — layers degrade gracefully without a cache.
+ * Implement this with Redis, an in-memory Map, or any cache backend. The provider itself
+ * is optional; an implementation provides `get`, `set` and `del`. No layer uses it yet.
  */
 export interface CacheProvider {
   /** Get a cached value by key. Returns null if not found or expired. */

@@ -246,6 +246,60 @@ describe('PostgresAdapter.query()', () => {
     await expect(adapter.query('SELECT 1')).resolves.toBeDefined();
   });
 
+  // The retry loop used to call pool.connect() outside its try, so a refused or reset
+  // connection failed at once: "Automatic retry for transient connection errors" did
+  // not hold for the connection itself, only for errors of an already open client.
+  it('retries when opening the connection is refused', async () => {
+    const err = new Error('connect ECONNREFUSED 127.0.0.1:5432');
+    (err as any).code = 'ECONNREFUSED';
+    mockConnect
+      .mockRejectedValueOnce(err)
+      .mockResolvedValueOnce(makeMockClient());
+
+    const adapter = new PostgresAdapter({ maxRetries: 2 });
+    await expect(adapter.query('SELECT 1')).resolves.toBeDefined();
+    expect(mockConnect).toHaveBeenCalledTimes(2);
+    expect(mockRelease).toHaveBeenCalledOnce();
+  });
+
+  // pg-pool reports its two connection timeouts as plain Errors without a code, so the
+  // README's "timed-out connection" was not retried. These are pg-pool's own messages.
+  it.each([
+    'timeout exceeded when trying to connect',
+    'Connection terminated due to connection timeout',
+  ])('retries the pool timeout "%s"', async (message) => {
+    mockConnect
+      .mockRejectedValueOnce(new Error(message))
+      .mockResolvedValueOnce(makeMockClient());
+
+    const adapter = new PostgresAdapter({ maxRetries: 2 });
+    await expect(adapter.query('SELECT 1')).resolves.toBeDefined();
+    expect(mockConnect).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a connection error that is not transient', async () => {
+    mockConnect.mockRejectedValueOnce(new Error('password authentication failed for user "x"'));
+
+    const adapter = new PostgresAdapter({ maxRetries: 2 });
+    await expect(adapter.query('SELECT 1')).rejects.toThrow('password authentication failed');
+    expect(mockConnect).toHaveBeenCalledOnce();
+    expect(mockRelease).not.toHaveBeenCalled();
+  });
+
+  it('discards a client after a transient error instead of returning it to the pool', async () => {
+    const transientError = new Error('connection reset');
+    (transientError as any).code = 'ECONNRESET';
+    mockClientQuery
+      .mockRejectedValueOnce(transientError)
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    const adapter = new PostgresAdapter({ maxRetries: 1 });
+    await adapter.query('SELECT 1');
+    // pg destroys a client released with a truthy argument; a healthy one is released without.
+    expect(mockRelease).toHaveBeenNthCalledWith(1, transientError);
+    expect(mockRelease).toHaveBeenNthCalledWith(2, undefined);
+  });
+
   it('retries on error message containing retryable code', async () => {
     const err = new Error('got EPIPE while writing');
 

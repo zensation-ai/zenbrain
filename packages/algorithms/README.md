@@ -9,24 +9,24 @@
 
 ## What's Inside
 
-**20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 429 tests.
+**20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 534 tests.
 
-> ZenBrain's full architecture is **15 neuroscience-inspired mechanisms (9 foundational + 6 PMA)** ([paper](https://arxiv.org/abs/2604.23878)). The 6 PMA components are proprietary; this open-source package ships the algorithm library described below.
+> ZenBrain's full architecture is **15 neuroscience-inspired mechanisms (9 foundational + 6 PMA)** ([paper](https://arxiv.org/abs/2604.23878)). The six Predictive Memory Architecture components themselves are proprietary and not in this package; it ships the algorithm library described below, including the hooks they plug into (the emotional replay term of `sleep-simulation-selection`, the natural-recall coupling of `fsrs-vmPFC`, the lock-score gate of `hebbian-two-factor`).
 
 ### Core (10 algorithms — since v0.2.x)
 
 | Algorithm | Inspired By | What It Does |
 |-----------|------------|--------------|
-| **FSRS** | [Free Spaced Repetition Scheduler](https://github.com/open-spaced-repetition/fsrs4anki) | Optimal review scheduling — your AI never forgets what matters |
+| **FSRS** | [Free Spaced Repetition Scheduler](https://github.com/open-spaced-repetition/fsrs4anki) | FSRS-style difficulty and stability updates; schedules each review for when recall probability falls to a target (0.9 by default) |
 | **Ebbinghaus** | [Ebbinghaus (1885)](https://en.wikipedia.org/wiki/Forgetting_curve) | Exponential forgetting curves with personalized decay profiles |
-| **Emotional** | [Amygdala modulation](https://en.wikipedia.org/wiki/Emotion_and_memory) (Cahill & McGaugh, 1998) | Arousal/valence/significance tagging — emotional memories decay 3× slower |
+| **Emotional** | [Amygdala modulation](https://en.wikipedia.org/wiki/Emotion_and_memory) (Cahill & McGaugh, 1998) | Arousal/valence/significance tagging — emotional memories decay up to 3× slower |
 | **Hebbian** | [Hebb's Rule](https://en.wikipedia.org/wiki/Hebbian_theory) (1949) | Co-activation strengthening with homeostatic normalization |
-| **Bayesian** | [Bayesian belief propagation](https://en.wikipedia.org/wiki/Belief_propagation) | Confidence propagation through knowledge graphs |
+| **Bayesian** | Bayesian-style (noisy-OR) updates | Confidence propagation along the knowledge-graph edges you pass, one edge per call |
 | **Context Retrieval** | [Encoding Specificity](https://en.wikipedia.org/wiki/Encoding_specificity_principle) (Tulving, 1973) | Context-dependent retrieval boost when contexts match |
 | **Similarity** | NLP heuristics | Negation detection (EN/DE), Jaccard similarity, text analysis |
 | **Sleep Consolidation** | Stickgold & Walker (2013) | Replay simulation — strengthens emotional/recent memories, prunes weak edges |
-| **Intervals** | Statistics | 95 % confidence intervals on retrievability and propagation |
-| **Visualization** | — | Export retention curves and FSRS schedules for charting |
+| **Intervals** | Statistics | Heuristic uncertainty bands on retrievability and propagation (not calibrated intervals) |
+| **Visualization** | — | Retention curves (illustrative) and FSRS schedules for charting |
 | (plus shared `types`) | — | Logger interface, common typedefs |
 
 ### Advanced algorithms (10 algorithms — new in v0.3.0)
@@ -35,15 +35,15 @@ Each is a separate sub-path import. Grounded in recent neuroscience and ML liter
 
 | Algorithm | Sub-path | Inspired by |
 |-----------|----------|-------------|
-| **Prediction-Error coupled FSRS** | `./fsrs-vmPFC` | Zou et al. 2025, vmPFC re-encoding |
+| **Prediction-Error coupled FSRS** | `./fsrs-vmPFC` | own construction (an earlier attribution to Zou et al. 2025 is withdrawn in the correction notice) |
 | **Two-Factor Synaptic Hebbian** | `./hebbian-two-factor` | Zenke et al. 2025, two-factor consolidation |
 | **Simulation-Selection Sleep Loop** | `./sleep-simulation-selection` | Frontiers Comp. Neurosci. 2025, RL replay |
 | **Spectral KG Health (Fiedler value)** | `./spectral-health` | Algebraic graph theory |
 | **Information-Bottleneck Budget** | `./ib-budget` | MemFly 2026, IB-based retention |
-| **Dopamine-Modulated Routing** | `./dopamine-routing` | Reward-modulated retrieval routing |
+| **Dopamine-Modulated Routing** | `./dopamine-routing` | D-MEM (Song & Xin 2026), adapted to retrieval routing |
 | **Hopfield Short-Term Memory** | `./hopfield-stm` | Modern Hopfield networks |
 | **Personalized PageRank** | `./personalized-pagerank` | Graph propagation |
-| **Surprise-Gradient (Variational FE) Memory** | `./surprise-gradient-memory` | Free-energy principle |
+| **Surprise-Gradient Memory** (a surprise EMA) | `./surprise-gradient-memory` | Titans; the free-energy principle as motivation |
 | **Temporal Multi-Route Retrieval** | `./temporal-multi-route` | Decomposed temporal queries |
 
 ## Quick Start
@@ -91,7 +91,7 @@ console.log(`Stability: ${memory.stability} -> ${updated.stability.toFixed(2)}`)
 // 4. Tag emotional significance
 const emotion = tagEmotion('I am absolutely thrilled — I got the promotion!');
 console.log(emotion);
-// { sentiment: 0.55, arousal: 0.35, valence: 0.78, significance: 0.85 }
+// { sentiment: 0.55, arousal: 0.45, valence: 0.775, significance: 0.85 }
 
 const weight = computeEmotionalWeight(emotion);
 console.log(`Decay multiplier: ${weight.decayMultiplier}x`);
@@ -142,7 +142,7 @@ Knowledge graph edges that are frequently co-activated grow stronger. Edges that
 
 ### Context-Dependent Retrieval
 
-Tulving showed that memory recall improves when the retrieval context matches the encoding context. This module captures temporal + task context at encoding time and provides up to a **30% retrieval boost** when contexts match.
+Tulving showed that memory recall improves when the retrieval context matches the encoding context. This module captures temporal + task context at encoding time and returns a boost factor of up to **1.3** when contexts match — a design constant, not a measured effect.
 
 ## API Reference
 
@@ -153,10 +153,10 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | `initFromDecayClass(class, emotionalWeight?)` | Create initial state from decay class |
 | `initFromSM2(stability)` | Convert SM-2 stability to FSRS state |
 | `getRetrievability(state, now?)` | Calculate current recall probability |
-| `scheduleNextReview(state, targetRetention?, now?)` | Schedule next optimal review |
+| `scheduleNextReview(state, targetRetention?, now?)` | Schedule the next review for when R reaches the target retention |
 | `updateAfterRecall(state, grade, retrievability, now?)` | Update after successful recall (grade 1-5) |
 | `updateAfterForgot(state, retrievability, now?)` | Update after failed recall |
-| `updateStabilityCompat(stability, success, multiplier?)` | Drop-in SM-2 replacement |
+| `updateStabilityCompat(stability, success, multiplier?)` | SM-2 call shape, FSRS update |
 | `getRetentionProbabilityCompat(lastAccess, stability, multiplier?)` | Drop-in Ebbinghaus replacement |
 
 ### Ebbinghaus (`@zensation/algorithms/ebbinghaus`)
@@ -164,10 +164,10 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | Function | Description |
 |----------|-------------|
 | `calculateRetention(lastAccess, stability, emotionalMultiplier?)` | Full retention analysis |
-| `updateStability(stability, success)` | SM-2 stability update |
+| `updateStability(stability, success)` | Stability update after a retrieval (SM-2 call shape; computes the FSRS update) |
 | `getRepetitionCandidates(facts, threshold?)` | Find facts due for review |
-| `calculateOptimalInterval(stability, targetRetention?)` | Optimal review interval |
-| `batchCalculateRetention(facts)` | Efficient batch retention |
+| `calculateOptimalInterval(stability, targetRetention?)` | Days until R falls to a target (default 0.85) |
+| `batchCalculateRetention(facts)` | `calculateRetention` for many facts, against one timestamp |
 | `learnDecayProfile(history)` | Personalized decay curves |
 | `calculatePersonalizedRetention(lastAccess, stability, profile)` | User-specific retention |
 
@@ -177,7 +177,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 |----------|-------------|
 | `tagEmotion(text, contextDomain?)` | Multi-dimensional emotion analysis |
 | `computeEmotionalWeight(tag)` | Consolidation weight + decay multiplier |
-| `isEmotionallySignificant(text, threshold?)` | Quick significance check |
+| `isEmotionallySignificant(text, threshold?)` | Significance check (runs the full analysis) |
 | `computeContextualValence(text, domain)` | Domain-adjusted valence |
 
 ### Hebbian (`@zensation/algorithms/hebbian`)
@@ -216,9 +216,9 @@ Tulving showed that memory recall improves when the retrieval context matches th
 
 ## Logging
 
-All functions accept an optional `Logger` parameter. Pass `console`, your favorite logger, or nothing (silent by default):
+The functions that log take an optional `Logger` as their last parameter: the FSRS updates (`updateAfterRecall`, `updateAfterForgot`), `tagEmotion`, the Hebbian functions (strengthening, decay, normalization), `propagateForRelation`, `applyDamping`, `captureEncodingContext`, ebbinghaus `updateStability`, the three sleep-consolidation functions and `safeJsonParse`. Pass `console`, your favorite logger, or nothing (silent by default):
 
-```typescript
+```typescript prelude=fsrs-state
 import { updateAfterRecall } from '@zensation/algorithms';
 
 // Silent (default)
@@ -251,13 +251,14 @@ Apache 2.0 — see [LICENSE](../../LICENSE).
 
 ## About ZenBrain
 
-ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. The benchmark results, and the
+ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
+TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
+dependencies. The benchmark results, and the
 configuration they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
-Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. The paper's measurements used `nomic-embed-text` as the embedding provider.
+Works out of the box without an embedding provider — lexical ranking, nothing extra
+to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

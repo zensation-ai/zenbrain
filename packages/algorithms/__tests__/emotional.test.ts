@@ -57,6 +57,25 @@ describe('tagEmotion', () => {
     expect(caps.arousal).toBeGreaterThan(normal.arousal);
   });
 
+  // Punctuation and capitals used to enter the average of the arousal words: "This is urgent!"
+  // scored 0.70 against 1.00 without the "!", and "?" or capitals did nothing without an
+  // arousal word. They now add on top of the word average, as documented.
+  it('an exclamation mark never lowers arousal', () => {
+    expect(tagEmotion('This is urgent!').arousal).toBeGreaterThanOrEqual(tagEmotion('This is urgent').arousal);
+    expect(tagEmotion('this is important!').arousal).toBeGreaterThan(tagEmotion('this is important').arousal);
+  });
+
+  it('ALL CAPS raise arousal without an arousal word', () => {
+    expect(tagEmotion('THE SERVER IS DOWN').arousal).toBeGreaterThan(tagEmotion('the server is down').arousal);
+  });
+
+  it('question marks raise arousal slightly, by at most 0.2', () => {
+    const plain = tagEmotion('is the server down').arousal;
+    const asked = tagEmotion('is the server down???').arousal;
+    expect(asked).toBeGreaterThan(plain);
+    expect(asked - plain).toBeLessThanOrEqual(0.2 + 1e-12);
+  });
+
   it('attaches contextualValence when domain provided', () => {
     const result = tagEmotion('urgent deadline approaching', 'work');
     expect(result.contextualValence).toBeDefined();

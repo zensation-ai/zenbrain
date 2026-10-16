@@ -12,10 +12,10 @@ Five tools, one local SQLite file, no account and no network call.
 
 | Tool | What it does |
 |---|---|
-| `zenbrain_store` | Write something into long-term memory. Routing is automatic: steps or instructions become a procedure, content with an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again is updated. |
-| `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back ranked, each with its id and the layer it came from. |
-| `zenbrain_forget` | Delete one memory for good, by the id and layer `zenbrain_recall` returned. Nothing else is touched. To correct a memory, forget it and store the corrected version. |
-| `zenbrain_consolidate` | One maintenance pass: episodes with an emotional weight above 0.5 become semantic facts, each only once, and stale working-memory slots decay. Deletes nothing from long-term memory. |
+| `zenbrain_store` | Write something into long-term memory. Routing is automatic, first match wins: `steps` or wording such as "How to", "Steps:", "workflow:" make a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again is updated. |
+| `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back sorted by score, each with its id and the layer it came from; each layer scores differently, so a procedure or core block that does not match can rank above a real hit. |
+| `zenbrain_forget` | Delete one memory for good, by the id and layer `zenbrain_recall` returned. Only that memory is deleted: a fact that consolidation made from an episode, and the working-memory copy of a recent store, stay — recall again and forget what still returns the content. To correct a memory, forget it and store the corrected version. |
+| `zenbrain_consolidate` | One maintenance pass: among the 100 most recent episodes, each with an emotional weight above 0.5 becomes a semantic fact, only once; working-memory slots decay, and those at a relevance of 0.01 or below are removed. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
 ## Install
@@ -45,19 +45,21 @@ npm install -g @zensation/mcp
 | Variable | Default | Meaning |
 |---|---|---|
 | `ZENBRAIN_DB` | `./zenbrain.db` | Path to the SQLite file. A leading `~/` means your home directory. A relative path is relative to the directory your client starts the server in — some clients, Claude Desktop among them, may start it in `/`, where nothing can be written — so give an absolute or `~/` path. `:memory:` gives a store that is discarded when the process exits. |
-| `ZENBRAIN_CONTEXTS` | `personal,work,learning,creative` | Comma-separated context domains for cross-context memory. |
+| `ZENBRAIN_CONTEXTS` | `personal,work,learning,creative` | Comma-separated context domains, passed to the cross-context layer. None of the five tools uses that layer yet, so the value currently has no effect. |
 
 The server speaks MCP over stdio. Stdout carries protocol traffic only; diagnostics go
 to stderr.
 
 ## The seven layers
 
-Storing is not filing. Which layer a memory lands in decides how it decays, how it is
-retrieved, and whether it survives consolidation.
+Storing is not filing. Which layer a memory lands in decides how it is retrieved and what
+consolidation does with it. The five tools reach working, episodic, semantic, procedural and
+core memory; short-term memory shows up only as a counter in `zenbrain_health`, and
+cross-context memory is not wired to any tool.
 
 | | Layer | Holds |
 |--:|---|---|
-| 7 | Cross-Context Memory | Shared knowledge across domains |
+| 7 | Cross-Context Memory | Links between entities of different domains (experimental; no tool uses it) |
 | 6 | Core Memory | Pinned facts |
 | 5 | Procedural Memory | "How to do X" — skills and workflows |
 | 4 | Long-Term Semantic | Facts, with FSRS scheduling |
@@ -65,9 +67,10 @@ retrieved, and whether it survives consolidation.
 | 2 | Short-Term / Session | Current conversation context |
 | 1 | Working Memory | Active task focus, 7±2 items |
 
-Each layer has its own retention, consolidation and retrieval rules. Review scheduling
-follows a forgetting curve rather than a fixed timer, and emotionally weighted content
-consolidates more strongly; both are implemented in
+Nothing in long-term memory decays or is deleted on its own; only working memory decays.
+Every fact gets an FSRS review schedule, but no tool reports a review, so through this
+server the schedule is not advanced. Emotional weight decides routing (above 0.5: an
+episode) and which episodes consolidation turns into facts. The algorithms are in
 [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) and can be
 read line by line.
 
@@ -82,8 +85,11 @@ Worth knowing before you wire it in:
   Without vectors, recall ranks by folded token overlap — umlauts and accents are folded,
   rarer words weigh more, and an adjacent phrase beats the same words scattered. It will
   find "Kieler Foerde" in a note about the "Kieler Förde"; it will *not* connect "car" to
-  "automobile". Ranking runs over the most recent 500 entries per layer, and a query that
-  matches nothing falls back to recency with `score: 0`. Pass an `EmbeddingProvider`
+  "automobile". Episodes and facts are ranked over the most recent 500 of each, procedures
+  over the 500 with the highest success rate. A query that matches nothing returns recent
+  episodes and facts with `score: 0` but procedures by success rate, with that rate as
+  score, and every core block comes with 0.5 or 0.8 — so these can rank above a real hit.
+  Working memory, when you ask for it, ignores the query. Pass an `EmbeddingProvider`
   through the library for true semantic matching — that is the configuration the published
   benchmarks were measured with.
 - **SQLite similarity search is a full scan.** Fine for one person's memory; use
@@ -91,7 +97,7 @@ Worth knowing before you wire it in:
   for larger volumes.
 - **Consolidation is a tool call, not a schedule.** Nothing runs it for you.
 - **The store is a plain file.** It is not encrypted. Put it somewhere you would put a
-  notebook.
+  notebook. While the server runs, SQLite keeps `-wal` and `-shm` files next to it.
 
 ## Using it as a library
 
@@ -124,13 +130,14 @@ the claim the core makes.
 
 ## About ZenBrain
 
-ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. The benchmark results, and the
+ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
+TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
+dependencies. The benchmark results, and the
 configuration they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
-Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. The paper's measurements used `nomic-embed-text` as the embedding provider.
+Works out of the box without an embedding provider — lexical ranking, nothing extra
+to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

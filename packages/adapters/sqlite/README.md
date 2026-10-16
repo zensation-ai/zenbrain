@@ -22,7 +22,7 @@ import { createMemoryAdapter } from '@zensation/adapter-sqlite';
 const testStorage = createMemoryAdapter();
 
 const memory = new SemanticMemory({ storage });
-await memory.storeFact('FSRS outperforms SM-2 by 30%', 'research');
+await memory.storeFact('The user prefers answers in German.', 'conversation');
 ```
 
 ## When to Use
@@ -71,7 +71,7 @@ that writes these tables directly should use the same format — in SQL,
 
 ## Configuration
 
-```typescript
+```typescript prelude=sqlite-page
 const storage = new SqliteAdapter({
   filename: './data/memory.db', // default: './zenbrain.db'
   walMode: true,                // default: true (better read concurrency)
@@ -85,13 +85,14 @@ Apache 2.0
 
 ## About ZenBrain
 
-ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. The benchmark results, and the
+ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
+TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
+dependencies. The benchmark results, and the
 configuration they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
-Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. The paper's measurements used `nomic-embed-text` as the embedding provider.
+Works out of the box without an embedding provider — lexical ranking, nothing extra
+to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

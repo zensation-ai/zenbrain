@@ -48,7 +48,9 @@ Relevant memories from earlier sessions:
 ## Zero runtime dependencies
 
 The middleware is a plain object; `wrapLanguageModel` is called by you. Nothing here is
-imported from `ai` at runtime — only its types are. So this package installs **nothing**:
+imported from `ai` at runtime — only its types are. So this package has **no runtime
+dependencies**; its peers `ai`, `@ai-sdk/provider` and `@zensation/core` are the packages your
+application already uses (npm 7 and later installs a peer that is missing):
 
 | Package | Runtime dependencies |
 |---|--:|
@@ -56,12 +58,12 @@ imported from `ai` at runtime — only its types are. So this package installs *
 | `@zensation/core` | 1 (`@zensation/algorithms`) |
 | `@zensation/algorithms` | **0** |
 
-That claim is [checked in CI on every push](https://github.com/zensation-ai/zenbrain/blob/main/scripts/verify-zero-dependencies.sh)
+That table is [checked in CI on every push](https://github.com/zensation-ai/zenbrain/blob/main/scripts/verify-zero-dependencies.sh)
 against the packed tarballs rather than the source tree.
 
 ## Options
 
-```typescript
+```typescript prelude=ai-sdk-page
 zenbrainMemory({
   coordinator,                     // required — you own its lifecycle
 
@@ -74,11 +76,11 @@ zenbrainMemory({
   store: {                         // or false to switch writing off
     user: true,                    // store the user's message (default)
     assistant: false,              // store the reply too (default off)
-    context: 'work',               // context domain for what gets stored
+    context: 'work',               // context domain; kept with episodes only
   },
 
   header: 'Relevant memories from earlier sessions:',
-  role: 'system',                  // or 'user': see "Two defaults worth knowing"
+  role: 'system',                  // or 'user': see "Three defaults worth knowing"
 
   onError: (err, phase) => console.warn(`[zenbrain] ${phase} failed`, err),
 });
@@ -103,10 +105,12 @@ unmodified. A memory layer that breaks a chat is worse than one that forgets. Pa
 
 ## Where the memory lands
 
-Routing on store is automatic: a general statement becomes a semantic fact, a narrated
-event an episode, a sequence of instructions a procedure. Which layer a memory lands in
-decides how it is searched, and episodes with an emotional weight above 0.5 become facts when you
-consolidate. The seven layers and the algorithms behind them are documented in the
+Routing on store is automatic, first match wins: wording such as "How to", "Steps:" or
+"workflow:" makes a procedure, an emotional weight above 0.5 (detected from the text) an
+episode, anything else a semantic fact. A plain narrated event with little emotion is a fact,
+and a numbered list without such wording is too. Which layer a memory lands in decides how it
+is searched; when you consolidate, episodes with an emotional weight above 0.5, among the
+100 most recent, become facts. The seven layers and the algorithms behind them are documented in the
 [main README](https://github.com/zensation-ai/zenbrain#readme).
 
 Consolidation does not run on its own. Call `coordinator.consolidate()` on a schedule that
@@ -116,11 +120,13 @@ suits your application.
 
 - **No embedding provider is configured unless you pass one.** Recall then ranks
   lexically rather than semantically: folded token overlap, rarer words weighted higher,
-  a bonus for an adjacent phrase, over the most recent 500 entries per layer. It matches
+  a bonus for an adjacent phrase, over the most recent 500 episodes and facts. It matches
   wording, not meaning — synonyms need an `EmbeddingProvider`, which is also the
   configuration the published benchmarks were measured with.
-- **Streaming stores on flush.** The reply is written once the stream completes. An aborted
-  stream stores the user's turn but not the partial answer.
+- **No relevance threshold.** When nothing matches the prompt, recall falls back to the
+  most recent memories (score 0), and this release injects them like any other result.
+- **Streaming stores on flush.** The turn is written once the stream completes. An aborted
+  or failed stream stores nothing, not even the user's turn.
 - **Only text is read.** File and tool parts of a message are ignored when building the
   recall query and when storing.
 - **One recall per call.** There is no re-retrieval mid-generation.
@@ -129,7 +135,7 @@ suits your application.
 
 `streamText` works the same way and passes the stream through untouched:
 
-```typescript
+```typescript prelude=ai-sdk-page
 const result = streamText({
   model: wrapLanguageModel({
     model: openai('gpt-5'),
@@ -143,13 +149,14 @@ for await (const chunk of result.textStream) process.stdout.write(chunk);
 
 ## About ZenBrain
 
-ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built as
-zero-dependency TypeScript and published under Apache-2.0. The benchmark results, and the
+ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
+TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
+dependencies. The benchmark results, and the
 configuration they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
-Works out of the box without an embedding provider — lexical ranking, zero
-dependencies. The paper's measurements used `nomic-embed-text` as the embedding provider.
+Works out of the box without an embedding provider — lexical ranking, nothing extra
+to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

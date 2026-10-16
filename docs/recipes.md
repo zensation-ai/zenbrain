@@ -20,7 +20,7 @@ shape of what you are writing, because the three layers answer three different q
 | `episodic` | *What happened?* | The event, its time, and its context are the point |
 | `procedural` | *How is this done?* | You have an ordered sequence that can be replayed |
 
-```ts
+```ts prelude=memory
 // A fact: true regardless of when it was said
 await memory.store('The production database is eu-central-1', { type: 'fact' });
 
@@ -52,14 +52,14 @@ When in doubt, leave `type: 'auto'`. A wrong explicit type is worse than letting
 recent) into semantic facts, each episode once, and decays working memory. It deletes nothing from
 long-term memory, so `pruned` is always 0. It returns what it did:
 
-```ts
+```ts prelude=memory
 const { promoted, decayed, pruned } = await memory.consolidate();
 ```
 
 It is modelled on sleep consolidation, so the useful mental picture is the same: run it **between**
 sessions, not during one.
 
-```ts
+```ts prelude=memory
 // Scheduled: a long-running assistant, consolidating while nobody is talking to it
 setInterval(() => void memory.consolidate(), 60 * 60 * 1000); // hourly
 
@@ -72,14 +72,16 @@ async function endSession() {
 ```
 
 **Pick scheduled** when the process outlives individual conversations and idle time exists.
-**Pick on demand** when the process is short-lived — a serverless handler that never consolidates
-throws away everything it learned.
+**Pick on demand** when the process is short-lived. A serverless handler that never consolidates loses
+nothing it stored — `store()` writes at once — but its emotional episodes never become facts, and its
+working memory ends with the process either way.
 
-⚠️ Do not call it inside a turn to "make the agent smarter mid-conversation". Promotion and decay
-change what `recall()` returns, so a mid-turn call can move the ground under a reply that is already
-half-written. `decay()` alone is cheaper if all you want is to expire stale entries:
+⚠️ Do not call it inside a turn to "make the agent smarter mid-conversation". Promotion changes what
+`recall()` returns — a new fact joins the results — so a mid-turn call can move the ground under a reply
+that is already half-written. Decay touches only working memory, which the default `recall()` does not
+search. `decay()` alone is cheaper if all you want is to expire stale working-memory slots:
 
-```ts
+```ts prelude=memory
 const { removed } = memory.decay(); // synchronous, no promotion
 ```
 
@@ -90,7 +92,7 @@ const { removed } = memory.decay(); // synchronous, no promotion
 `scheduleNextReview()` takes the retention you want to hold at the moment of review. The default is
 `TARGET_RETENTION` (0.9): review just before there is a 10 % chance of having forgotten.
 
-```ts
+```ts prelude=fsrs-state
 import { scheduleNextReview, TARGET_RETENTION } from '@zensation/algorithms';
 
 // Default: review at 90 % predicted retention
@@ -109,10 +111,10 @@ is worse than 0.9 honestly maintained.
 
 Reviews go through the coordinator, so you rarely touch FSRS state by hand:
 
-```ts
+```ts prelude=memory,ask-user
 const due = await memory.getReviewQueue(10);
 for (const item of due) {
-  const grade = await askUser(item.content); // 1..5
+  const grade = await askUser(item.content); // integer 1..5: 1-2 forgotten, 3-5 recalled
   await memory.recordReview(item.id, grade);
 }
 ```
@@ -125,7 +127,7 @@ for (const item of due) {
 is more relevant while its ticket is open — blend rather than replace, and keep the two factors
 visible:
 
-```ts
+```ts prelude=memory,hebbian-blend
 import { getImportance, hebbianUpdateTwoFactor, type TwoFactorEdge } from '@zensation/algorithms';
 
 // Co-activation strengthens the edge; variance shrinks as it matures
@@ -156,11 +158,11 @@ you have built a retrieval system and are using this one as a cache.
 
 ## 5. Domain-specific facts that must not fade
 
-Emotional weight feeds both the initial FSRS state and the decay rate — `computeEmotionalWeight()`
-returns `decayMultiplier`, where values above 1 mean slower decay. The automatic tagger reads
-language, so it cannot know that in your domain "allergy" outranks any word with an exclamation mark:
+An emotional weight can stretch a fact's FSRS schedule: `initFromDecayClass()` multiplies the base
+stability by its second argument (1.0 to 2.0). The automatic tagger reads language, so it cannot know
+that in your domain "allergy" outranks any word with an exclamation mark:
 
-```ts
+```ts prelude=content
 import { tagEmotion, computeEmotionalWeight, initFromDecayClass } from '@zensation/algorithms';
 
 const CRITICAL = /\b(allergy|contraindicat|dosage|safety)\b/i;
@@ -171,11 +173,14 @@ function weightFor(content: string): number {
   return CRITICAL.test(content) ? Math.max(consolidationWeight, 0.9) : consolidationWeight;
 }
 
-await memory.store(content, { type: 'fact', emotionalWeight: weightFor(content) });
-
-// Same weight when you build FSRS state directly
-const state = initFromDecayClass('good', weightFor(content));
+// The fact's FSRS state, scheduled further out the more critical it is
+const state = initFromDecayClass('normal_decay', 1 + weightFor(content));
 ```
+
+In 0.5.x the coordinator does not carry the weight into a fact: `store(content, { type: 'fact',
+emotionalWeight })` stores the fact with the default schedule, and with automatic routing a weight
+above 0.5 makes the content an episode instead. Where the schedule matters, keep the FSRS state
+yourself as above.
 
 ⚠️ **Use a floor, not a constant.** Writing `emotionalWeight: 1.0` for every domain hit flattens the
 ranking you were trying to sharpen: if everything is critical, the layer can no longer tell you what

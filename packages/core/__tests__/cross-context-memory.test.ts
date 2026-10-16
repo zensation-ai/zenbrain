@@ -159,3 +159,24 @@ describe('CrossContextMemory', () => {
     expect(candidates).toHaveLength(0);
   });
 });
+
+// knowledge_entities has no context column in either adapter, so every context reads the same
+// rows. Each entity used to come back as a merge candidate of itself (similarity 1), and a real
+// pair came back once per ordering of the contexts.
+describe('CrossContextMemory on the shipped schema', () => {
+  it('never pairs an entity with itself', async () => {
+    const rows = [{ id: 'e1', name: 'TypeScript' }, { id: 'e2', name: 'Kiel' }];
+    const storage = { query: vi.fn(async () => ({ rows, rowCount: rows.length })), transaction: vi.fn() };
+    const memory = new CrossContextMemory({ storage, contexts: ['personal', 'work'] });
+    expect(await memory.detectMergeCandidates()).toEqual([]);
+  });
+
+  it('reports a pair of different entities once', async () => {
+    const rows = [{ id: 'e1', name: 'TypeScript' }, { id: 'e2', name: 'TypeScript' }];
+    const storage = { query: vi.fn(async () => ({ rows, rowCount: rows.length })), transaction: vi.fn() };
+    const memory = new CrossContextMemory({ storage, contexts: ['personal', 'work', 'learning'] });
+    const candidates = await memory.detectMergeCandidates();
+    expect(candidates).toHaveLength(1);
+    expect([candidates[0].entityA.id, candidates[0].entityB.id].sort()).toEqual(['e1', 'e2']);
+  });
+});

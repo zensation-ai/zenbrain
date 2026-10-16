@@ -8,27 +8,24 @@ ZenBrain is a neuroscience-inspired memory system for AI agents. It provides 7 d
 
 ### How is ZenBrain different from Mem0, Letta, or Zep?
 
-| Feature | ZenBrain | Mem0 | Letta | Zep |
-|---------|----------|------|-------|-----|
-| Memory Layers | **7** | 2 | 3 | 2 |
-| FSRS Spaced Repetition | Yes | No | No | No |
-| Hebbian Learning | Yes | No | No | No |
-| Emotional Memory | Yes | No | No | No |
-| Sleep Consolidation | Yes | No | No | No |
-| Zero Dependencies (core) | Yes | No | No | No |
-| Self-Hosted | Yes | Yes | Yes | Yes |
+ZenBrain splits memory into seven layers and ships mechanisms from memory research — FSRS spaced
+repetition, Hebbian learning, Ebbinghaus forgetting curves, sleep consolidation, emotional tagging — as
+library functions; `@zensation/algorithms` and `@zensation/core` have no third-party dependencies; it runs
+self-hosted. The README compares the five mechanisms with the public source of Mem0, Letta and Zep at
+pinned commits, with its method and its limits — a missing term there does not mean a system cannot do
+something comparable under another name: [How ZenBrain differs from Mem0, Letta and Zep](../README.md#how-zenbrain-differs-from-mem0-letta-and-zep).
 
-ZenBrain has deeper scientific grounding — every algorithm cites its neuroscience basis — and the algorithms package has zero runtime dependencies.
+Most algorithm modules name the work they follow in their source (not yet `bayesian`, `hebbian`, `intervals`, `similarity` and `visualization`), and the algorithms package has zero runtime dependencies.
 
 ### Is ZenBrain production-ready?
 
-The algorithms and core layers were extracted from ZenAI, a production AI platform, where they ran against real users and real data. The repository's 822 tests pass in CI on Node 22, 24 and 26, six of them against a real PostgreSQL with pgvector.
+The algorithms and core layers were extracted from ZenAI, a production AI platform, where they ran against real users and real data. The repository's 902 tests pass in CI: 896 on each of Node 22, 24 and 26, and six more against a real PostgreSQL with pgvector.
 
 That said, ZenBrain is still pre-1.0 — expect API changes before v1.0. We follow semver, and the [CHANGELOG](../CHANGELOG.md) records what changed in each release.
 
 ### What license is ZenBrain under?
 
-Apache 2.0 — use it in commercial products, modify it, distribute it. Attribution appreciated but not required.
+Apache 2.0 — use it in commercial products, modify it, distribute it. When you redistribute it, keep the license and the copyright and attribution notices, as section 4 of the license requires; citing the paper in research is appreciated.
 
 ### Which Node.js versions are supported?
 
@@ -48,7 +45,7 @@ node -v
 npm ls @zensation/algorithms
 ```
 
-The requirement arrived in [0.4.0](../CHANGELOG.md#040--2026-08-05), the only breaking change the project has shipped so far.
+The requirement arrived in [0.4.0](../CHANGELOG.md#040--2026-08-05), the first breaking change the project shipped; 0.5.0 withdrew two recall options (see the CHANGELOG).
 
 ---
 
@@ -64,9 +61,9 @@ Each layer maps to a distinct cognitive system in the human brain:
 4. **Semantic** — Long-term facts with spaced repetition scheduling
 5. **Procedural** — "How to" knowledge (skills, workflows)
 6. **Core** — Pinned facts always in context (Letta/MemGPT pattern)
-7. **Cross-Context** — Entity deduplication across domains
+7. **Cross-Context** — links between entities of different domains (experimental, not wired into the coordinator)
 
-These aren't arbitrary — each has different decay characteristics, retrieval patterns, and consolidation mechanisms.
+These aren't arbitrary — each holds a different kind of memory and is stored and searched in its own way. Only working memory decays; only emotional episodes are promoted to facts.
 
 ### Do I need all 7 layers?
 
@@ -87,11 +84,11 @@ Tree-shaking ensures you only bundle what you import.
 
 ### What's the MemoryCoordinator?
 
-The coordinator orchestrates all 7 layers as a single cohesive system:
-- **Auto-routing**: `store()` routes content to the right layer
-- **Cross-layer recall**: `recall()` searches multiple layers with ranked results
-- **Consolidation**: promotes episodic memories to semantic facts over time
-- **Decay management**: applies Ebbinghaus forgetting curves
+The coordinator creates all seven layers and works on five of them (working, episodic, semantic, procedural, core); short-term memory goes through its session methods, cross-context memory through a getter:
+- **Auto-routing**: `store()` routes content to a layer
+- **Cross-layer recall**: `recall()` searches several layers and sorts the results by score (each layer scores differently; see the API reference)
+- **Consolidation**: `consolidate()` promotes emotional episodes to semantic facts when you call it
+- **Decay**: `decay()` and `consolidate()` decay working memory; long-term memory does not decay
 
 It's the recommended entry point for most use cases.
 
@@ -101,9 +98,9 @@ It's the recommended entry point for most use cases.
 
 ### What is FSRS?
 
-Free Spaced Repetition Scheduler — a modern replacement for SM-2 (the algorithm behind Anki). FSRS models memory retention with exponential decay curves and schedules reviews at optimal intervals.
+Free Spaced Repetition Scheduler — the open scheduler Anki offers as an alternative to its legacy SM-2. FSRS tracks a difficulty and a stability for each item and schedules the next review for when the predicted recall probability falls to a target; since FSRS v4 its forgetting curve is a power function ([The Algorithm](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm)).
 
-The FSRS authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 to reach the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). `@zensation/algorithms` follows FSRS for difficulty, stability and the stability updates, with an exponential forgetting curve; we have not benchmarked it against SM-2.
+The FSRS authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 to reach the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). `@zensation/algorithms` follows FSRS for the difficulty and stability updates but keeps an exponential forgetting curve, `R = e^(−t/S)`, with S as its time constant: R falls to 1/e after S days, and a review is scheduled when R reaches the target 0.9, after 0.105 × S days. We have not benchmarked it against SM-2 or against FSRS itself.
 
 ### What is Hebbian Learning?
 
@@ -115,7 +112,7 @@ During sleep, the brain replays recent experiences, strengthening important memo
 
 ### How does emotional memory work?
 
-Emotional events consolidate 1-3x stronger and decay 1-3x slower than neutral events. ZenBrain's emotional tagger analyzes text for sentiment, arousal, valence, and significance using a 400+ keyword lexicon (English and German).
+The emotional tagger analyzes text for sentiment, arousal, valence and significance using about 170 weighted keywords (English and German). `computeEmotionalWeight()` turns that into a consolidation weight from 0 to 1 and a decay multiplier from 1 to 3 for your application to apply. The coordinator uses the weight to route a memory: above 0.5 it becomes an episode, which `consolidate()` later promotes to a fact.
 
 ---
 
@@ -128,7 +125,7 @@ Emotional events consolidate 1-3x stronger and decay 1-3x slower than neutral ev
 | Production, multi-user | PostgreSQL + pgvector |
 | Development, prototyping | SQLite |
 | Single-user apps | Either works |
-| Semantic search needed | PostgreSQL (pgvector required) |
+| Semantic search on large volumes | PostgreSQL + pgvector (SQLite searches vectors too, by full scan) |
 
 SQLite automatically translates PostgreSQL-style queries (`$1`, `gen_random_uuid()`, etc.), so you can develop with SQLite and deploy with PostgreSQL.
 
@@ -138,7 +135,7 @@ Yes — implement the `StorageAdapter` interface (2 methods: `query()` and `tran
 
 ### Do I need pgvector?
 
-Only if you want semantic search (similarity-based retrieval). Without pgvector, layers fall back to recency-based retrieval, which works well for many use cases.
+Only for semantic search on PostgreSQL. What decides semantic search is an embedding provider: without one, every layer ranks by wording (lexical), and falls back to recency only when nothing matches; with one, SQLite compares vectors by full scan and PostgreSQL through pgvector.
 
 ---
 

@@ -1,14 +1,19 @@
 /**
- * Layer 7: Cross-Context Memory
+ * Layer 7: Cross-Context Memory — experimental
  *
- * Detects and merges entities across different memory contexts.
- * Uses name similarity (Jaccard) to find duplicate entities.
+ * Detects merge candidates between memory contexts by name similarity (Jaccard)
+ * and records links between entities. It merges nothing itself.
  *
- * This layer is unique to ZenBrain — most memory systems operate in a single context.
+ * Experimental, and not wired into the coordinator: no store/recall path writes or
+ * reads entities, and the shipped schemas (`knowledge_entities` in both adapters)
+ * have no context column, so every context reads the same table. Until a schema
+ * migration adds one, candidates are pairs of similar entities, labelled with the
+ * contexts that were queried.
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import { type Logger, noopLogger } from '../types';
 import { computeStringSimilarity } from '@zensation/algorithms/similarity';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 export interface CrossContextConfig {
   storage: StorageAdapter;
@@ -38,9 +43,11 @@ export class CrossContextMemory {
 
   /**
    * Detect entities that likely refer to the same thing across contexts.
-   * Returns merge candidates sorted by similarity (highest first).
+   * Returns merge candidates sorted by similarity (highest first); an entity is
+   * never paired with itself, and each pair of entities appears once.
    */
   async detectMergeCandidates(entityTable = 'knowledge_entities', limit = 20): Promise<MergeCandidate[]> {
+    assertSqlIdentifier(entityTable, 'entityTable');
     // Collect entities from all contexts
     const allEntities: Array<{ context: string; id: string; name: string }> = [];
 
@@ -55,14 +62,19 @@ export class CrossContextMemory {
 
     // Compare across contexts
     const candidates: MergeCandidate[] = [];
+    const seen = new Set<string>();
     for (let i = 0; i < allEntities.length; i++) {
       for (let j = i + 1; j < allEntities.length; j++) {
         const a = allEntities[i];
         const b = allEntities[j];
         if (a.context === b.context) continue; // Same context — skip
+        if (a.id === b.id) continue; // The same entity, read once per context
+        const pair = a.id < b.id ? `${a.id}\u0000${b.id}` : `${b.id}\u0000${a.id}`;
+        if (seen.has(pair)) continue;
 
         const similarity = computeStringSimilarity(a.name, b.name);
         if (similarity >= this.threshold) {
+          seen.add(pair);
           candidates.push({ entityA: a, entityB: b, similarity });
         }
       }
@@ -75,6 +87,7 @@ export class CrossContextMemory {
 
   /** Create a link between two cross-context entities. */
   async createLink(entityIdA: string, entityIdB: string, linkTable = 'cross_context_links'): Promise<void> {
+    assertSqlIdentifier(linkTable, 'linkTable');
     await this.storage.query(
       `INSERT INTO ${linkTable} (id, entity_a, entity_b, created_at)
        VALUES (gen_random_uuid(), $1, $2, NOW())

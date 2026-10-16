@@ -35,11 +35,10 @@ export interface NegationResult {
  * Each pattern includes a regex and the group index for the negation target.
  */
 const NEGATION_PATTERNS_WITH_TARGET = [
-  // English patterns — capture up to 2 words after negation
-  { regex: /\bdoes(?:n't| not) (\S+ ?\S*)/i },
-  { regex: /\bisn't (\S+ ?\S*)/i },
-  { regex: /\bhasn't (\S+ ?\S*)/i },
-  { regex: /\bdon't (\S+ ?\S*)/i },
+  // English patterns — capture up to 2 words after negation. Contractions ("doesn't",
+  // "can't", "won't", …) are matched with the straight and the typographic apostrophe.
+  { regex: /\b\w+n['’]t (\S+ ?\S*)/i },
+  { regex: /\bcannot (\S+ ?\S*)/i },
   { regex: /\bnot (\S+ ?\S*)/i },
   { regex: /\bnever (\S+ ?\S*)/i },
   { regex: /\bno longer (\S+ ?\S*)/i },
@@ -53,12 +52,10 @@ const NEGATION_PATTERNS_WITH_TARGET = [
 
 /** Simple negation keyword patterns (no target extraction) */
 const SIMPLE_NEGATION_PATTERNS = [
+  /\b\w+n['’]t\b/i,
+  /\bcannot\b/i,
   /\bnot\b/i,
   /\bnever\b/i,
-  /\bdoes(?:n'|')t\b/i,
-  /\bdon(?:'|')t\b/i,
-  /\bisn(?:'|')t\b/i,
-  /\bhasn(?:'|')t\b/i,
   /\bno longer\b/i,
   /\bno\b/i,
   /\bnicht mehr\b/i,
@@ -68,9 +65,23 @@ const SIMPLE_NEGATION_PATTERNS = [
 ];
 
 /**
+ * Remove trailing `.,!?;:` characters. A loop instead of `/[.,!?;:]+$/`, which
+ * backtracks over every run of punctuation that is not at the end and so took
+ * quadratic time on input like `'not ' + '.'.repeat(n) + 'x'` (CodeQL js/polynomial-redos).
+ */
+function trimTrailingPunctuation(s: string): string {
+  let end = s.length;
+  while (end > 0 && '.,!?;:'.includes(s[end - 1])) end--;
+  return s.slice(0, end);
+}
+
+/**
  * Detect negation in text using regex-based heuristics.
  *
- * Supports English and German negation patterns.
+ * English: not, never, no, no longer, cannot, and contractions ending in n't
+ * (don't, can't, won't, …) with a straight or a typographic apostrophe.
+ * German: nicht, nicht mehr, kein/keine/…, nie, niemals.
+ * Two or more negations count as a double negation (confidence 0.3, no target).
  * Pure CPU-only — no LLM calls.
  *
  * @param text - The text to analyze for negation
@@ -89,10 +100,8 @@ export function detectNegation(text: string): NegationResult {
   const COUNTING_PATTERNS = [
     /\bnicht mehr\b/gi,
     /\bno longer\b/gi,
-    /\bdoes(?:n'|'|n')t\b/gi,
-    /\bdon(?:'|'|n')t\b/gi,
-    /\bisn(?:'|'|n')t\b/gi,
-    /\bhasn(?:'|'|n')t\b/gi,
+    /\b\w+n['’]t\b/gi,
+    /\bcannot\b/gi,
     /\bnot\b/gi,
     /\bnever\b/gi,
     /\bno\b/gi,
@@ -116,7 +125,7 @@ export function detectNegation(text: string): NegationResult {
   for (const { regex } of NEGATION_PATTERNS_WITH_TARGET) {
     const match = text.match(regex);
     if (match && match[1]) {
-      const target = match[1].trim().replace(/[.,!?;:]+$/, '');
+      const target = trimTrailingPunctuation(match[1].trim());
       return {
         isNegated: true,
         negationTarget: target.length > 0 ? target : null,
@@ -164,7 +173,7 @@ export function computeStringSimilarity(a: string, b: string): number {
  */
 export function stripNegation(text: string): string {
   return text
-    .replace(/\b(?:not|never|no longer|doesn't|don't|isn't|hasn't|can't|won't)\b/gi, '')
+    .replace(/\b(?:\w+n['’]t|cannot|not|never|no longer)\b/gi, '')
     .replace(/\b(?:nicht|kein(?:e|en|em|er|es)?|nie(?:mals)?|nicht mehr)\b/gi, '')
     .replace(/\s+/g, ' ')
     .trim();

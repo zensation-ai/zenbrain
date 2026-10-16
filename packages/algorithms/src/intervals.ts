@@ -1,8 +1,10 @@
 /**
- * Confidence Intervals for Probabilistic Memory Outputs
+ * Uncertainty bands for two probabilistic memory outputs
  *
- * Provides uncertainty bounds for all probabilistic estimates.
- * More reviews → narrower intervals. Few reviews → wide intervals (high uncertainty).
+ * Heuristic bands, not calibrated confidence intervals: one for retrievability
+ * (a Wald-type interval that treats the model's R like a rate observed over
+ * the review count) and one for Bayesian-style propagation (the band widens
+ * by a fixed rule per hop). More reviews → narrower band; few reviews → wide.
  *
  * @packageDocumentation
  * @module @zensation/algorithms/intervals
@@ -11,17 +13,19 @@
 export interface ConfidenceInterval {
   /** Point estimate (most likely value) */
   point: number;
-  /** 95% CI lower bound */
+  /** Lower bound of the band */
   lower: number;
-  /** 95% CI upper bound */
+  /** Upper bound of the band */
   upper: number;
 }
 
 /**
- * Calculate retrievability with confidence interval.
- * CI width narrows with more reviews (Central Limit Theorem).
+ * Calculate retrievability with a Wald-type band.
+ * The width narrows with more reviews. It is nominally 95 % (z = 1.96), but R is a
+ * model output, not a rate observed in reviewCount trials, so the coverage is not
+ * calibrated; at R = 0 or 1 the band has zero width.
  *
- * Formula: CI = point ± 1.96 * sqrt(R * (1-R) / max(reviewCount, 1))
+ * Formula: band = point ± 1.96 * sqrt(R * (1-R) / max(reviewCount, 1))
  */
 export function getRetrievabilityWithCI(
   retrievability: number,
@@ -39,7 +43,9 @@ export function getRetrievabilityWithCI(
 }
 
 /**
- * Calculate confidence propagation with uncertainty.
+ * Calculate confidence propagation with an uncertainty band.
+ * The band widens by a heuristic rule (×1.1 plus 0.05 × edge weight per hop);
+ * it has no coverage level.
  */
 export function propagateWithCI(
   base: ConfidenceInterval,

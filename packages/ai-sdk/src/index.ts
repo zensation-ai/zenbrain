@@ -49,7 +49,7 @@ export interface ZenBrainMemoryOptions {
         user?: boolean;
         /** Store the model's reply. Default false — replies are cheap to regenerate. */
         assistant?: boolean;
-        /** Context domain for stored memories, e.g. 'work'. */
+        /** Context domain, e.g. 'work'. Kept with episodes only; facts and procedures have no context field. */
         context?: string;
         /** Source attribution. Defaults to 'user' / 'ai' per turn. */
         source?: string;

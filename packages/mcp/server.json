@@ -2,20 +2,20 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "ai.zensation/zenbrain",
   "title": "ZenBrain Memory",
-  "description": "Seven-layer agent memory: episodic, semantic, procedural and core. Local SQLite, no account.",
+  "description": "Agent memory: working, episodic, semantic, procedural and core layers. Local SQLite, no account.",
   "websiteUrl": "https://zensation.ai/en/open-source",
   "repository": {
     "url": "https://github.com/zensation-ai/zenbrain",
     "source": "github",
     "subfolder": "packages/mcp"
   },
-  "version": "0.2.1",
+  "version": "0.2.2",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@zensation/mcp",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "transport": {
         "type": "stdio"
       },
@@ -29,7 +29,7 @@
         },
         {
           "name": "ZENBRAIN_CONTEXTS",
-          "description": "Comma-separated context domains for cross-context memory.",
+          "description": "Comma-separated context domains, passed to the cross-context layer. No tool uses that layer yet, so the value currently has no effect.",
           "isRequired": false,
           "isSecret": false,
           "default": "personal,work,learning,creative"

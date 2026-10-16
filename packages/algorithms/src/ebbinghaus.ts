@@ -1,12 +1,15 @@
 /**
- * Ebbinghaus Forgetting Curve + SM-2 Spaced Repetition
+ * Ebbinghaus Forgetting Curve, with SM-2-compatible call signatures
  *
- * Original implementation based on:
+ * Based on:
  * - Ebbinghaus (1885): R = e^(-t/S) exponential forgetting curve
- * - SM-2 Algorithm (Wozniak, 1990): stability update on retrieval
+ * - SM-2 (Wozniak, 1990): the call shape of `updateStability(stability, success)`.
+ *   The update itself is FSRS's (see `./fsrs`); the SM-2 multipliers in
+ *   EBBINGHAUS_CONFIG are kept for compatibility and are not used.
  *
- * Core functions delegate to FSRS for the actual computation, providing
- * a simpler API for common use cases.
+ * Retention is computed here with one effective stability,
+ * S × emotional multiplier (clamped to 1.0–3.0), floored at MIN_STABILITY —
+ * the same value every function reports.
  *
  * @packageDocumentation
  * @module @zensation/algorithms/ebbinghaus
@@ -14,10 +17,7 @@
 
 import type { Logger } from './types';
 import { noopLogger } from './types';
-import {
-  getRetentionProbabilityCompat,
-  updateStabilityCompat,
-} from './fsrs';
+import { updateStabilityCompat } from './fsrs';
 
 // ===========================================
 // Types
@@ -85,9 +85,9 @@ export const EBBINGHAUS_CONFIG = {
   MIN_STABILITY: 0.1,
   /** Maximum stability (cap for extremely well-known facts) */
   MAX_STABILITY: 365.0,
-  /** SM-2 success multiplier: stability *= this on successful retrieval */
+  /** SM-2 success multiplier. Kept for compatibility; updateStability uses the FSRS update instead. */
   SUCCESS_MULTIPLIER: 2.5,
-  /** SM-2 failure multiplier: stability *= this on failed retrieval */
+  /** SM-2 failure multiplier. Kept for compatibility; updateStability uses the FSRS update instead. */
   FAILURE_MULTIPLIER: 0.5,
   /** Retention threshold below which facts need review */
   REVIEW_THRESHOLD: 0.3,
@@ -101,6 +101,23 @@ export const EBBINGHAUS_CONFIG = {
 // Core Ebbinghaus Functions
 // ===========================================
 
+/** S × emotional multiplier (clamped to 1.0–3.0), floored at MIN_STABILITY. */
+function effectiveStability(stability: number, emotionalMultiplier = 1.0): number {
+  const m = Math.min(Math.max(emotionalMultiplier, 1.0), EBBINGHAUS_CONFIG.MAX_EMOTIONAL_MULTIPLIER);
+  return Math.max(EBBINGHAUS_CONFIG.MIN_STABILITY, stability * m);
+}
+
+function retentionResult(daysSinceAccess: number, stability: number): RetentionResult {
+  const retention = Math.max(0, Math.min(1, Math.exp(-daysSinceAccess / stability)));
+  return {
+    retention,
+    daysSinceAccess,
+    stability,
+    needsReview: retention <= EBBINGHAUS_CONFIG.REVIEW_THRESHOLD && retention > EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD,
+    shouldArchive: retention <= EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD,
+  };
+}
+
 /**
  * Calculate current retention probability using Ebbinghaus forgetting curve.
  *
@@ -112,40 +129,27 @@ export const EBBINGHAUS_CONFIG = {
  *
  * @param lastAccess - When the fact was last accessed/reviewed
  * @param stability - Current stability value (in days). Higher = slower forgetting.
- * @param emotionalMultiplier - Optional multiplier from emotional tagging (1.0-3.0)
- * @returns RetentionResult with current retention and metadata
+ * @param emotionalMultiplier - Optional multiplier from emotional tagging, clamped to 1.0-3.0
+ * @returns RetentionResult with current retention and the effective stability it used
  */
 export function calculateRetention(
   lastAccess: Date,
   stability: number,
   emotionalMultiplier = 1.0
 ): RetentionResult {
-  const now = new Date();
-  const daysSinceAccess = Math.max(0, (now.getTime() - lastAccess.getTime()) / (1000 * 60 * 60 * 24));
-
-  const retention = getRetentionProbabilityCompat(lastAccess, stability, emotionalMultiplier);
-
-  // Apply emotional multiplier to stability for metadata
-  const effectiveStability = Math.max(
-    EBBINGHAUS_CONFIG.MIN_STABILITY,
-    stability * Math.min(emotionalMultiplier, EBBINGHAUS_CONFIG.MAX_EMOTIONAL_MULTIPLIER)
-  );
-
-  return {
-    retention: Math.max(0, Math.min(1, retention)),
-    daysSinceAccess,
-    stability: effectiveStability,
-    needsReview: retention <= EBBINGHAUS_CONFIG.REVIEW_THRESHOLD && retention > EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD,
-    shouldArchive: retention <= EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD,
-  };
+  const daysSinceAccess = Math.max(0, (Date.now() - lastAccess.getTime()) / (1000 * 60 * 60 * 24));
+  return retentionResult(daysSinceAccess, effectiveStability(stability, emotionalMultiplier));
 }
 
 /**
- * Update stability after a retrieval attempt using SM-2 algorithm.
+ * Update stability after a retrieval attempt.
  *
- * SM-2 core rule:
- * - Successful retrieval: stability *= 2.5 (memory strengthened)
- * - Failed retrieval: stability *= 0.5 (memory weakened, needs more review)
+ * Takes the SM-2 call shape (stability, success) but computes the FSRS update:
+ * a success is a grade-4 recall at retrievability 0.9 (stability grows by a few
+ * percent, more for low stabilities), a failure is a lapse (stability drops to a
+ * tenth, but not below FSRS's floor of 0.5 days). The result is then clamped to
+ * MIN_STABILITY..MAX_STABILITY.
+ * SUCCESS_MULTIPLIER and FAILURE_MULTIPLIER are not used.
  *
  * @param currentStability - Current stability value in days
  * @param retrievalSuccess - Whether the retrieval was successful
@@ -249,8 +253,8 @@ export function calculateOptimalInterval(
 }
 
 /**
- * Batch calculate retention for multiple facts.
- * More efficient than calling calculateRetention individually.
+ * Batch calculate retention for multiple facts: the same result as
+ * calculateRetention for each fact, all measured against one timestamp.
  */
 export function batchCalculateRetention(
   facts: Array<{
@@ -265,19 +269,7 @@ export function batchCalculateRetention(
 
   for (const fact of facts) {
     const daysSinceAccess = Math.max(0, (now - fact.lastAccess.getTime()) / (1000 * 60 * 60 * 24));
-    const effectiveStability = Math.max(
-      EBBINGHAUS_CONFIG.MIN_STABILITY,
-      fact.stability * Math.min(fact.emotionalMultiplier ?? 1.0, EBBINGHAUS_CONFIG.MAX_EMOTIONAL_MULTIPLIER)
-    );
-    const retention = Math.exp(-daysSinceAccess / effectiveStability);
-
-    results.set(fact.id, {
-      retention: Math.max(0, Math.min(1, retention)),
-      daysSinceAccess,
-      stability: effectiveStability,
-      needsReview: retention <= EBBINGHAUS_CONFIG.REVIEW_THRESHOLD && retention > EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD,
-      shouldArchive: retention <= EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD,
-    });
+    results.set(fact.id, retentionResult(daysSinceAccess, effectiveStability(fact.stability, fact.emotionalMultiplier)));
   }
 
   return results;

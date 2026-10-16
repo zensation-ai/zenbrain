@@ -17,6 +17,12 @@ import type { StorageAdapter, QueryResult } from '@zensation/core';
 const RETRYABLE_ERRORS = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EPIPE', '57P01', '57P03', '53300'];
 
 /**
+ * pg-pool's two connection timeouts, which it raises as plain Errors without a code:
+ * no pooled client became free in time, or a new connection did not complete in time.
+ */
+const RETRYABLE_MESSAGES = ['timeout exceeded when trying to connect', 'Connection terminated due to connection timeout'];
+
+/**
  * Render a schema name for `SET search_path`.
  *
  * A plain identifier stays unquoted, so PostgreSQL folds it to lower case exactly as
@@ -131,8 +137,14 @@ export class PostgresAdapter implements StorageAdapter {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      const client = await this.pool.connect();
+      // Connecting is inside the try: a refused or reset connection is exactly the
+      // transient error this loop exists for.
+      let client: PoolClient | undefined;
+      // A client that hit a transient error may hold a dead connection; releasing it
+      // with the error makes pg destroy it instead of handing it to the next query.
+      let broken: Error | undefined;
       try {
+        client = await this.pool.connect();
         // Set search_path for schema isolation
         if (this.searchPathSql) {
           await client.query(this.searchPathSql);
@@ -150,6 +162,7 @@ export class PostgresAdapter implements StorageAdapter {
         };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
+        if (this.isRetryable(lastError)) broken = lastError;
 
         if (this.isRetryable(lastError) && attempt < this.maxRetries) {
           const delay = Math.min(100 * Math.pow(2, attempt) + Math.random() * 50, 2000);
@@ -160,7 +173,7 @@ export class PostgresAdapter implements StorageAdapter {
 
         throw lastError;
       } finally {
-        client.release();
+        client?.release(broken);
       }
     }
 
@@ -223,7 +236,8 @@ export class PostgresAdapter implements StorageAdapter {
 
   private isRetryable(err: Error): boolean {
     const code = (err as { code?: string }).code;
-    return RETRYABLE_ERRORS.some(c => code === c || err.message.includes(c));
+    return RETRYABLE_ERRORS.some(c => code === c || err.message.includes(c))
+      || RETRYABLE_MESSAGES.some(m => err.message.includes(m));
   }
 }
 

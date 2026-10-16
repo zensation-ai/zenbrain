@@ -1,7 +1,7 @@
 /**
  * Provider interface for LLM text generation.
  *
- * Used by memory layers that need LLM assistance (e.g., summarization during consolidation).
+ * Used by `MemoryCoordinator.consolidate()` to distil an episode into one fact; no layer calls it.
  */
 export interface GenerateOptions {
   maxTokens?: number;

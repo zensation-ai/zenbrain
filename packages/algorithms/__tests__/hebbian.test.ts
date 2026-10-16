@@ -102,3 +102,17 @@ describe('generatePairs', () => {
     expect(generatePairs([])).toEqual([]);
   });
 });
+
+// NaN or a negative weight used to come back as NaN or a negative weight (-5 -> -4.85),
+// and the edge store kept it. Weights above MAX_WEIGHT are still capped, as before.
+describe('Hebbian weight checks', () => {
+  it.each([Number.NaN, -5, Number.NEGATIVE_INFINITY])('rejects weight %s', (w) => {
+    expect(() => computeHebbianStrengthening(w)).toThrow(RangeError);
+    expect(() => computeHebbianDecay(w)).toThrow(RangeError);
+  });
+
+  it('accepts 0 and caps weights above MAX_WEIGHT', () => {
+    expect(computeHebbianStrengthening(0)).toBeCloseTo(0.1, 12);
+    expect(computeHebbianStrengthening(12)).toBe(10);
+  });
+});

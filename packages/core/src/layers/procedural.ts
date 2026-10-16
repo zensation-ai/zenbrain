@@ -8,6 +8,7 @@ import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type Procedure, type Logger, noopLogger, formatForPgVector } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 export interface ProceduralMemoryConfig {
   storage: StorageAdapter;
@@ -68,7 +69,7 @@ export class ProceduralMemory {
   constructor(config: ProceduralMemoryConfig) {
     this.storage = config.storage;
     this.embedding = config.embedding;
-    this.table = config.tableName ?? 'procedural_memories';
+    this.table = assertSqlIdentifier(config.tableName ?? 'procedural_memories', 'tableName');
     this.log = config.logger ?? noopLogger;
   }
 
@@ -148,13 +149,21 @@ export class ProceduralMemory {
     this.log.debug(`Procedure ${procedureId} feedback: ${success ? 'success' : 'failure'}`);
   }
 
-  /** List all procedures. */
+  /** List procedures, highest success rate first (default limit 20). */
   async list(limit = 20): Promise<Procedure[]> {
     const result = await this.storage.query<ProcedureRow>(
       `SELECT * FROM ${this.table} ORDER BY success_rate DESC, execution_count DESC LIMIT $1`,
       [limit]
     );
     return result.rows.map(rowToProcedure);
+  }
+
+  /** Count all procedures. */
+  async count(): Promise<number> {
+    const result = await this.storage.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM ${this.table}`
+    );
+    return parseInt(result.rows[0]?.count ?? '0', 10);
   }
 
   /** Delete a procedure. */
