@@ -1,7 +1,8 @@
 /**
  * Context-Adaptive Information Bottleneck Budget
  *
- * NeurIPS Algorithm F — NOT yet published in @zensation/algorithms.
+ * The same module ships as @zensation/algorithms/ib-budget; this copy stays so the
+ * ablation runs unchanged.
  * Provides context-aware memory retention filtering using Information
  * Bottleneck theory, complementing the sleep consolidation cycle.
  *

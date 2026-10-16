@@ -45,7 +45,7 @@
 {
 "config": "−Two-Factor Hebbian (stress)",
 "disabledAlgorithm": "two_factor_hebbian",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.26258315380364966,
 "std": 0.011348342783658216,
@@ -88,7 +88,7 @@
 {
 "config": "−Simulation-Selection Sleep (stress)",
 "disabledAlgorithm": "simulation_selection_sleep",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.1813399466152617,
 "std": 0.0016698841608075547,
@@ -131,7 +131,7 @@
 {
 "config": "−vmPFC-FSRS Coupling (stress)",
 "disabledAlgorithm": "vmPFC_fsrs_coupling",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.25475775305101167,
 "std": 0.011572242264798195,
@@ -174,7 +174,7 @@
 {
 "config": "−iMAD Debate (stress)",
 "disabledAlgorithm": "imad_debate",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.7840492004041962,
 "std": 0.004647804357404015,
@@ -217,7 +217,7 @@
 {
 "config": "−Spectral KG Health (stress)",
 "disabledAlgorithm": "spectral_kg_health",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.7840492004041962,
 "std": 0.004647804357404015,
@@ -260,7 +260,7 @@
 {
 "config": "−Compositional Context (stress)",
 "disabledAlgorithm": "compositional_context",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.7840492004041962,
 "std": 0.004647804357404015,
@@ -303,7 +303,7 @@
 {
 "config": "−IB Budget (stress)",
 "disabledAlgorithm": "ib_budget",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.3491174340671665,
 "std": 0.014168119643387865,
@@ -346,7 +346,7 @@
 {
 "config": "−Dual-Process CoT (stress)",
 "disabledAlgorithm": "dual_process_cot",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.30961520365372996,
 "std": 0.012068152858813635,
@@ -389,7 +389,7 @@
 {
 "config": "−Metacognitive HyperAgent (stress)",
 "disabledAlgorithm": "metacognitive_hyperagent",
-"category": "NeurIPS",
+"category": "harness",
 "retention": {
 "mean": 0.7840492004041962,
 "std": 0.004647804357404015,
