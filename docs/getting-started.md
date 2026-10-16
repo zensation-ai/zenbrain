@@ -44,7 +44,7 @@ console.log(`Recall probability: ${(retention * 100).toFixed(1)}%`);
 const emotion = tagEmotion('I just closed a $2M deal!');
 const weight = computeEmotionalWeight(emotion);
 console.log(`Decay multiplier: ${weight.decayMultiplier}x`);
-// Emotional memories decay ~3x slower
+// 1.7 for this sentence; the multiplier runs from 1 (neutral) to 3 (strongly emotional)
 
 // Strengthen knowledge connections
 const stronger = computeHebbianStrengthening(1.0);
@@ -63,7 +63,7 @@ const wm = new WorkingMemory({ maxSlots: 7 });
 await wm.add('Current task: deploy v2', 'goal', 1.0);
 await wm.add('User prefers TypeScript', 'fact', 0.8);
 
-// Lowest-relevance items get evicted when full
+// When full, the least relevant slot is evicted; among equally relevant slots, the oldest
 console.log(`Active slots: ${wm.size}/${wm.capacity.max}`);
 
 // Short-Term Memory: conversation context
@@ -78,23 +78,28 @@ const messages = stm.toMessages();
 
 ## Quick Start: With PostgreSQL
 
+Create the tables once with the migration that ships in the adapter (PostgreSQL 15+ with `pgvector` and `pg_trgm`):
+
+```bash
+psql -f node_modules/@zensation/adapter-postgres/sql/001_init.sql -d mydb
+```
+
+The adapter is storage only; the coordinator does the storing and recalling:
+
 ```typescript
+import { MemoryCoordinator } from '@zensation/core';
 import { PostgresAdapter } from '@zensation/adapter-postgres';
 
-const adapter = new PostgresAdapter({
-  connectionString: 'postgres://user:pass@localhost:5432/mydb',
-});
-await adapter.initialize();
-
-// Store a fact
-await adapter.storeFact({
-  content: 'TypeScript was created by Microsoft in 2012',
-  confidence: 0.95,
-  context: { domain: 'technology' },
+const memory = new MemoryCoordinator({
+  storage: new PostgresAdapter({ connectionString: 'postgres://user:pass@localhost:5432/mydb' }),
 });
 
-// Search by similarity
-const results = await adapter.searchFacts('Who created TypeScript?', { limit: 5 });
+await memory.store('TypeScript was created by Microsoft in 2012', { type: 'fact', confidence: 0.95 });
+
+// Without an embedding provider recall ranks by wording; pass `embedding` for semantic search via pgvector
+const results = await memory.recall('Who created TypeScript?', { limit: 5 });
+
+await memory.close();
 ```
 
 ## Quick Start: Docker Compose
@@ -118,12 +123,13 @@ import { updateAfterRecall } from '@zensation/algorithms/fsrs';
 import { tagEmotion } from '@zensation/algorithms/emotional';
 import { computeHebbianStrengthening } from '@zensation/algorithms/hebbian';
 import { propagateForRelation } from '@zensation/algorithms/bayesian';
-import { getRetrievability } from '@zensation/algorithms/ebbinghaus';
+import { getRetrievability } from '@zensation/algorithms/fsrs';
+import { calculateRetention } from '@zensation/algorithms/ebbinghaus';
 ```
 
 ## Next Steps
 
 - [Architecture Overview](./architecture.md) — understand the 7-layer design
-- [API Reference](https://www.npmjs.com/package/@zensation/algorithms) — full function signatures
+- [API Reference](./api-reference.md) — full function signatures
 - [Playground](../apps/playground/) — interactive demo
 - [GitHub Discussions](https://github.com/zensation-ai/zenbrain/discussions) — get help from the community
