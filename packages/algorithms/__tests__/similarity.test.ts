@@ -105,3 +105,22 @@ describe('safeJsonParse', () => {
     expect(safeJsonParse(undefined, 42)).toBe(42);
   });
 });
+
+// CodeQL js/polynomial-redos (zenbrain alert #3): trimming trailing punctuation off the
+// negation target with /[.,!?;:]+$/ backtracked over every run of punctuation that was
+// not at the end, so 'not ' + 64 000 dots + 'x' took 6.6 s. Linear now; the bound below
+// is about a hundred times the linear time and a fraction of the quadratic one.
+describe('detectNegation on adversarial input', () => {
+  it('stays linear on a long run of punctuation inside the target', () => {
+    const text = 'not ' + '.'.repeat(100_000) + 'x';
+    const start = performance.now();
+    const result = detectNegation(text);
+    expect(performance.now() - start).toBeLessThan(500);
+    expect(result.isNegated).toBe(true);
+  });
+
+  it('still trims punctuation at the end of the target', () => {
+    expect(detectNegation('He does not like coffee!!').negationTarget).toBe('like coffee');
+    expect(detectNegation('not here...').negationTarget).toBe('here');
+  });
+});

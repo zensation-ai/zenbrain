@@ -24,6 +24,14 @@ characters or fewer, so "Locker code is 47" and "Locker code is 81", or "Server 
 counted as the same memory and recall returned only one of them. Every word and number now counts; case and
 punctuation are ignored, so "Paris." and "paris" still match.
 
+### Security — two regular expressions took quadratic time (CodeQL alerts #3, #4)
+
+`detectNegation()` trimmed trailing punctuation off the negation target with `/[.,!?;:]+$/`, and
+`decomposeTemporalQuery()` trimmed separators with `/^[\s,?.]+|[\s,?.]+$/g`. Both backtrack over every run of those
+characters that is not at the end, so `'not ' + '.'.repeat(100000) + 'x'` and `'when did a' + ','.repeat(100000) + 'b'`
+took about 16 seconds each. Both trims are loops now and finish in milliseconds; results for ordinary input are
+unchanged.
+
 ### Security — ids never come from `Math.random`
 
 Working-memory slots and sessions fell back to `Math.random()` for their ids when `crypto.randomUUID` was missing

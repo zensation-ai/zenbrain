@@ -419,13 +419,26 @@ function buildSubQuery(original: string, stripPatterns: RegExp[]): string {
   for (const sp of stripPatterns) {
     candidate = candidate.replace(sp, ' ');
   }
-  candidate = candidate.replace(/\s+/g, ' ').replace(/^[\s,?.]+|[\s,?.]+$/g, '').trim();
+  candidate = trimSeparators(candidate.replace(/\s+/g, ' '));
   // Guard: if the strip removed too much, fall back to original.
   if (countTokens(candidate) < 2) return original.trim();
   // Re-attach the trailing question mark if the original had one and we
   // accidentally trimmed it (helps downstream embedders).
   if (original.trim().endsWith('?') && !candidate.endsWith('?')) candidate = `${candidate}?`;
   return candidate || original.trim();
+}
+
+/** Remove whitespace, commas, question marks and full stops from both ends. A loop
+ *  instead of `/^[\s,?.]+|[\s,?.]+$/g`, which backtracks over every run of those
+ *  characters that is not at an end and so took quadratic time on input like
+ *  `'when did a' + ','.repeat(n) + 'b'` (CodeQL js/polynomial-redos). */
+function trimSeparators(s: string): string {
+  const isSeparator = (c: string) => c === ',' || c === '?' || c === '.' || /\s/.test(c);
+  let start = 0;
+  let end = s.length;
+  while (start < end && isSeparator(s[start])) start++;
+  while (end > start && isSeparator(s[end - 1])) end--;
+  return s.slice(start, end);
 }
 
 function countTokens(s: string): number {

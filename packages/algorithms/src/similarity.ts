@@ -68,6 +68,17 @@ const SIMPLE_NEGATION_PATTERNS = [
 ];
 
 /**
+ * Remove trailing `.,!?;:` characters. A loop instead of `/[.,!?;:]+$/`, which
+ * backtracks over every run of punctuation that is not at the end and so took
+ * quadratic time on input like `'not ' + '.'.repeat(n) + 'x'` (CodeQL js/polynomial-redos).
+ */
+function trimTrailingPunctuation(s: string): string {
+  let end = s.length;
+  while (end > 0 && '.,!?;:'.includes(s[end - 1])) end--;
+  return s.slice(0, end);
+}
+
+/**
  * Detect negation in text using regex-based heuristics.
  *
  * Supports English and German negation patterns.
@@ -116,7 +127,7 @@ export function detectNegation(text: string): NegationResult {
   for (const { regex } of NEGATION_PATTERNS_WITH_TARGET) {
     const match = text.match(regex);
     if (match && match[1]) {
-      const target = match[1].trim().replace(/[.,!?;:]+$/, '');
+      const target = trimTrailingPunctuation(match[1].trim());
       return {
         isNegated: true,
         negationTarget: target.length > 0 ? target : null,

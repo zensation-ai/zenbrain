@@ -475,3 +475,15 @@ describe('runTemporalMultiRoute', () => {
     ).rejects.toThrow('retriever exploded');
   });
 });
+
+// CodeQL js/polynomial-redos (zenbrain alert #4): the trim after stripping cue tokens used
+// /^[\s,?.]+|[\s,?.]+$/g, which backtracked over every run of commas that was not at the
+// end ('when did a' + 64 000 commas + 'b' took 6.7 s). Linear now.
+describe('decomposeTemporalQuery on adversarial input', () => {
+  it('stays linear on a long run of commas', () => {
+    const query = 'when did a' + ','.repeat(100_000) + 'b';
+    const start = performance.now();
+    decomposeTemporalQuery(query);
+    expect(performance.now() - start).toBeLessThan(500);
+  });
+});
