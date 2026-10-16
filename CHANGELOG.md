@@ -4,6 +4,31 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Fixed — working memory dropped the newest slot and decayed twice
+
+Every `store()` adds its content to working memory at relevance 1.0, and nothing decays between stores, so a full
+working memory is all ties. `WorkingMemory.add()` sorted by relevance and evicted the last slot; the sort is stable,
+so the last slot was the new one. Once seven memories had been stored in a process, working memory kept those seven
+and dropped every later one at once. It now evicts the least relevant slot and, among equals, the oldest. Without an
+embedding provider, `findRelevant()` returns the most relevant slots, newest first among equals; it used to return
+them in array order.
+
+`decay()` multiplied each slot by e^(−rate × age) on every call, counting the age from when the slot was added, so a
+slot ten minutes old fell to 0.61, 0.37 or 0.22 after one, two or three calls. Each call now counts only the minutes
+since the slot was last decayed: how often `consolidate()` runs no longer changes how long a slot lives.
+
+### Fixed — recall merged memories that differ only in a short word or number
+
+Recall drops a result whose words overlap another result's by more than 90 %. The overlap ignored every word of two
+characters or fewer, so "Locker code is 47" and "Locker code is 81", or "Server A is up" and "Server B is up",
+counted as the same memory and recall returned only one of them. Every word and number now counts; case and
+punctuation are ignored, so "Paris." and "paris" still match.
+
+### Security — ids never come from `Math.random`
+
+Working-memory slots and sessions fell back to `Math.random()` for their ids when `crypto.randomUUID` was missing
+(CodeQL alert #5). On Node 22 and newer, the engines floor, it never is; the fallback is gone.
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".
