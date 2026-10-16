@@ -40,8 +40,13 @@ export class WorkingMemory {
    * Add a slot to working memory. If that makes it overfull, the least relevant
    * slot is evicted; among equally relevant slots the oldest goes. A new slot is
    * only evicted itself if it is less relevant than every slot it would join.
+   *
+   * @throws RangeError if relevance is not a number from 0 to 1
    */
   async add(content: string, type: WorkingMemorySlot['type'] = 'fact', relevance = 1.0): Promise<WorkingMemorySlot> {
+    if (typeof relevance !== 'number' || !(relevance >= 0 && relevance <= 1)) {
+      throw new RangeError(`WorkingMemory.add: relevance must be a number from 0 to 1, got ${relevance}`);
+    }
     let emb: number[] | undefined;
     if (this.embedding) {
       try {

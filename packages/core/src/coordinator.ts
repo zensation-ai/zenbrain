@@ -257,8 +257,15 @@ export class MemoryCoordinator {
    * @param content - The text content to store
    * @param options - Routing hints and metadata
    * @returns The ID of the stored memory
+   * @throws RangeError if options.emotionalWeight or options.confidence is not a number from 0 to 1
    */
   async store(content: string, options: StoreOptions = {}): Promise<string> {
+    for (const key of ['emotionalWeight', 'confidence'] as const) {
+      const value = options[key];
+      if (value !== undefined && (typeof value !== 'number' || !(value >= 0 && value <= 1))) {
+        throw new RangeError(`store: options.${key} must be a number from 0 to 1, got ${value}`);
+      }
+    }
     const type = this.resolveStoreType(content, options);
     let storedId: string;
 

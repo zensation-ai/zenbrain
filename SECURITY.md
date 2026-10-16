@@ -43,7 +43,11 @@ ZenBrain follows these security principles:
   `schema.table`) and reject anything else before it reaches a query
 - **No eval()** — no dynamic code execution
 - **No network calls** — algorithms package has zero runtime dependencies
-- **Input validation** — all public APIs validate inputs
+- **Input validation** — where a bad value would be stored or computed on silently, the function throws a
+  `RangeError` naming the argument: FSRS states, grades and retention targets; Hebbian weights (NaN or
+  negative); working-memory relevance and the `emotionalWeight` and `confidence` options of `store()` (outside
+  0–1); `ib-budget` contexts; `initFromSM2`; table names. Other functions expect the ranges their
+  documentation states and do not check them
 - **Dependency minimization** — core algorithms have zero dependencies
 
 ## Responsible Disclosure
