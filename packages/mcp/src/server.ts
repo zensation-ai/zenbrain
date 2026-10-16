@@ -103,12 +103,13 @@ export function createZenBrainServer(
       title: 'Store a memory',
       description:
         'Write something into long-term memory so it survives this conversation. ' +
-        'Routing is automatic by default: steps or instructions become a procedure; content ' +
-        'with an emotional weight above 0.5 (detected, or set via `emotionalWeight`) becomes an ' +
-        'episode; a `confidence` above 0.9 makes it a pinned core memory; anything else becomes ' +
-        'a semantic fact. Set `type` only when you want to override that. Every call adds a new ' +
-        'memory, except that storing the same core memory again updates it; the content is also ' +
-        'kept in working memory while the server runs. Returns the id of the stored memory. ' +
+        'Routing is automatic by default, first match wins: `steps`, or wording such as "How to", ' +
+        '"Steps:" or "workflow:", make a procedure; an emotional weight above 0.5 (detected, or ' +
+        'set via `emotionalWeight`) an episode; a `confidence` above 0.9 a pinned core memory; ' +
+        'anything else a semantic fact. Set `type` only when you want to override that. Every ' +
+        'call adds a new memory, except that storing the same core memory again updates it; the ' +
+        'content is also kept in working memory (the most recent seven) while the server runs. ' +
+        'Returns the id of the stored memory. ' +
         'If it may already be stored, check with zenbrain_recall first: storing it again adds ' +
         'a duplicate.',
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -121,13 +122,13 @@ export function createZenBrainServer(
         context: z
           .string()
           .optional()
-          .describe("Context domain, e.g. 'work', 'personal', 'learning'."),
+          .describe("Context domain, e.g. 'work', 'personal', 'learning'. Kept with episodes only."),
         confidence: z
           .number()
           .min(0)
           .max(1)
           .optional()
-          .describe('How certain this is (0–1). Above 0.9 routes to core memory.'),
+          .describe('How certain this is (0–1), kept with facts. Above 0.9 routes to core memory unless an earlier routing rule matched.'),
         emotionalWeight: z
           .number()
           .min(0)
@@ -135,7 +136,7 @@ export function createZenBrainServer(
           .optional()
           .describe(
             'Emotional significance (0–1). Detected from the content when omitted. ' +
-              'Above 0.5 routes to episodic memory.',
+              'Above 0.5 routes to episodic memory unless steps or procedural wording matched first.',
           ),
         source: z
           .string()
@@ -310,7 +311,7 @@ export function createZenBrainServer(
       inputSchema: {},
       outputSchema: {
         promoted: z.number().describe('Episodes promoted to semantic facts in this pass.'),
-        decayed: z.number().describe('Working-memory slots decayed.'),
+        decayed: z.number().describe('Working-memory slots removed by decay (relevance at or below 0.01).'),
         pruned: z.number().describe('Always 0: consolidation deletes nothing from long-term memory.'),
       },
     },

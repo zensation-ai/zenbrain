@@ -100,6 +100,17 @@ Working-memory slots and sessions fell back to `Math.random()` for their ids whe
   optional, `decayed` counts removed slots, `getHealth()` covers six layers, the `cache` option and `LayerConfig` are
   unused, the lexical path is for every setup without an embedding provider (not only SQLite).
 
+### Documentation — the MCP server's tool texts and README
+
+- `zenbrain_store`: the routing rules in the order they apply (first match wins), and which options a memory keeps
+  (`context` only on episodes, `confidence` only on facts); working memory keeps the most recent seven.
+- `zenbrain_consolidate`: only the 100 most recent episodes are looked at; `decayed` counts removed slots.
+- `ZENBRAIN_CONTEXTS` (README and `server.json`): no tool uses the cross-context layer, so the value has no effect yet.
+- README: the five tools reach five of the seven layers; long-term memory does not decay; no tool records an FSRS
+  review; SQLite keeps `-wal` and `-shm` files next to the store.
+- Every package README said ZenBrain is "built as zero-dependency TypeScript"; only `@zensation/algorithms` and
+  `@zensation/core` are.
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".

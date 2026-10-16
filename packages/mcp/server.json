@@ -29,7 +29,7 @@
         },
         {
           "name": "ZENBRAIN_CONTEXTS",
-          "description": "Comma-separated context domains for cross-context memory.",
+          "description": "Comma-separated context domains, passed to the cross-context layer. No tool uses that layer yet, so the value currently has no effect.",
           "isRequired": false,
           "isSecret": false,
           "default": "personal,work,learning,creative"
