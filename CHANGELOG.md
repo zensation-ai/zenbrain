@@ -86,6 +86,20 @@ Working-memory slots and sessions fell back to `Math.random()` for their ids whe
   `computeHebbianStrengthening()`, and described a homeostatic normalization it never applied. It now calls both with one
   weight, runs 24 maintenance passes of 2 % each, removes edges at the pruning signal 0 and normalizes the weights.
 
+### Documentation — what core and the algorithms actually do
+
+- `docs/architecture.md`: short-term memory keeps 50 interactions by default (not 20), in the process only, and does not
+  resume sessions; episodes and facts are kept until forgotten (not "days to weeks"); consolidation turns emotional
+  episodes into one fact each rather than "extracting patterns"; the coordinator keeps no knowledge graph and runs no
+  Bayesian propagation; procedures are recorded through `store()` and scored through `feedback()`, not "adapted"; the
+  emotion lexicon has about 170 weighted keywords, not "400+"; the context boost is capped at 1.3 by a design constant,
+  not a measured "up to 30%".
+- `docs/recipes.md`: a serverless handler that never consolidates loses nothing it stored; decay touches only working
+  memory, which the default recall does not search; `initFromDecayClass('good', …)` threw.
+- JSDoc and `docs/api-reference.md`: routing order, which options a layer keeps (`context` only on episodes), `steps`
+  optional, `decayed` counts removed slots, `getHealth()` covers six layers, the `cache` option and `LayerConfig` are
+  unused, the lexical path is for every setup without an embedding provider (not only SQLite).
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".

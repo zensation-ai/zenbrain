@@ -352,7 +352,9 @@ Decompose a query, run each route via the supplied `runner`, and fuse the result
 
 ### MemoryCoordinator
 
-The recommended entry point. Orchestrates all 7 layers.
+The recommended entry point. It creates all seven layers: `store`, `recall`, `forget` and `consolidate` work on
+working, episodic, semantic, procedural and core memory; short-term memory is reached through the session methods,
+cross-context memory through `getCrossContextMemory()`.
 
 ```typescript
 import { MemoryCoordinator } from '@zensation/core';
@@ -365,10 +367,14 @@ const memory = new MemoryCoordinator({
 ```
 
 #### `store(content, options?): Promise<string>`
-Route content to the appropriate memory layer and return the id of the stored memory. Auto-detects type when `type: 'auto'`.
+Route content to a memory layer and return the id of the stored memory. With `type: 'auto'` (the default) the order
+is: `steps` or procedural wording ("How to …", "Steps:", "workflow:" …) → procedure; an emotional weight above 0.5
+(given or detected) → episode; `confidence` above 0.9 → core block; otherwise a fact. Only episodes keep `context`.
+Every store also adds the content to working memory.
 
 #### `recall(query, options?): Promise<RecallResult[]>`
-Cross-layer search with ranked, deduplicated results. Options: `layers`, `limit` (default 10; the episodic,
+Cross-layer search with ranked, deduplicated results (two results whose words and numbers overlap by more than
+90 %, case and punctuation ignored, count as one; the higher score stays). Options: `layers`, `limit` (default 10; the episodic,
 semantic and procedural layers are searched with it, then the merged list is cut to it), `minConfidence`
 (applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
 confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1).
@@ -379,9 +385,9 @@ the memory in its layer, next to `layer`.
 #### `forget(id, layer): Promise<boolean>`
 Delete one memory, addressed by the `id` and `layer` of a recall result. Returns `true` if it was deleted,
 `false` if the layer holds no memory with that id (an id that is not a UUID counts as unknown, not as an error).
-Forgetting is explicit and final; nothing is forgotten automatically. To correct a memory, forget it and store
-the corrected version. Working memory keeps a copy of everything stored in the same process; it is not part of
-the default recall, and its result can be forgotten with `layer: 'working'`.
+Forgetting is explicit and final; nothing in long-term memory is deleted on its own. To correct a memory, forget it
+and store the corrected version. Working memory keeps a copy of the most recent seven stores in the same process;
+it is not part of the default recall, and its result can be forgotten with `layer: 'working'`.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic
@@ -389,7 +395,8 @@ facts, each episode once, and decay working memory. Deletes nothing from long-te
 `pruned` is always 0.
 
 #### `decay(): { removed: number }`
-Apply Ebbinghaus decay to working memory; returns how many slots were evicted.
+Apply exponential decay to working-memory slots for the minutes since each was last decayed; returns how many fell
+to a relevance of 0.01 or below and were removed. Long-term memory is not touched.
 
 #### `getReviewQueue(limit?): Promise<{ id, content, confidence }[]>`
 Semantic facts whose FSRS review is due. Nothing reviews them on its own: report each review with `recordReview`.
@@ -400,7 +407,8 @@ forgotten, 3 to 5 as recalled (3 neutral, 5 perfect); anything else throws a `Ra
 has that id.
 
 #### `getHealth(): Promise<MemoryHealth>`
-Get statistics from all memory layers.
+Counts from six layers (cross-context memory has no counter): working-memory slots in use and the limit, short-term
+interactions, episodes, facts and how many are due for review, procedures, core blocks.
 
 ---
 

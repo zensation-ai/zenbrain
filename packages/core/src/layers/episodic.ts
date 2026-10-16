@@ -107,7 +107,7 @@ export class EpisodicMemory {
     ]);
   }
 
-  /** Search episodes by semantic similarity (requires embedding provider). */
+  /** Search episodes: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
   async search(query: string, limit = 5): Promise<(Episode & { score: number })[]> {
     if (!this.embedding) {
       // Was: return the most recent episodes and drop the query on the floor. The warning

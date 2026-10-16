@@ -1,9 +1,12 @@
 /**
- * MemoryCoordinator — Orchestrates all 7 memory layers into a cohesive cognitive system.
+ * MemoryCoordinator — the entry point to ZenBrain's seven memory layers.
  *
- * This is the primary entry point for using ZenBrain. It routes content to the
- * appropriate memory layer, performs cross-layer recall with ranked results,
- * handles memory consolidation (episodic → semantic), and manages decay cycles.
+ * It creates all seven. `store()`, `recall()`, `forget()` and `consolidate()` work on
+ * working, episodic, semantic, procedural and core memory; short-term memory is reached
+ * through the session methods, cross-context memory through `getCrossContextMemory()`.
+ * It routes content to a layer, recalls across layers, promotes emotional episodes to
+ * facts (`consolidate()`), and decays working memory when `decay()` or `consolidate()`
+ * is called — there is no timer.
  *
  * Inspired by the global workspace theory (Baars, 1988) — the coordinator acts
  * as a "conscious workspace" that integrates information across memory systems.
@@ -36,7 +39,7 @@ export interface CoordinatorConfig {
   embedding?: EmbeddingProvider;
   /** LLM provider for consolidation summaries. Optional. */
   llm?: LLMProvider;
-  /** Cache provider for working memory persistence. Optional. */
+  /** Cache provider. Optional; accepted, but no layer reads or writes it yet. */
   cache?: CacheProvider;
   /** Context domains for cross-context memory. Defaults to ['personal', 'work', 'learning', 'creative']. */
   contexts?: string[];
@@ -47,15 +50,15 @@ export interface CoordinatorConfig {
 export interface StoreOptions {
   /** Routing hint: which layer to target. 'auto' uses content heuristics. */
   type?: 'auto' | 'fact' | 'episode' | 'procedure' | 'core';
-  /** Context domain (e.g., 'work', 'personal'). */
+  /** Context domain (e.g., 'work', 'personal'). Episodes keep it; facts, procedures and core blocks do not. */
   context?: string;
-  /** Emotional weight override (0-1). If not provided, auto-detected from content. */
+  /** Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing, above 0.5 makes the memory an episode. */
   emotionalWeight?: number;
-  /** Confidence score (0-1). High confidence (>0.9) routes to core memory. */
+  /** Confidence score (0-1), stored with facts. In auto routing, above 0.9 routes to core memory — unless steps, procedural wording or an emotional weight above 0.5 routed it first. */
   confidence?: number;
   /** Source attribution (e.g., 'user', 'ai', 'import'). */
   source?: string;
-  /** Steps for procedural memory. Required when type='procedure'. */
+  /** Steps for procedural memory. Optional: when omitted, numbered or bulleted lines of the content become the steps (otherwise each line). */
   steps?: string[];
   /** Tools used in the procedure. */
   tools?: string[];
@@ -105,7 +108,7 @@ export interface RecallResult {
 export interface ConsolidationResult {
   /** Number of episodic memories promoted to semantic facts in this pass. */
   promoted: number;
-  /** Number of working memory slots decayed. */
+  /** Number of working-memory slots that decay removed (relevance at or below 0.01). Every slot loses relevance; only removed ones are counted. */
   decayed: number;
   /** Always 0: consolidation deletes nothing from long-term memory. Kept for the result's shape. */
   pruned: number;
@@ -242,12 +245,14 @@ export class MemoryCoordinator {
    *
    * Routing logic (in order of precedence):
    * 1. Explicit `type` in options overrides auto-detection.
-   * 2. 'procedure' or procedural-looking content → ProceduralMemory
-   * 3. 'episode' or emotionalWeight > 0.5 → EpisodicMemory
-   * 4. 'core' or confidence > 0.9 → CoreMemory (pinned)
-   * 5. 'fact' or default → SemanticMemory
+   * 2. `steps`, or content starting "How to", "Step 1", "Steps:" or containing
+   *    "workflow:", "recipe:", "procedure:", "instructions:", "step-by-step" → ProceduralMemory
+   * 3. emotionalWeight > 0.5 (given or detected) → EpisodicMemory
+   * 4. confidence > 0.9 → CoreMemory (pinned)
+   * 5. otherwise → SemanticMemory
    *
-   * All stored content is also added to WorkingMemory for immediate access.
+   * Every stored content is also added to working memory, which keeps the most
+   * recent seven in this process and is not part of the default recall.
    *
    * @param content - The text content to store
    * @param options - Routing hints and metadata
@@ -300,7 +305,7 @@ export class MemoryCoordinator {
       }
     }
 
-    // Also add to working memory for immediate access
+    // Also add to working memory (most recent seven; not part of the default recall)
     await this.working.add(content, 'fact', 1.0);
 
     return storedId;
@@ -369,13 +374,14 @@ export class MemoryCoordinator {
    * Delete one memory, addressed by the `id` and `layer` of a recall result.
    *
    * Forgetting is explicit and final: the memory is deleted from its layer and no
-   * later recall returns it. Nothing is forgotten automatically; consolidation and
-   * decay never delete long-term memories. To correct a memory, forget it and store
-   * the corrected version.
+   * later recall returns it. Nothing in long-term memory is deleted on its own;
+   * consolidation and decay never delete long-term memories. To correct a memory,
+   * forget it and store the corrected version.
    *
-   * Working memory also keeps a copy of everything stored in this process. It is not
-   * part of the default recall and empties itself through decay; forget the
-   * working-memory result as well if the copy has to go at once.
+   * Working memory also keeps a copy of the most recent stores in this process (seven
+   * slots). It is not part of the default recall, and `decay()` / `consolidate()`
+   * remove its stale slots; forget the working-memory result as well if the copy has
+   * to go at once.
    *
    * @param id - The `id` of a recall result.
    * @param layer - The `layer` of the same result.
@@ -462,7 +468,7 @@ export class MemoryCoordinator {
    * file: three passes, three identical facts. An episode an earlier version
    * already promoted verbatim is recognised by that fact and only marked.
    *
-   * @returns Counts of promoted episodes, decayed working-memory slots, and pruned items (0).
+   * @returns Counts of promoted episodes, working-memory slots removed by decay, and pruned items (0).
    */
   async consolidate(): Promise<ConsolidationResult> {
     let promoted = 0;
@@ -517,9 +523,9 @@ export class MemoryCoordinator {
   // ===========================================
 
   /**
-   * Apply Ebbinghaus time-based decay to working memory slots.
-   *
-   * Reduces relevance of older slots and evicts those below the minimum threshold.
+   * Apply exponential time-based decay to working-memory slots: each slot loses
+   * relevance for the minutes since it was last decayed, and slots at 0.01 or below
+   * are removed. Long-term memory is not touched.
    *
    * @returns Object with the number of slots removed.
    */
@@ -573,9 +579,9 @@ export class MemoryCoordinator {
   // ===========================================
 
   /**
-   * Aggregate health statistics from all memory layers.
+   * Health statistics from six layers (cross-context memory has no counter).
    *
-   * @returns MemoryHealth snapshot across all layers.
+   * @returns MemoryHealth snapshot: working, short-term, episodic, semantic, procedural, core.
    */
   async getHealth(): Promise<MemoryHealth> {
     const capacity = this.working.capacity;

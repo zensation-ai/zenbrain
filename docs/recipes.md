@@ -72,12 +72,14 @@ async function endSession() {
 ```
 
 **Pick scheduled** when the process outlives individual conversations and idle time exists.
-**Pick on demand** when the process is short-lived — a serverless handler that never consolidates
-throws away everything it learned.
+**Pick on demand** when the process is short-lived. A serverless handler that never consolidates loses
+nothing it stored — `store()` writes at once — but its emotional episodes never become facts, and its
+working memory ends with the process either way.
 
-⚠️ Do not call it inside a turn to "make the agent smarter mid-conversation". Promotion and decay
-change what `recall()` returns, so a mid-turn call can move the ground under a reply that is already
-half-written. `decay()` alone is cheaper if all you want is to expire stale entries:
+⚠️ Do not call it inside a turn to "make the agent smarter mid-conversation". Promotion changes what
+`recall()` returns — a new fact joins the results — so a mid-turn call can move the ground under a reply
+that is already half-written. Decay touches only working memory, which the default `recall()` does not
+search. `decay()` alone is cheaper if all you want is to expire stale working-memory slots:
 
 ```ts
 const { removed } = memory.decay(); // synchronous, no promotion
@@ -173,8 +175,8 @@ function weightFor(content: string): number {
 
 await memory.store(content, { type: 'fact', emotionalWeight: weightFor(content) });
 
-// Same weight when you build FSRS state directly
-const state = initFromDecayClass('good', weightFor(content));
+// When you build FSRS state directly: the second argument multiplies the base stability, 1.0 to 2.0
+const state = initFromDecayClass('normal_decay', 1 + weightFor(content));
 ```
 
 ⚠️ **Use a floor, not a constant.** Writing `emotionalWeight: 1.0` for every domain hit flattens the

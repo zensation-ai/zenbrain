@@ -104,7 +104,7 @@ export class SemanticMemory {
     return row ? rowToFact(row) : null;
   }
 
-  /** Retrieve facts by semantic similarity. */
+  /** Retrieve facts: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
   async search(query: string, limit = 5): Promise<(MemoryFact & { score: number })[]> {
     if (!this.embedding) {
       return this.lexicalSearch(query, limit);
@@ -129,8 +129,8 @@ export class SemanticMemory {
    * Non-vector retrieval: rank a bounded recency window by lexical relevance.
    *
    * This branch used to hand back `getRecent()` with `score: 0`, discarding the query.
-   * Every SQLite user lands here, because the vector branch above is pgvector-only — so
-   * the default `npx @zensation/mcp` install answered every question with the same rows.
+   * Every user without an embedding provider lands here — among them the default
+   * `npx @zensation/mcp` install, which answered every question with the same rows.
    *
    * A score of 0 now carries information: it means nothing matched lexically, and the
    * rows are the recency fallback. Before, 0 meant "this path does not rank at all".

@@ -149,7 +149,7 @@ export class ProceduralMemory {
     this.log.debug(`Procedure ${procedureId} feedback: ${success ? 'success' : 'failure'}`);
   }
 
-  /** List all procedures. */
+  /** List procedures, highest success rate first (default limit 20). */
   async list(limit = 20): Promise<Procedure[]> {
     const result = await this.storage.query<ProcedureRow>(
       `SELECT * FROM ${this.table} ORDER BY success_rate DESC, execution_count DESC LIMIT $1`,

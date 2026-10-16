@@ -8,9 +8,10 @@ import type { CacheProvider } from './interfaces/cache';
 import { randomId } from './id';
 
 /**
- * In-memory storage adapter for testing.
- * Stores rows in a Map keyed by table name.
- * Supports basic INSERT/SELECT/UPDATE/DELETE via regex parsing.
+ * In-memory storage adapter for unit tests of this package (not exported).
+ * Stores rows in a Map keyed by table name. It parses only enough SQL to INSERT rows and
+ * SELECT whole tables: WHERE clauses are ignored, and UPDATE and DELETE do nothing while
+ * reporting rowCount 1. Tests of query behaviour belong on a real adapter (adapter-sqlite).
  */
 export class InMemoryStorage implements StorageAdapter {
   private tables = new Map<string, Record<string, unknown>[]>();

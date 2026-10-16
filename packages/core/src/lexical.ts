@@ -6,10 +6,10 @@
  * against `npx -y @zensation/mcp` with three unrelated facts stored: the query
  * "Leuchtturm" and the query "Backrezept mit Speck" both returned all three rows, every
  * score 0 — the literal keyword match was not preferred over anything. That is the
- * default path for every SQLite user, because the vector branch is pgvector-only.
+ * path for every user without an embedding provider, the MCP server among them.
  *
  * This module is the fallback that path was missing. It is deliberately small, pure and
- * dependency-free: the package's whole promise is that installing it pulls nothing else in.
+ * dependency-free: installing core pulls in nothing beyond @zensation/algorithms.
  *
  * WHAT IT IS NOT. This is a lexical heuristic, not semantic search. It cannot match
  * "car" to "automobile". An EmbeddingProvider remains the configuration the published
