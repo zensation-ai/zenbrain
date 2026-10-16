@@ -29,9 +29,13 @@ zenbrain/
 ├── packages/
 │   ├── algorithms/     # Pure neuroscience algorithms (zero deps)
 │   ├── core/           # 7-layer memory system + coordinator
-│   └── adapters/
-│       ├── postgres/   # PostgreSQL + pgvector adapter
-│       └── sqlite/     # SQLite adapter (zero-config)
+│   ├── adapters/
+│   │   ├── postgres/   # PostgreSQL + pgvector adapter
+│   │   └── sqlite/     # SQLite adapter (zero-config)
+│   ├── mcp/            # MCP server
+│   └── ai-sdk/         # Vercel AI SDK middleware
+├── backend/            # Ablation runner for the paper's mechanism tables
+├── scripts/            # CI checks and the mechanism comparison
 ├── examples/           # Integration examples
 ├── apps/playground/    # Interactive demo
 └── docs/               # Documentation
@@ -159,8 +163,8 @@ export class MyLayer {
 
 1. **Zero dependencies in algorithms** — pure TypeScript, tree-shakeable
 2. **Pluggable adapters** — storage, embeddings, LLM, cache are all interfaces
-3. **Neuroscience-grounded** — every algorithm cites its scientific basis
-4. **Graceful degradation** — works without embeddings (falls back to recency)
+3. **Neuroscience-grounded** — a new algorithm names the work it follows in its source (five older modules do not yet)
+4. **Graceful degradation** — works without embeddings (ranks by wording; recency only when nothing matches)
 
 ## Getting Help
 

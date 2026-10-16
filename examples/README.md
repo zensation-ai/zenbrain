@@ -26,9 +26,10 @@ npx tsx examples/basic-chatbot.ts
 
 Any example runs the same way — swap the filename.
 
-**Five of the seven run as-is**, on the workspace packages alone
-(`@zensation/core`, `@zensation/algorithms`): `basic-chatbot`, `with-claude`,
-`with-crewai`, `with-mastra` and `with-vercel-ai`.
+**Five of the seven run as-is**, on the workspace packages alone: `basic-chatbot`,
+`with-claude`, `with-crewai` and `with-vercel-ai` on `@zensation/core` and
+`@zensation/algorithms`, and `with-mastra` on `@zensation/core` and
+`@zensation/adapter-sqlite` (Node 22 or newer, like every package here).
 
 **Two need a third-party package installed first**, because they import a value
 from it at runtime:

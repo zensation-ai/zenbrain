@@ -129,6 +129,32 @@ adapter each schema then sees only its own facts. It also names pgvector 0.5 as 
 `query()` retries and `transaction()` does not. The adapter-sqlite example no longer stores the "FSRS outperforms
 SM-2 by 30%" sentence corrected above.
 
+### Documentation — project-wide texts
+
+- `docs/FAQ.md`: the license paragraph said attribution is "not required"; Apache 2.0 section 4 requires keeping the
+  license and the copyright and attribution notices when redistributing. 0.4.0 was not the only breaking change
+  (0.5.0 withdrew two recall options). Five algorithm modules do not cite a source yet. Semantic search depends on
+  an embedding provider, not on pgvector: SQLite compares vectors by full scan, and without a provider the layers rank
+  by wording, not by recency. Only working memory decays.
+- `docs/ROADMAP.md`: v0.1 shipped 7 algorithm modules, not 10; the compatibility history now lists 0.5.0.
+- `AGENTS.md`: a breaking change takes a minor bump below 1.0 (as the ROADMAP says), not a major one; the project maps
+  in `AGENTS.md` and `CONTRIBUTING.md` include `mcp`, `ai-sdk`, `backend` and `scripts`.
+- `docs/benchmarks.md`: the ablation tables run from `backend/` too; `generatePairs` is quadratic by nature; Bayesian
+  propagation is one edge per call.
+- `README.md`: emotional tagging runs only with automatic routing; consolidation looks at the 100 most recent episodes;
+  the MCP server reaches five of the seven layers; zero runtime dependencies holds for algorithms and core.
+- `examples/`: `with-mastra` needs `@zensation/adapter-sqlite`; `basic-chatbot` has its install line.
+
+### Maintenance — changes since 0.5.1 this file had not recorded
+
+The README says every change is recorded here; these five were not.
+
+- `@zensation/mcp`: runtime dependency `@modelcontextprotocol/sdk` ^1.30.1 → ^1.32.1 (#133).
+- `@zensation/adapter-postgres`: runtime dependency `pg` (and `@types/pg`) ^8.23.0 → ^8.23.1 (#120).
+- Development dependencies: `turbo`, `ai`, `@ai-sdk/provider`, `@types/node` (#131).
+- `CITATION.cff` describes v0.5.1, archived as a new version of the software record (#136).
+- CI: the workflow token is read-only by default (#137).
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".

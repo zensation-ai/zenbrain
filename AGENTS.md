@@ -11,7 +11,7 @@ agents: spaced repetition (FSRS), Hebbian learning, Ebbinghaus forgetting
 curves, emotional tagging, sleep consolidation, and Bayesian confidence
 propagation, organized into a 7-layer memory architecture. The open-source
 package ships 20 algorithm modules (10 core + 10 advanced) plus a
-`MemoryCoordinator` that orchestrates all seven layers. Correctness and
+`MemoryCoordinator` that creates all seven layers and works on five of them. Correctness and
 scientific defensibility come before cleverness or performance.
 
 ## Project map
@@ -27,12 +27,18 @@ packages/
                       on @zensation/algorithms.
   adapters/postgres/  @zensation/adapter-postgres — PostgreSQL + pgvector storage.
   adapters/sqlite/    @zensation/adapter-sqlite — zero-config SQLite storage.
+  mcp/                @zensation/mcp — MCP server (five tools) over core + adapter-sqlite.
+  ai-sdk/             @zensation/ai-sdk — Vercel AI SDK middleware over core, no runtime deps.
+backend/              Ablation runner for the paper's mechanism tables; CI checks its
+                      point estimates against backend/results.
 apps/playground/      Interactive browser demo (also deployed as the HF Space and
                       zensation.ai/playground).
-examples/              Runnable integration examples (LangChain, CrewAI, Vercel AI
-                      SDK, plain chatbot, Claude).
+examples/              Runnable integration examples (plain chatbot, Claude, CrewAI,
+                      LangChain, LlamaIndex, Mastra, Vercel AI SDK).
 docs/                  architecture.md, api-reference.md, benchmarks.md, FAQ.md,
-                      ROADMAP.md, getting-started.md.
+                      ROADMAP.md, getting-started.md, recipes.md.
+scripts/               CI checks (zero dependencies, package contents, MCP smoke test) and
+                      compare-mechanisms.sh, the mechanism comparison you run by hand.
 ```
 
 Turborepo + npm workspaces. `packages/algorithms` has no dependencies on
@@ -52,7 +58,8 @@ anything else in the repo; `packages/core` depends on it; adapters depend on
 - **Tests are required for all new code**, not optional. See Testing below.
 - **Semver discipline.** Follow `docs/ROADMAP.md`'s philosophy order:
   correctness → simplicity → performance → compatibility. Don't break existing
-  public APIs without a major bump and a migration note.
+  public APIs without a version bump that signals it — a minor bump below 1.0, a major one
+  from 1.0 on (`docs/ROADMAP.md`, Compatibility history) — and a migration note.
 - **Every algorithm module is a subpath export.** New algorithm modules need a
   matching `exports` entry in the package's `package.json` (see
   `packages/algorithms/package.json` for the pattern).
@@ -80,7 +87,7 @@ npx turbo lint               # tsc --noEmit across packages
 2. If the change is user-facing, add an entry to `CHANGELOG.md`.
 3. If a public API changed, update the relevant `docs/api-reference.md` section
    and any affected `examples/`.
-4. Breaking changes need a migration note and a major version bump — see
+4. Breaking changes need a migration note and a breaking version bump (minor below 1.0, major after) — see
    `docs/ROADMAP.md` for the compatibility philosophy.
 5. Branch naming: `feat/…`, `fix/…`, `docs/…` (see CONTRIBUTING.md).
 

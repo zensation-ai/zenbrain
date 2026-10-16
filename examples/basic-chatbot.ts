@@ -19,6 +19,9 @@
  * ZenBrain mirrors this: emotionally significant messages get higher relevance
  * in working memory and stronger consolidation weights.
  *
+ * Prerequisites:
+ *   npm install @zensation/algorithms @zensation/core
+ *
  * Run: npx tsx examples/basic-chatbot.ts
  */
 import { WorkingMemory, ShortTermMemory } from '@zensation/core';

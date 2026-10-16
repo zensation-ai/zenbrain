@@ -3,8 +3,9 @@
 This file collects the numbers behind ZenBrain. The system-level result — the one the
 architecture is judged on — is LongMemEval-500, below. The algorithm-level figures under it are
 a mix: some are measured, and some are taken from the published literature, cited at the table
-that uses them. Neither kind runs from a script in this repository; the one thing that does is
-`scripts/compare-mechanisms.sh`.
+that uses them. Two things here run from this repository: the mechanism comparison,
+`scripts/compare-mechanisms.sh`, and the ablation tables, from `backend/` (`npm run experiments`;
+CI checks every point estimate against `backend/results`).
 
 ## LongMemEval-500 (system level)
 
@@ -105,12 +106,15 @@ The asymptotic formula `growth = LR * (1 - w/MAX)` ensures weights never exceed 
 | Emotional tagging | O(n) | O(1) | n = words in text |
 | Hebbian strengthening | O(1) | O(1) | Single edge update |
 | Hebbian normalization | O(k) | O(k) | k = edges in context |
-| Bayesian propagation | O(i * e) | O(n) | i = iterations, e = edges, n = nodes |
+| Co-activation pairs (`generatePairs`) | O(n²) | O(n²) | n = co-activated items; it returns every pair |
+| Bayesian propagation | O(1) per edge | O(1) | `propagateForRelation` updates one edge; i passes over e edges in your code cost O(i * e) |
 | Context similarity | O(1) | O(1) | Matrix lookup |
 | Sleep consolidation | O(m * e) | O(m) | m = memories, e = avg edges per memory |
 | String similarity | O(w) | O(w) | w = unique words |
 
-All core algorithms are **constant-time or linear** — no quadratic or exponential operations.
+Per call, the functions are constant-time or linear in their input, with one exception: `generatePairs` is
+quadratic, because it returns every pair of the items it is given. Two regular expressions that took quadratic
+time on adversarial input (CodeQL alerts #3, #4) are linear now; the CHANGELOG records the fix.
 
 ---
 

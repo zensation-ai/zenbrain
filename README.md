@@ -83,7 +83,8 @@ lexical retrieval (BM25) by metric design, and we do not contest that. The advan
 pronounced in the judge-graded comparisons and on cross-session reasoning.
 
 **The mechanism comparison further down re-runs from this repository in under a minute** —
-`bash scripts/compare-mechanisms.sh`, no API keys and nothing to install. It prints a positive
+`bash scripts/compare-mechanisms.sh`, no API keys; it needs git and network access to clone the three compared
+repositories. It prints a positive
 and a negative control before the result, so the instrument can be checked before its output
 is trusted. The method, the effect sizes and the ablations behind the numbers above are in the
 paper; this repository ships no runner for them. The archived packages below run the significance
@@ -186,10 +187,10 @@ alone; you wire them into your own system where you want them.
 |---|---|---|
 | Layers | Seven layer classes. `recall()` searches episodic, semantic, procedural and core memory, working memory on request; the cross-context layer is not part of recall. | — |
 | Routing | `store()` picks the layer: step-by-step content becomes a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core block, anything else a fact. | — |
-| Emotional tagging | At every `store()`. The weight decides episode or fact, and which episodes consolidation promotes. | `tagEmotion`, `computeEmotionalWeight` |
+| Emotional tagging | At `store()` with automatic routing — not with an explicit `type`, and not when steps or procedural wording already made it a procedure. The weight decides episode or fact, and which episodes consolidation promotes. | `tagEmotion`, `computeEmotionalWeight` |
 | Spaced repetition (FSRS) | Every fact gets an FSRS schedule. `getReviewQueue()` lists the due facts; a review your application reports with `recordReview()` updates the schedule. Recall does not rank by retrievability. | FSRS, prediction-error-coupled FSRS |
 | Forgetting | Nothing in long-term memory decays or is deleted on its own; `forget(id, layer)` deletes on request. Working memory decays (Ebbinghaus). | Ebbinghaus retention, personal decay profiles |
-| Consolidation | `consolidate()` turns each emotionally weighted episode into a fact, once. | Sleep replay (`selectForReplay`, `simulateReplay`, `pruneWeakConnections`), simulation-selection loop |
+| Consolidation | `consolidate()` turns each emotionally weighted episode among the 100 most recent into a fact, once. | Sleep replay (`selectForReplay`, `simulateReplay`, `pruneWeakConnections`), simulation-selection loop |
 | Hebbian learning | Not used: core keeps no knowledge graph. | Classic and two-factor Hebbian |
 | Bayesian confidence | Not used. | `propagateForRelation` and the rest of the module |
 | Context-dependent retrieval | Not used. The `includeContext` option never had an effect and was withdrawn in 0.5.0. | `captureEncodingContext`, `calculateContextSimilarity` |
@@ -373,7 +374,7 @@ const dueItems = await memory.getReviewQueue();
 | [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [source](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
 | [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [source](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Published |
 | [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [source](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Published |
-| [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [source](./packages/mcp) | MCP server — gives any MCP client (Claude Desktop, Claude Code, Cursor) the seven layers as five tools. Carries the protocol SDK, so the core stays dependency-free | :white_check_mark: Published |
+| [`@zensation/mcp`](https://www.npmjs.com/package/@zensation/mcp) · [source](./packages/mcp) | MCP server — gives any MCP client (Claude Desktop, Claude Code, Cursor) five tools over five of the seven layers. Carries the protocol SDK, so the core stays dependency-free | :white_check_mark: Published |
 | [`@zensation/ai-sdk`](https://www.npmjs.com/package/@zensation/ai-sdk) · [source](./packages/ai-sdk) | Vercel AI SDK middleware — recall before the model call, store after it. Works with any provider, **zero runtime dependencies** | :white_check_mark: Published |
 
 ### Tree-Shakeable Imports
@@ -465,7 +466,7 @@ function updateConfidenceGraph(relations: Relation[]) {
 These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), a production AI platform. Everything claimed here is verifiable in this repository:
 
 - **853 tests** (492 algorithms · 161 core · 63 adapter-sqlite · 57 adapter-postgres, 6 of them against a real PostgreSQL · 58 mcp · 22 ai-sdk), all passing
-- **Zero runtime dependencies** — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
+- **Zero runtime dependencies** in `@zensation/algorithms` and `@zensation/core` (core depends only on algorithms) — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
 - **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.5.1` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
 

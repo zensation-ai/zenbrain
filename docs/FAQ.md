@@ -18,7 +18,7 @@ ZenBrain is a neuroscience-inspired memory system for AI agents. It provides 7 d
 | Zero Dependencies (core) | Yes | No | No | No |
 | Self-Hosted | Yes | Yes | Yes | Yes |
 
-ZenBrain has deeper scientific grounding — every algorithm cites its neuroscience basis — and the algorithms package has zero runtime dependencies.
+Most algorithm modules name the work they follow in their source (not yet `bayesian`, `hebbian`, `intervals`, `similarity` and `visualization`), and the algorithms package has zero runtime dependencies.
 
 ### Is ZenBrain production-ready?
 
@@ -28,7 +28,7 @@ That said, ZenBrain is still pre-1.0 — expect API changes before v1.0. We foll
 
 ### What license is ZenBrain under?
 
-Apache 2.0 — use it in commercial products, modify it, distribute it. Attribution appreciated but not required.
+Apache 2.0 — use it in commercial products, modify it, distribute it. When you redistribute it, keep the license and the copyright and attribution notices, as section 4 of the license requires; citing the paper in research is appreciated.
 
 ### Which Node.js versions are supported?
 
@@ -48,7 +48,7 @@ node -v
 npm ls @zensation/algorithms
 ```
 
-The requirement arrived in [0.4.0](../CHANGELOG.md#040--2026-08-05), the only breaking change the project has shipped so far.
+The requirement arrived in [0.4.0](../CHANGELOG.md#040--2026-08-05), the first breaking change the project shipped; 0.5.0 withdrew two recall options (see the CHANGELOG).
 
 ---
 
@@ -66,7 +66,7 @@ Each layer maps to a distinct cognitive system in the human brain:
 6. **Core** — Pinned facts always in context (Letta/MemGPT pattern)
 7. **Cross-Context** — Entity deduplication across domains
 
-These aren't arbitrary — each has different decay characteristics, retrieval patterns, and consolidation mechanisms.
+These aren't arbitrary — each has its own retrieval and its own place in consolidation. Only working memory decays; only emotional episodes are promoted to facts.
 
 ### Do I need all 7 layers?
 
@@ -87,11 +87,11 @@ Tree-shaking ensures you only bundle what you import.
 
 ### What's the MemoryCoordinator?
 
-The coordinator orchestrates all 7 layers as a single cohesive system:
-- **Auto-routing**: `store()` routes content to the right layer
+The coordinator creates all seven layers and works on five of them (working, episodic, semantic, procedural, core); short-term memory goes through its session methods, cross-context memory through a getter:
+- **Auto-routing**: `store()` routes content to a layer
 - **Cross-layer recall**: `recall()` searches multiple layers with ranked results
-- **Consolidation**: promotes episodic memories to semantic facts over time
-- **Decay management**: applies Ebbinghaus forgetting curves
+- **Consolidation**: `consolidate()` promotes emotional episodes to semantic facts when you call it
+- **Decay**: `decay()` and `consolidate()` decay working memory; long-term memory does not decay
 
 It's the recommended entry point for most use cases.
 
@@ -115,7 +115,7 @@ During sleep, the brain replays recent experiences, strengthening important memo
 
 ### How does emotional memory work?
 
-Emotional events consolidate 1-3x stronger and decay 1-3x slower than neutral events. ZenBrain's emotional tagger analyzes text for sentiment, arousal, valence, and significance using a 400+ keyword lexicon (English and German).
+The emotional tagger analyzes text for sentiment, arousal, valence and significance using about 170 weighted keywords (English and German). `computeEmotionalWeight()` turns that into a consolidation weight from 0 to 1 and a decay multiplier from 1 to 3 for your application to apply. The coordinator uses the weight to route a memory: above 0.5 it becomes an episode, which `consolidate()` later promotes to a fact.
 
 ---
 
@@ -128,7 +128,7 @@ Emotional events consolidate 1-3x stronger and decay 1-3x slower than neutral ev
 | Production, multi-user | PostgreSQL + pgvector |
 | Development, prototyping | SQLite |
 | Single-user apps | Either works |
-| Semantic search needed | PostgreSQL (pgvector required) |
+| Semantic search on large volumes | PostgreSQL + pgvector (SQLite searches vectors too, by full scan) |
 
 SQLite automatically translates PostgreSQL-style queries (`$1`, `gen_random_uuid()`, etc.), so you can develop with SQLite and deploy with PostgreSQL.
 
@@ -138,7 +138,7 @@ Yes — implement the `StorageAdapter` interface (2 methods: `query()` and `tran
 
 ### Do I need pgvector?
 
-Only if you want semantic search (similarity-based retrieval). Without pgvector, layers fall back to recency-based retrieval, which works well for many use cases.
+Only for semantic search on PostgreSQL. What decides semantic search is an embedding provider: without one, every layer ranks by wording (lexical), and falls back to recency only when nothing matches; with one, SQLite compares vectors by full scan and PostgreSQL through pgvector.
 
 ---
 
