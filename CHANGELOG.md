@@ -24,6 +24,13 @@ characters or fewer, so "Locker code is 47" and "Locker code is 81", or "Server 
 counted as the same memory and recall returned only one of them. Every word and number now counts; case and
 punctuation are ignored, so "Paris." and "paris" still match.
 
+### Fixed — adapter-postgres did not retry a refused connection
+
+`query()` promised automatic retries for transient connection errors, but it opened the connection before its
+`try`, so `ECONNREFUSED` or `ECONNRESET` while connecting failed at once; only errors of an already open client were
+retried. Connecting is now part of each attempt. A client that hit a transient error is released with that error, so
+`pg` discards it instead of handing a possibly dead connection to the next query.
+
 ### Security — two regular expressions took quadratic time (CodeQL alerts #3, #4)
 
 `detectNegation()` trimmed trailing punctuation off the negation target with `/[.,!?;:]+$/`, and

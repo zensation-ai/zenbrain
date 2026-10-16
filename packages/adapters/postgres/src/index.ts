@@ -131,8 +131,14 @@ export class PostgresAdapter implements StorageAdapter {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      const client = await this.pool.connect();
+      // Connecting is inside the try: a refused or reset connection is exactly the
+      // transient error this loop exists for.
+      let client: PoolClient | undefined;
+      // A client that hit a transient error may hold a dead connection; releasing it
+      // with the error makes pg destroy it instead of handing it to the next query.
+      let broken: Error | undefined;
       try {
+        client = await this.pool.connect();
         // Set search_path for schema isolation
         if (this.searchPathSql) {
           await client.query(this.searchPathSql);
@@ -150,6 +156,7 @@ export class PostgresAdapter implements StorageAdapter {
         };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
+        if (this.isRetryable(lastError)) broken = lastError;
 
         if (this.isRetryable(lastError) && attempt < this.maxRetries) {
           const delay = Math.min(100 * Math.pow(2, attempt) + Math.random() * 50, 2000);
@@ -160,7 +167,7 @@ export class PostgresAdapter implements StorageAdapter {
 
         throw lastError;
       } finally {
-        client.release();
+        client?.release(broken);
       }
     }
 
