@@ -83,12 +83,14 @@ lexical retrieval (BM25) by metric design, and we do not contest that. The advan
 pronounced in the judge-graded comparisons and on cross-session reasoning.
 
 **The mechanism comparison further down re-runs from this repository in under a minute** —
-`bash scripts/compare-mechanisms.sh`, no API keys; it needs git and network access to clone the three compared
-repositories. It prints a positive
+`bash scripts/compare-mechanisms.sh`, no API keys; it needs git, Node and network access to clone the three
+compared repositories at the pinned commits. It prints a positive
 and a negative control before the result, so the instrument can be checked before its output
-is trusted. The method, the effect sizes and the ablations behind the numbers above are in the
-paper; this repository ships no runner for them. The archived packages below run the significance
-tests and effect sizes in full, and the mechanism ablation behind paper Tables 7–9.
+is trusted. **The mechanism ablation behind paper Tables 7–9 also runs from here:** `cd backend && npm run
+experiments`, and CI compares every point estimate with the published ones. The method and the effect
+sizes behind the LongMemEval numbers above are in the paper; this repository ships no runner for those.
+The archived packages below run the significance tests and effect sizes in full, and the mechanism ablation
+behind paper Tables 7–9.
 
 - Method, effect sizes and ablations: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)
 - Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
@@ -127,10 +129,12 @@ Both packages name what they do not cover. Replications and counter-results are 
 
 ## How ZenBrain differs from Mem0, Letta and Zep
 
-ZenBrain implements fifteen mechanisms taken from human memory research. No system among those
-surveyed in the paper integrates more than two of them. The table below records which of the
-mechanisms appear in the public source of three widely used memory systems, at pinned versions,
-on a fixed date.
+ZenBrain's architecture combines fifteen mechanisms taken from human memory research: nine
+foundational algorithms, which are in this library, and six Predictive Memory Architecture
+components, which are not public. Among the systems the paper surveys, none integrates more than
+two of the features it compares. The table below records which of five of these mechanisms
+appear in the public source of three widely used memory systems, at pinned versions, on a fixed
+date.
 
 | Mechanism | ZenBrain | Mem0 | Letta | Zep |
 |---|:--:|:--:|:--:|:--:|
@@ -139,24 +143,28 @@ on a fixed date.
 | Ebbinghaus forgetting curves | yes | — | — | — |
 | Sleep consolidation | yes | — | — | — |
 | Emotional tagging | yes | — | — | — |
-| Zero runtime dependencies | yes | — | — | — |
+| Zero runtime dependencies | yes | — | — | n/a |
 
 <sub><strong>How this was measured, 27 August 2026.</strong> Full-text search over the
-checked-out public source of <a href="https://github.com/mem0ai/mem0">mem0ai/mem0</a>
-(npm <code>mem0ai</code> 3.1.7, PyPI <code>mem0ai</code> 2.0.19),
-<a href="https://github.com/letta-ai/letta-code">letta-ai/letta-code</a>
+public source of <a href="https://github.com/mem0ai/mem0">mem0ai/mem0</a> at tag
+<code>ts-v3.1.7</code> (npm <code>mem0ai</code> 3.1.7, PyPI <code>mem0ai</code> 2.0.19),
+<a href="https://github.com/letta-ai/letta-code">letta-ai/letta-code</a> at tag <code>v0.31.2</code>
 (npm <code>@letta-ai/letta-code</code> 0.31.2) and
-<a href="https://github.com/getzep/zep">getzep/zep</a>, lockfiles excluded. A dash means
+<a href="https://github.com/getzep/zep">getzep/zep</a> at commit <code>7de18df</code>, its last
+before that date, lockfiles excluded. getzep/zep holds examples and integrations for the hosted
+Zep Cloud, whose own source is not public: a dash in the Zep column covers that repository only,
+and there is no library to count dependencies of. A dash means
 <strong>the term does not occur in that snapshot</strong> — not that the system cannot do
 something comparable under another name. One case we know of: Letta Code revises memory in the
 background and calls it "dreaming" (sleep-time compute), which the term search for sleep
 consolidation does not match. In ZenBrain the mechanisms in this table are library functions;
 which of them the coordinator runs is in <a href="#what-runs-on-its-own-and-what-you-call-yourself">this table</a>. Dependency counts are declared direct dependencies:
 <code>@zensation/core</code> resolves to two packages, both our own; <code>mem0ai</code>
-declares four, <code>@letta-ai/letta-code</code> eighteen. Re-run the whole check yourself with
-<a href="./scripts/compare-mechanisms.sh"><code>scripts/compare-mechanisms.sh</code></a>; it
-prints its own positive and negative controls so you can see the instrument works before you
-trust the result.</sub>
+declares four, <code>@letta-ai/letta-code</code> eighteen. Re-run the whole check — the five
+mechanism rows and the dependency counts, at these pins — with
+<a href="./scripts/compare-mechanisms.sh"><code>scripts/compare-mechanisms.sh</code></a>
+(<code>--latest</code> runs it against today's default branches instead); it prints its own
+positive and negative controls so you can see the instrument works before you trust the result.</sub>
 
 Human memory does not work like a key-value store. The brain keeps specialised systems for
 different kinds of memory, forgets actively, modulates by emotion and retrieves by context.
