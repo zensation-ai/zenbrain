@@ -328,9 +328,13 @@ export function initFromDecayClass(
  *   > 30       → D:2.0  (very stable)
  *
  * @param sm2Stability Existing SM-2 stability in days, or null for default
+ * @throws RangeError if sm2Stability is negative or not a finite number
  */
 export function initFromSM2(sm2Stability: number | null): FSRSState {
-  if (sm2Stability === null) {
+  if (sm2Stability !== null && (!Number.isFinite(sm2Stability) || sm2Stability < 0)) {
+    throw new RangeError(`initFromSM2: sm2Stability must be null or a finite number >= 0, got ${sm2Stability}`);
+  }
+  if (sm2Stability === null || sm2Stability === 0) {
     const now = new Date();
     const difficulty = 5.0;
     const stability = 1.0;
