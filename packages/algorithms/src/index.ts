@@ -176,7 +176,7 @@ export {
 } from './spectral-health';
 
 // Information Bottleneck Budget ()
-export type { IBEpisode } from './ib-budget';
+export type { IBEpisode, IBContext } from './ib-budget';
 export {
   IB_BETA,
   ibShouldRetain,

@@ -1,25 +1,27 @@
 /**
  * Context-Adaptive Information Bottleneck Budget
  *
- * 
- * Provides context-aware memory retention filtering using Information
- * Bottleneck theory, complementing the sleep consolidation cycle.
+ * Context-aware retention filtering in the spirit of the Information Bottleneck,
+ * complementing the sleep consolidation cycle. The two quantities are heuristic
+ * stand-ins computed from episode properties (see the estimate functions), not
+ * mutual-information estimates.
  *
  * Based on: MemFly (Feb 2026) — "On-the-Fly Memory Optimization via
  * Information Bottleneck"
  *
  * IB criterion: retain episode if relevanceGain * beta > compressionCost
  * where beta varies by context:
- * - work: 0.8 (high relevance retention)
- * - learning: 0.6 (balance: compression creates abstraction)
- * - personal: 0.4 (forgetting irrelevant is desired)
- * - creative: 0.3 (maximum compression to concepts)
- *
+ * - finance: 0.8 (retain most)
+ * - people: 0.6
+ * - operations: 0.4
+ * - strategy: 0.3 (compress most)
+ * Any other context throws a RangeError.
  */
 
-type ContextType = 'operations' | 'finance' | 'people' | 'strategy';
+/** The contexts IB_BETA has a beta for. */
+export type IBContext = 'operations' | 'finance' | 'people' | 'strategy';
 
-export const IB_BETA: Record<ContextType, number> = {
+export const IB_BETA: Record<IBContext, number> = {
   finance: 0.8,
   people: 0.6,
   operations: 0.4,
@@ -28,8 +30,8 @@ export const IB_BETA: Record<ContextType, number> = {
 
 export interface IBEpisode {
   id: string;
-  compressionCost: number;  // I(X;Z): cost of retaining raw information
-  relevanceGain: number;    // I(Z;Y): downstream task relevance
+  compressionCost: number;  // stands in for I(X;Z): cost of retaining the raw information
+  relevanceGain: number;    // stands in for I(Z;Y): relevance for downstream tasks
 }
 
 /**
@@ -38,15 +40,21 @@ export interface IBEpisode {
 export function ibShouldRetain(
   compressionCost: number,
   relevanceGain: number,
-  context: ContextType,
+  context: IBContext,
 ): boolean {
-  const beta = IB_BETA[context];
-  return relevanceGain * beta > compressionCost;
+  return relevanceGain * betaFor(context, 'ibShouldRetain') > compressionCost;
+}
+
+function betaFor(context: IBContext, fn: string): number {
+  if (!Object.hasOwn(IB_BETA, context)) {
+    throw new RangeError(`${fn}: context must be one of ${Object.keys(IB_BETA).join(', ')}, got ${String(context)}`);
+  }
+  return IB_BETA[context];
 }
 
 /**
- * Estimate compression cost from episode properties.
- * Higher entropy content = higher compression cost.
+ * Estimate compression cost from episode properties: a weighted sum of content length,
+ * entity count and embedding variance, each normalized to [0, 1]. A heuristic, not an entropy.
  */
 export function estimateCompressionCost(
   contentLength: number,
@@ -61,8 +69,8 @@ export function estimateCompressionCost(
 }
 
 /**
- * Estimate relevance gain from episode properties.
- * High retrieval frequency + high confidence = high relevance.
+ * Estimate relevance gain from episode properties: a weighted sum of retrieval count,
+ * confidence and recency, each in [0, 1].
  */
 export function estimateRelevanceGain(
   retrievalCount: number,
@@ -79,7 +87,8 @@ export function estimateRelevanceGain(
  */
 export function ibFilterEpisodes(
   episodes: IBEpisode[],
-  context: ContextType,
+  context: IBContext,
 ): IBEpisode[] {
-  return episodes.filter(e => ibShouldRetain(e.compressionCost, e.relevanceGain, context));
+  const beta = betaFor(context, 'ibFilterEpisodes');
+  return episodes.filter(e => e.relevanceGain * beta > e.compressionCost);
 }

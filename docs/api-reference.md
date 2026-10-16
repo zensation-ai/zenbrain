@@ -289,7 +289,8 @@ Health report comparing current connectivity against a previous Fiedler value.
 ### Information-Bottleneck Budget — `./ib-budget`
 
 #### `ibShouldRetain(compressionCost, relevanceGain, context): boolean`
-Retention decision under an Information-Bottleneck trade-off.
+Retention decision under an Information-Bottleneck trade-off: keep when `relevanceGain × β > compressionCost`. `context` is one of
+`finance` (β 0.8), `people` (0.6), `operations` (0.4) or `strategy` (0.3); anything else throws a `RangeError`.
 
 #### `estimateCompressionCost(contentLength, uniqueEntityCount, embeddingVariance): number`
 Estimate the cost of storing an item.

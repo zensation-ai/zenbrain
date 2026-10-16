@@ -16,6 +16,16 @@ describe('Context-Adaptive IB Budget', () => {
   });
 
   describe('ibShouldRetain', () => {
+    // The module header used to list work/learning/personal/creative. Those names have no beta,
+    // so the comparison ran against NaN and returned false for every episode, without an error.
+    it('rejects a context it has no beta for', () => {
+      for (const context of ['work', 'learning', 'personal', 'creative']) {
+        expect(() => ibShouldRetain(0.1, 1.0, context as never)).toThrow(RangeError);
+        expect(() => ibFilterEpisodes([{ id: 'e', compressionCost: 0.1, relevanceGain: 1 }], context as never)).toThrow(RangeError);
+        expect(() => ibFilterEpisodes([], context as never)).toThrow(RangeError);
+      }
+    });
+
     it('should retain high-relevance episodes in work context', () => {
       expect(ibShouldRetain(0.3, 0.8, 'finance')).toBe(true); // 0.8*0.8 > 0.3
     });
