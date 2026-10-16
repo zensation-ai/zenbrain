@@ -16,7 +16,8 @@ import { PostgresAdapter } from '@zensation/adapter-postgres';
 
 const storage = new PostgresAdapter({
   connectionString: process.env.DATABASE_URL,
-  schema: 'personal', // optional: schema isolation
+  // schema: 'personal' isolates memory in its own schema; it needs the steps under
+  // "Multi-Context (Schema Isolation)" below first, or its queries fall back to the tables in public
 });
 
 const memory = new SemanticMemory({ storage });

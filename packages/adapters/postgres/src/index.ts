@@ -17,6 +17,12 @@ import type { StorageAdapter, QueryResult } from '@zensation/core';
 const RETRYABLE_ERRORS = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EPIPE', '57P01', '57P03', '53300'];
 
 /**
+ * pg-pool's two connection timeouts, which it raises as plain Errors without a code:
+ * no pooled client became free in time, or a new connection did not complete in time.
+ */
+const RETRYABLE_MESSAGES = ['timeout exceeded when trying to connect', 'Connection terminated due to connection timeout'];
+
+/**
  * Render a schema name for `SET search_path`.
  *
  * A plain identifier stays unquoted, so PostgreSQL folds it to lower case exactly as
@@ -230,7 +236,8 @@ export class PostgresAdapter implements StorageAdapter {
 
   private isRetryable(err: Error): boolean {
     const code = (err as { code?: string }).code;
-    return RETRYABLE_ERRORS.some(c => code === c || err.message.includes(c));
+    return RETRYABLE_ERRORS.some(c => code === c || err.message.includes(c))
+      || RETRYABLE_MESSAGES.some(m => err.message.includes(m));
   }
 }
 

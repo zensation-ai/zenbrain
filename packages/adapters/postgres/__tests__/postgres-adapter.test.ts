@@ -262,6 +262,21 @@ describe('PostgresAdapter.query()', () => {
     expect(mockRelease).toHaveBeenCalledOnce();
   });
 
+  // pg-pool reports its two connection timeouts as plain Errors without a code, so the
+  // README's "timed-out connection" was not retried. These are pg-pool's own messages.
+  it.each([
+    'timeout exceeded when trying to connect',
+    'Connection terminated due to connection timeout',
+  ])('retries the pool timeout "%s"', async (message) => {
+    mockConnect
+      .mockRejectedValueOnce(new Error(message))
+      .mockResolvedValueOnce(makeMockClient());
+
+    const adapter = new PostgresAdapter({ maxRetries: 2 });
+    await expect(adapter.query('SELECT 1')).resolves.toBeDefined();
+    expect(mockConnect).toHaveBeenCalledTimes(2);
+  });
+
   it('does not retry a connection error that is not transient', async () => {
     mockConnect.mockRejectedValueOnce(new Error('password authentication failed for user "x"'));
 
