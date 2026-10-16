@@ -102,6 +102,12 @@ once per ordering of the contexts. It now skips an entity's own id and reports e
 experimental and not wired into the coordinator; the docs say so instead of "merges and deduplicates", and the
 ROADMAP lists the schema migration it needs.
 
+### Documentation — the FAQ compares with Mem0, Letta and Zep only where the README measured
+
+The FAQ's comparison table claimed layer counts (7 / 2 / 3 / 2) and a flat "No" for every other system, with no
+source and no date; the README's comparison is measured at pinned commits and says what a missing term means. The
+FAQ now summarises ZenBrain and links to that comparison.
+
 ### Documentation — numbers the repository can measure come from a script
 
 `scripts/measure-docs-numbers.mjs` prints the quick-start values, the Hebbian convergence table, the emotional

@@ -8,15 +8,12 @@ ZenBrain is a neuroscience-inspired memory system for AI agents. It provides 7 d
 
 ### How is ZenBrain different from Mem0, Letta, or Zep?
 
-| Feature | ZenBrain | Mem0 | Letta | Zep |
-|---------|----------|------|-------|-----|
-| Memory Layers | **7** | 2 | 3 | 2 |
-| FSRS Spaced Repetition | Yes | No | No | No |
-| Hebbian Learning | Yes | No | No | No |
-| Emotional Memory | Yes | No | No | No |
-| Sleep Consolidation | Yes | No | No | No |
-| Zero Dependencies (core) | Yes | No | No | No |
-| Self-Hosted | Yes | Yes | Yes | Yes |
+ZenBrain splits memory into seven layers and ships mechanisms from memory research — FSRS spaced
+repetition, Hebbian learning, Ebbinghaus forgetting curves, sleep consolidation, emotional tagging — as
+library functions; `@zensation/algorithms` and `@zensation/core` have no third-party dependencies; it runs
+self-hosted. The README compares the five mechanisms with the public source of Mem0, Letta and Zep at
+pinned commits, with its method and its limits — a missing term there does not mean a system cannot do
+something comparable under another name: [How ZenBrain differs from Mem0, Letta and Zep](../README.md#how-zenbrain-differs-from-mem0-letta-and-zep).
 
 Most algorithm modules name the work they follow in their source (not yet `bayesian`, `hebbian`, `intervals`, `similarity` and `visualization`), and the algorithms package has zero runtime dependencies.
 
