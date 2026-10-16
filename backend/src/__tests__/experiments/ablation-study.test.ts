@@ -112,16 +112,16 @@ const SEEDS = [42, 123, 456, 789, 1024, 2048, 3072, 4096, 5120, 6144];
 
 /** All 15 algorithms with their feature IDs and categories */
 const ALL_ALGORITHMS = [
-  // 9 NeurIPS Original
-  { id: ZENBRAIN_FEATURES.TWO_FACTOR_HEBBIAN, name: 'Two-Factor Hebbian', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.SIMULATION_SELECTION_SLEEP, name: 'Simulation-Selection Sleep', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.VMPC_FSRS_COUPLING, name: 'vmPFC-FSRS Coupling', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.IMAD_DEBATE, name: 'iMAD Debate', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.SPECTRAL_KG_HEALTH, name: 'Spectral KG Health', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.COMPOSITIONAL_CONTEXT, name: 'Compositional Context', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.IB_BUDGET, name: 'IB Budget', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.DUAL_PROCESS_COT, name: 'Dual-Process CoT', category: 'NeurIPS' },
-  { id: ZENBRAIN_FEATURES.METACOGNITIVE_HYPERAGENT, name: 'Metacognitive HyperAgent', category: 'NeurIPS' },
+  // 9 harness mechanisms (the evaluation harness, not the nine library algorithms)
+  { id: ZENBRAIN_FEATURES.TWO_FACTOR_HEBBIAN, name: 'Two-Factor Hebbian', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.SIMULATION_SELECTION_SLEEP, name: 'Simulation-Selection Sleep', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.VMPC_FSRS_COUPLING, name: 'vmPFC-FSRS Coupling', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.IMAD_DEBATE, name: 'iMAD Debate', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.SPECTRAL_KG_HEALTH, name: 'Spectral KG Health', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.COMPOSITIONAL_CONTEXT, name: 'Compositional Context', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.IB_BUDGET, name: 'IB Budget', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.DUAL_PROCESS_COT, name: 'Dual-Process CoT', category: 'harness' },
+  { id: ZENBRAIN_FEATURES.METACOGNITIVE_HYPERAGENT, name: 'Metacognitive HyperAgent', category: 'harness' },
   // 6 PMA Phase 145
   { id: PMA_FEATURES.NEUROMODULATOR_ENGINE, name: 'NeuromodulatorEngine', category: 'PMA' },
   { id: PMA_FEATURES.RECONSOLIDATION, name: 'ReconsolidationEngine', category: 'PMA' },
@@ -602,8 +602,8 @@ describe('Ablation Study — 15 Neuroscience Algorithms (moderate: 300 facts, 45
 
   it('should show that PMA algorithms collectively contribute', () => {
     const pmaIds = ALL_ALGORITHMS.filter(a => a.category === 'PMA').map(a => a.id);
-    const noPma = runConfig('No PMA (NeurIPS only)', pmaIds, 'ALL_PMA', 'PMA');
-    const result = buildResult('No PMA (NeurIPS 9 only)', 'ALL_PMA', 'PMA', noPma, baselineResults);
+    const noPma = runConfig('No PMA (harness mechanisms only)', pmaIds, 'ALL_PMA', 'PMA');
+    const result = buildResult('No PMA (harness mechanisms only)', 'ALL_PMA', 'PMA', noPma, baselineResults);
     allResults.push(result);
     expect(mean(baselineResults.qualities)).toBeGreaterThanOrEqual(mean(noPma.qualities));
   });

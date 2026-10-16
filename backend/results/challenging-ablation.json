@@ -45,7 +45,7 @@
   {
     "config": "\u2212Two-Factor Hebbian (challenging)",
     "disabledAlgorithm": "two_factor_hebbian",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 0.722411299249186,
       "std": 0.007090579953130471,
@@ -88,7 +88,7 @@
   {
     "config": "\u2212Simulation-Selection Sleep (challenging)",
     "disabledAlgorithm": "simulation_selection_sleep",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 0.3105330529246316,
       "std": 0.010870565034313264,
@@ -131,7 +131,7 @@
   {
     "config": "\u2212vmPFC-FSRS Coupling (challenging)",
     "disabledAlgorithm": "vmPFC_fsrs_coupling",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 0.33267437394058186,
       "std": 0.01712561844411245,
@@ -174,7 +174,7 @@
   {
     "config": "\u2212iMAD Debate (challenging)",
     "disabledAlgorithm": "imad_debate",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 1,
       "std": 0,
@@ -217,7 +217,7 @@
   {
     "config": "\u2212Spectral KG Health (challenging)",
     "disabledAlgorithm": "spectral_kg_health",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 1,
       "std": 0,
@@ -260,7 +260,7 @@
   {
     "config": "\u2212Compositional Context (challenging)",
     "disabledAlgorithm": "compositional_context",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 1,
       "std": 0,
@@ -303,7 +303,7 @@
   {
     "config": "\u2212IB Budget (challenging)",
     "disabledAlgorithm": "ib_budget",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 0.784678959418273,
       "std": 0.005479054204920603,
@@ -346,7 +346,7 @@
   {
     "config": "\u2212Dual-Process CoT (challenging)",
     "disabledAlgorithm": "dual_process_cot",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 0.6951642621440218,
       "std": 0.007819687896020031,
@@ -389,7 +389,7 @@
   {
     "config": "\u2212Metacognitive HyperAgent (challenging)",
     "disabledAlgorithm": "metacognitive_hyperagent",
-    "category": "NeurIPS",
+    "category": "harness",
     "retention": {
       "mean": 1,
       "std": 0,
