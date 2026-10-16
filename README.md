@@ -399,25 +399,19 @@ import { generateRetentionCurve } from '@zensation/algorithms/visualization';
 ### AI Chatbots with Long-Term Memory
 
 ```typescript
-import { updateAfterRecall, getRetrievability, scheduleNextReview } from '@zensation/algorithms/fsrs';
+import { initFromDecayClass, getRetrievability, type FSRSState } from '@zensation/algorithms/fsrs';
 import { tagEmotion, computeEmotionalWeight } from '@zensation/algorithms/emotional';
 
 // When your AI learns a fact about the user:
-function rememberFact(fact: string) {
-  const memory = initFromDecayClass('normal_decay');
-  const emotion = tagEmotion(fact);
-  const weight = computeEmotionalWeight(emotion);
-
-  // Emotional facts get longer retention
-  return {
-    ...memory,
-    emotionalWeight: weight.consolidationWeight,
-    decayMultiplier: weight.decayMultiplier,
-  };
+function rememberFact(fact: string): FSRSState {
+  const weight = computeEmotionalWeight(tagEmotion(fact));
+  // Emotional facts start with more stability: the multiplier runs from 1 to 3,
+  // and initFromDecayClass applies up to 2x of it to the base stability.
+  return initFromDecayClass('normal_decay', weight.decayMultiplier);
 }
 
 // Before each conversation, check what needs reinforcement:
-function getFactsDueForReview(facts: MemoryState[]) {
+function getFactsDueForReview(facts: FSRSState[]) {
   return facts.filter(f => getRetrievability(f) < 0.7);
 }
 ```
@@ -437,7 +431,7 @@ function coActivate(edge: { weight: number }) {
 function decayEdges(edges: { weight: number; lastUsed: Date }[]) {
   for (const edge of edges) {
     edge.weight = computeHebbianDecay(edge.weight);
-    // Edges below MIN_WEIGHT (0.1) can be pruned
+    // 0 means the edge fell below MIN_WEIGHT (0.1): prune it
   }
 }
 ```
@@ -447,14 +441,17 @@ function decayEdges(edges: { weight: number; lastUsed: Date }[]) {
 ```typescript
 import { propagateForRelation, isSignificantChange } from '@zensation/algorithms/bayesian';
 
+type Fact = { confidence: number };
+type Relation = { source: Fact; target: Fact; weight: number; type: string };
+
 // After retrieval, propagate confidence through related facts:
-function updateConfidenceGraph(facts: Fact[], relations: Relation[]) {
+function updateConfidenceGraph(relations: Relation[]) {
   for (const rel of relations) {
     const newConf = propagateForRelation(
       rel.target.confidence,
       rel.source.confidence,
       rel.weight,
-      rel.type // 'supports' | 'contradicts' | 'related_to'
+      rel.type // a key of PROPAGATION_FACTORS: 'supports', 'contradicts', 'causes', 'requires', 'part_of', …
     );
     if (isSignificantChange(newConf, rel.target.confidence)) {
       rel.target.confidence = newConf;
