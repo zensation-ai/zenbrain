@@ -31,6 +31,15 @@ punctuation are ignored, so "Paris." and "paris" still match.
 retried. Connecting is now part of each attempt. A client that hit a transient error is released with that error, so
 `pg` discards it instead of handing a possibly dead connection to the next query.
 
+### Security — table names are checked before they reach SQL
+
+Values always went through placeholders, but table names were put into SQL as given: the `tableName` option of the
+episodic, semantic, procedural and core layers, and the `entityTable` and `linkTable` parameters of
+`CrossContextMemory.detectMergeCandidates()` and `createLink()`. A name like `x; DROP TABLE learned_facts; --` reached
+the query. Each is now checked against a plain identifier (letters, digits, underscores, optionally `schema.table`, at
+most 63 characters a part) and anything else throws a `TypeError`. `SECURITY.md` said "never string concatenation"; it
+now says what holds.
+
 ### Security — two regular expressions took quadratic time (CodeQL alerts #3, #4)
 
 `detectNegation()` trimmed trailing punctuation off the negation target with `/[.,!?;:]+$/`, and

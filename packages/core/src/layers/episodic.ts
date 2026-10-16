@@ -9,6 +9,7 @@ import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type Episode, type Logger, noopLogger, formatForPgVector, cosineSimilarity } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 /**
  * An episode's metadata as an object. SQLite hands the column back as JSON
@@ -42,7 +43,7 @@ export class EpisodicMemory {
   constructor(config: EpisodicMemoryConfig) {
     this.storage = config.storage;
     this.embedding = config.embedding;
-    this.table = config.tableName ?? 'episodic_memories';
+    this.table = assertSqlIdentifier(config.tableName ?? 'episodic_memories', 'tableName');
     this.log = config.logger ?? noopLogger;
   }
 

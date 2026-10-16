@@ -8,6 +8,7 @@ import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type Procedure, type Logger, noopLogger, formatForPgVector } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 export interface ProceduralMemoryConfig {
   storage: StorageAdapter;
@@ -68,7 +69,7 @@ export class ProceduralMemory {
   constructor(config: ProceduralMemoryConfig) {
     this.storage = config.storage;
     this.embedding = config.embedding;
-    this.table = config.tableName ?? 'procedural_memories';
+    this.table = assertSqlIdentifier(config.tableName ?? 'procedural_memories', 'tableName');
     this.log = config.logger ?? noopLogger;
   }
 

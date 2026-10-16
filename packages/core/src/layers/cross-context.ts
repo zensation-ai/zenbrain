@@ -9,6 +9,7 @@
 import type { StorageAdapter } from '../interfaces/storage';
 import { type Logger, noopLogger } from '../types';
 import { computeStringSimilarity } from '@zensation/algorithms/similarity';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 export interface CrossContextConfig {
   storage: StorageAdapter;
@@ -41,6 +42,7 @@ export class CrossContextMemory {
    * Returns merge candidates sorted by similarity (highest first).
    */
   async detectMergeCandidates(entityTable = 'knowledge_entities', limit = 20): Promise<MergeCandidate[]> {
+    assertSqlIdentifier(entityTable, 'entityTable');
     // Collect entities from all contexts
     const allEntities: Array<{ context: string; id: string; name: string }> = [];
 
@@ -75,6 +77,7 @@ export class CrossContextMemory {
 
   /** Create a link between two cross-context entities. */
   async createLink(entityIdA: string, entityIdB: string, linkTable = 'cross_context_links'): Promise<void> {
+    assertSqlIdentifier(linkTable, 'linkTable');
     await this.storage.query(
       `INSERT INTO ${linkTable} (id, entity_a, entity_b, created_at)
        VALUES (gen_random_uuid(), $1, $2, NOW())

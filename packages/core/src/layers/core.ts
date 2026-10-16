@@ -6,6 +6,7 @@
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import { type CoreMemoryBlock, type Logger, noopLogger } from '../types';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 /**
  * `pinned` as a real boolean. SQLite has no boolean type and hands the column
@@ -28,7 +29,7 @@ export class CoreMemory {
 
   constructor(config: CoreMemoryConfig) {
     this.storage = config.storage;
-    this.table = config.tableName ?? 'core_memory_blocks';
+    this.table = assertSqlIdentifier(config.tableName ?? 'core_memory_blocks', 'tableName');
     this.log = config.logger ?? noopLogger;
   }
 

@@ -10,6 +10,7 @@ import type { EmbeddingProvider } from '../interfaces/embedding';
 import { type MemoryFact, type Logger, noopLogger, formatForPgVector } from '../types';
 import { getRetrievability, updateAfterRecall, updateAfterForgot, initFromDecayClass } from '@zensation/algorithms/fsrs';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
+import { assertSqlIdentifier } from '../sql-identifier';
 
 export interface SemanticMemoryConfig {
   storage: StorageAdapter;
@@ -53,7 +54,7 @@ export class SemanticMemory {
   constructor(config: SemanticMemoryConfig) {
     this.storage = config.storage;
     this.embedding = config.embedding;
-    this.table = config.tableName ?? 'learned_facts';
+    this.table = assertSqlIdentifier(config.tableName ?? 'learned_facts', 'tableName');
     this.log = config.logger ?? noopLogger;
   }
 

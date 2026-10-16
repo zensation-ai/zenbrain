@@ -38,7 +38,9 @@ Include:
 
 ZenBrain follows these security principles:
 
-- **Parameterized queries** — all SQL uses `$1, $2` placeholders, never string concatenation
+- **Parameterized queries** — every value goes into SQL through `$1, $2` placeholders. Table names cannot be
+  placeholders; the layers accept them only as plain identifiers (letters, digits, underscores, optionally
+  `schema.table`) and reject anything else before it reaches a query
 - **No eval()** — no dynamic code execution
 - **No network calls** — algorithms package has zero runtime dependencies
 - **Input validation** — all public APIs validate inputs
