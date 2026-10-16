@@ -53,4 +53,11 @@ describe('the message when the store cannot be opened', () => {
     expect(msg).toContain('/var/data/zenbrain.db');
     expect(msg).not.toContain('working directory');
   });
+
+  // Up to 0.2.1 an absolute path that failed still got "Set ZENBRAIN_DB to an absolute path".
+  it('points an absolute path that failed at permissions, not at making it absolute', () => {
+    const msg = storeOpenFailureMessage('/var/data/zenbrain.db', '/', cause);
+    expect(msg).not.toMatch(/to an absolute path/);
+    expect(msg).toMatch(/write/);
+  });
 });

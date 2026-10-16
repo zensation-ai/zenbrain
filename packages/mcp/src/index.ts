@@ -99,9 +99,9 @@ export function storeOpenFailureMessage(filename: string, cwd: string, cause: un
   return (
     `zenbrain-mcp could not open its store at ${where}: ${String(cause)}\n` +
     (absolute
-      ? ''
-      : `That path is relative to the working directory your MCP client started the server in (${cwd}).\n`) +
-    `Set ZENBRAIN_DB to an absolute path, for example "~/.zenbrain/memory.db".\n`
+      ? `Check that this user can write to that directory (missing directories are created).\n`
+      : `That path is relative to the working directory your MCP client started the server in (${cwd}).\n` +
+        `Set ZENBRAIN_DB to an absolute path, for example "~/.zenbrain/memory.db".\n`)
   );
 }
 
