@@ -4,6 +4,26 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-10-16
+
+**Fixes and corrected texts, all six packages.** A review of 414 claims the packages and their docs make, 67 of
+which did not hold, found bugs in working memory, recall, eight algorithms, the PostgreSQL
+retry and the cross-context layer, and texts that promised more than the code does. This release fixes the bugs,
+each with a test that fails on 0.5.1, and makes the texts say what the code does. No API is removed; values
+outside a documented range now throw a `RangeError` (see *Changed* below). Three CI checks now keep the docs'
+code blocks, examples and test counts true.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/algorithms` | 0.5.1 | 0.5.2 | eight algorithm fixes, input checks, two linear-time regexes, module texts |
+| `@zensation/core` | 0.5.1 | 0.5.2 | working memory, recall dedup, `getHealth`, `recordReview`, table names, ids, input checks, cross-context, texts |
+| `@zensation/adapter-postgres` | 0.2.7 | 0.2.8 | retries a refused connection and pg-pool's timeouts; schema isolation documented |
+| `@zensation/adapter-sqlite` | 0.2.6 | 0.2.7 | README (it ships in the tarball) |
+| `@zensation/mcp` | 0.2.1 | 0.2.2 | tool texts, start error, `server.json` |
+| `@zensation/ai-sdk` | 0.3.0 | 0.3.1 | README and JSDoc |
+
+The ranges between the packages are unchanged.
+
 ### Fixed — working memory dropped the newest slot and decayed twice
 
 Every `store()` adds its content to working memory at relevance 1.0, and nothing decays between stores, so a full
