@@ -112,7 +112,7 @@ Reviews go through the coordinator, so you rarely touch FSRS state by hand:
 ```ts
 const due = await memory.getReviewQueue(10);
 for (const item of due) {
-  const grade = await askUser(item.content); // 1..5
+  const grade = await askUser(item.content); // integer 1..5: 1-2 forgotten, 3-5 recalled
   await memory.recordReview(item.id, grade);
 }
 ```

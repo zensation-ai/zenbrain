@@ -558,11 +558,14 @@ export class MemoryCoordinator {
    * Record a recall attempt for FSRS scheduling.
    *
    * @param factId - The fact identifier.
-   * @param grade - Recall quality grade (1-5: 1=forgot, 5=perfect).
+   * @param grade - An integer from 1 to 5: 1 and 2 count as forgotten, 3 to 5 as recalled
+   *   (3 neutral, 5 perfect). Anything else throws a RangeError.
+   * @returns `true` if the fact exists and was updated, `false` if there is no fact with that id.
    */
-  async recordReview(factId: string, grade: number): Promise<void> {
-    await this.semantic.recordRecall(factId, grade);
-    this.log.debug(`Review recorded: fact=${factId}, grade=${grade}`);
+  async recordReview(factId: string, grade: number): Promise<boolean> {
+    const updated = await this.semantic.recordRecall(factId, grade);
+    this.log.debug(`Review recorded: fact=${factId}, grade=${grade}, found=${updated}`);
+    return updated;
   }
 
   // ===========================================

@@ -159,14 +159,23 @@ export class SemanticMemory {
     return result.rows.map(rowToFact);
   }
 
-  /** Record a recall event (FSRS update). */
-  async recordRecall(factId: string, grade: number): Promise<void> {
+  /**
+   * Record a review of a fact and update its FSRS state.
+   *
+   * @param grade - An integer from 1 to 5. 1 and 2 count as forgotten (stability falls),
+   *   3 to 5 as recalled (3 neutral, 5 perfect). Anything else throws a RangeError.
+   * @returns `true` if the fact exists and was updated, `false` if there is no fact with that id.
+   */
+  async recordRecall(factId: string, grade: number): Promise<boolean> {
+    if (!Number.isInteger(grade) || grade < 1 || grade > 5) {
+      throw new RangeError(`recordRecall: grade must be an integer from 1 to 5, got ${grade}`);
+    }
     const result = await this.storage.query<FactRow>(
       `SELECT * FROM ${this.table} WHERE id = $1`,
       [factId]
     );
     const row = result.rows[0];
-    if (!row) return;
+    if (!row) return false;
 
     const state = {
       difficulty: row.fsrs_difficulty ?? 5,
@@ -188,6 +197,7 @@ export class SemanticMemory {
     );
 
     this.log.debug(`Recall recorded for fact ${factId}: grade=${grade}, next=${updated.nextReview}`);
+    return true;
   }
 
   /** Get facts due for review (FSRS scheduling). */

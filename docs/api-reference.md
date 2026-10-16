@@ -394,8 +394,10 @@ Apply Ebbinghaus decay to working memory; returns how many slots were evicted.
 #### `getReviewQueue(limit?): Promise<{ id, content, confidence }[]>`
 Semantic facts whose FSRS review is due. Nothing reviews them on its own: report each review with `recordReview`.
 
-#### `recordReview(factId, grade): Promise<void>`
-Record recall grade (1-5) for a semantic fact.
+#### `recordReview(factId, grade): Promise<boolean>`
+Record a review of a semantic fact and update its FSRS state. `grade` is an integer from 1 to 5: 1 and 2 count as
+forgotten, 3 to 5 as recalled (3 neutral, 5 perfect); anything else throws a `RangeError`. Returns `false` if no fact
+has that id.
 
 #### `getHealth(): Promise<MemoryHealth>`
 Get statistics from all memory layers.
