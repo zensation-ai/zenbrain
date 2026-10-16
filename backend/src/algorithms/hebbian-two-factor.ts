@@ -1,7 +1,8 @@
 /**
  * Two-Factor Synaptic Model for Knowledge Graph Edges
  *
- * NeurIPS Algorithm D — NOT yet published in @zensation/algorithms.
+ * The same module ships as @zensation/algorithms/hebbian-two-factor; this copy stays so
+ * the ablation runs unchanged.
  * Extends the basic Hebbian dynamics from @zensation/algorithms/hebbian
  * with a novel two-factor (weight, variance) consolidation model.
  *

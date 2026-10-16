@@ -164,6 +164,18 @@ The README says every change is recorded here; these five were not.
 - `CITATION.cff` describes v0.5.1, archived as a new version of the software record (#136).
 - CI: the workflow token is read-only by default (#137).
 
+### Changed — the ablation reproduction calls its nine non-PMA components what the paper calls them
+
+`backend/` carried an old working label for the nine components of the ablation that are not PMA components. They
+are now `harness`, the paper's word for them ("harness mechanisms" — the mechanisms of the evaluation harness, not
+the nine library algorithms), and the configuration without the PMA components is `No PMA (harness mechanisms only)`,
+as in the paper's ablation table. The rename covers the three reference files in `backend/results/`, the ablation
+suite that produces them, the integration-cascade suite and six module headers; all 722 point estimates are unchanged
+(`scripts/verify-against-reference.mjs`: 722 identical, 0 drifted). The headers no longer call five of the modules
+unpublished — all five ship in `@zensation/algorithms` — and the `fsrs-vmPFC` copy drops the Zou et al. attribution
+and the claim to be the first such extension (correction notice doi:10.5281/zenodo.22831087, section 8).
+Reproduction packages already archived on Zenodo keep their original labels (#140).
+
 ### Fixed — the FSRS comparison with SM-2 named the wrong quantity
 
 Six places said FSRS "outperforms SM-2 by ~30%", the FAQ "in retention accuracy … across millions of Anki review logs".

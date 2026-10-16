@@ -1,7 +1,8 @@
 /**
  * Simulation-Selection Sleep Consolidation Loop
  *
- * NeurIPS Algorithm C — NOT yet published in @zensation/algorithms.
+ * The same algorithm ships as @zensation/algorithms/sleep-simulation-selection; this
+ * copy imports its feature flags from ./ablation and stays so the ablation runs unchanged.
  * Extends the basic sleep consolidation from @zensation/algorithms/sleep-consolidation
  * with a novel two-stage offline RL model for replay selection.
  *

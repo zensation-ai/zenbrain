@@ -355,7 +355,7 @@ function createFullRegistry(): AblationRegistry {
   return reg;
 }
 
-function createNeurIPSOnlyRegistry(): AblationRegistry {
+function createHarnessOnlyRegistry(): AblationRegistry {
   const reg = createAblationRegistry();
   for (const id of ALL_IDS.slice(0, 9)) reg.register(id, id);
   // Register PMA features but disable them
@@ -489,7 +489,7 @@ describe('Integration Cascade — Cross-Algorithm Emergent Behavior', () => {
 
   it('should show full cascade retains memories far better than bare system', () => {
     const fullRetentions: number[] = [];
-    const neuripsRetentions: number[] = [];
+    const harnessRetentions: number[] = [];
     const bareRetentions: number[] = [];
 
     for (const seed of SEEDS) {
@@ -501,13 +501,13 @@ describe('Integration Cascade — Cross-Algorithm Emergent Behavior', () => {
       for (let d = 0; d < SIMULATION_DAYS; d++) fullSystem.advanceOneDay(rng1);
       fullRetentions.push(fullSystem.getRetention());
 
-      // NeurIPS only
+      // Harness mechanisms only
       const rng2 = mulberry32(seed);
       const facts2 = generateFacts(200, rng2);
-      const neuripsSystem = new IntegratedSystem(createNeurIPSOnlyRegistry());
-      neuripsSystem.ingest(facts2, rng2);
-      for (let d = 0; d < SIMULATION_DAYS; d++) neuripsSystem.advanceOneDay(rng2);
-      neuripsRetentions.push(neuripsSystem.getRetention());
+      const harnessSystem = new IntegratedSystem(createHarnessOnlyRegistry());
+      harnessSystem.ingest(facts2, rng2);
+      for (let d = 0; d < SIMULATION_DAYS; d++) harnessSystem.advanceOneDay(rng2);
+      harnessRetentions.push(harnessSystem.getRetention());
 
       // Bare system (no algorithms)
       const rng3 = mulberry32(seed);
@@ -519,13 +519,13 @@ describe('Integration Cascade — Cross-Algorithm Emergent Behavior', () => {
     }
 
     const fullM = mean(fullRetentions);
-    const neuripsM = mean(neuripsRetentions);
+    const harnessM = mean(harnessRetentions);
     const bareM = mean(bareRetentions);
 
     // Full >> Bare (bare should be at floor ~0.01)
     expect(fullM).toBeGreaterThan(bareM * 5); // At least 5x better retention
-    // Full > NeurIPS (PMA algorithms add measurable benefit)
-    expect(fullM).toBeGreaterThan(neuripsM);
+    // Full > harness mechanisms only (the PMA components add measurable benefit)
+    expect(fullM).toBeGreaterThan(harnessM);
 
     // Statistical significance
     const stat = wilcoxonSignedRank(fullRetentions, bareRetentions);
@@ -533,7 +533,7 @@ describe('Integration Cascade — Cross-Algorithm Emergent Behavior', () => {
 
     console.log(`\n=== CASCADE RETENTION (${SIMULATION_DAYS} days, decay=${BASE_DECAY}) ===`);
     console.log(`Full (15 alg):   ${fullM.toFixed(4)} ± ${std(fullRetentions).toFixed(4)}`);
-    console.log(`NeurIPS (9 alg): ${neuripsM.toFixed(4)} ± ${std(neuripsRetentions).toFixed(4)}`);
+    console.log(`Harness (9 alg): ${harnessM.toFixed(4)} ± ${std(harnessRetentions).toFixed(4)}`);
     console.log(`Bare (0 alg):    ${bareM.toFixed(4)} ± ${std(bareRetentions).toFixed(4)}`);
     console.log(`Full/Bare ratio: ${(fullM / bareM).toFixed(1)}x, p=${stat.p.toFixed(4)}`);
 
@@ -546,7 +546,7 @@ describe('Integration Cascade — Cross-Algorithm Emergent Behavior', () => {
       n: SEEDS.length,
       details: {
         full: { mean: fullM, std: std(fullRetentions) },
-        neurips: { mean: neuripsM, std: std(neuripsRetentions) },
+        harness: { mean: harnessM, std: std(harnessRetentions) },
         bare: { mean: bareM, std: std(bareRetentions) },
         fullToBareRatio: fullM / bareM,
         pValue: stat.p,
@@ -558,10 +558,10 @@ describe('Integration Cascade — Cross-Algorithm Emergent Behavior', () => {
     const checkpoints = [1, 3, 7, 14, 21, 30, 45, 60];
     const configs: Record<string, () => AblationRegistry> = {
       full: createFullRegistry,
-      neurips: createNeurIPSOnlyRegistry,
+      harness: createHarnessOnlyRegistry,
       bare: createBareRegistry,
     };
-    const timeline: Record<string, number[]> = { full: [], neurips: [], bare: [] };
+    const timeline: Record<string, number[]> = { full: [], harness: [], bare: [] };
 
     // Average over seeds for each checkpoint
     for (const checkpoint of checkpoints) {
