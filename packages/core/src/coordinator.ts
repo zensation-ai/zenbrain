@@ -864,8 +864,8 @@ export class MemoryCoordinator {
 
   /**
    * Deduplicate results by content similarity.
-   * If two results have Jaccard similarity > 0.9 on their content words,
-   * keep only the higher-scored one.
+   * If two results have Jaccard similarity > 0.9 on their words and numbers
+   * (case and punctuation ignored), keep only the higher-scored one.
    */
   private deduplicateResults(results: RecallResult[]): RecallResult[] {
     if (results.length <= 1) {
@@ -901,15 +901,20 @@ export class MemoryCoordinator {
 
   /**
    * Simple Jaccard content similarity for deduplication.
-   * Compares word overlap between two strings.
+   * Compares the sets of words and numbers of two strings, ignoring case and
+   * punctuation. Every token counts: short ones are often what tells two
+   * memories apart ("Locker code is 47" / "Locker code is 81", "Server A" /
+   * "Server B"), so dropping them made distinct memories look identical.
    */
   private contentSimilarity(a: string, b: string): number {
     if (!a || !b) return 0;
-    const wordsA = new Set(a.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-    const wordsB = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+    const tokens = (s: string) => new Set(s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean));
+    const wordsA = tokens(a);
+    const wordsB = tokens(b);
 
-    if (wordsA.size === 0 && wordsB.size === 0) return 1.0;
-    if (wordsA.size === 0 || wordsB.size === 0) return 0;
+    if (wordsA.size === 0 || wordsB.size === 0) {
+      return a.trim().toLowerCase() === b.trim().toLowerCase() ? 1.0 : 0;
+    }
 
     let intersection = 0;
     for (const word of wordsA) {
