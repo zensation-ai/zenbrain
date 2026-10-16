@@ -233,7 +233,9 @@ const SIGNIFICANCE_WORDS: ReadonlyMap<string, number> = new Map([
  *
  * Returns a multidimensional emotional profile:
  * - sentiment: overall positive/negative polarity
- * - arousal: activation/excitement level
+ * - arousal: activation/excitement level — 0.2, plus the average intensity of the arousal words
+ *   (or 0.1 when there are none but other emotional words), plus up to 0.5 for "!", 0.2 for "?" and
+ *   0.3 for words in capitals; at most 1
  * - valence: pleasantness (mapped from sentiment to 0-1)
  * - significance: personal importance/relevance
  *
@@ -288,24 +290,20 @@ export function tagEmotion(text: string, contextDomain?: string, logger: Logger 
     }
   }
 
+  // Punctuation and capitals boost arousal on top of the word average below. Folding them into
+  // that average would let "!" pull a strong arousal word down, and "?" or capitals would do
+  // nothing without an arousal word.
   // Exclamation marks boost arousal
   const exclamationCount = (text.match(/!/g) || []).length;
-  if (exclamationCount > 0) {
-    arousalScore += Math.min(exclamationCount * 0.15, 0.5);
-    arousalHits++;
-  }
+  const exclamationBoost = Math.min(exclamationCount * 0.15, 0.5);
 
   // Question marks slightly boost arousal (curiosity/uncertainty)
   const questionCount = (text.match(/\?/g) || []).length;
-  if (questionCount > 0) {
-    arousalScore += Math.min(questionCount * 0.05, 0.2);
-  }
+  const questionBoost = Math.min(questionCount * 0.05, 0.2);
 
   // ALL CAPS words boost arousal
   const capsWords = text.match(/\b[A-Z]{2,}\b/g) || [];
-  if (capsWords.length > 0) {
-    arousalScore += Math.min(capsWords.length * 0.1, 0.3);
-  }
+  const capsBoost = Math.min(capsWords.length * 0.1, 0.3);
 
   // Compute sentiment
   const totalEmotional = positiveHits + negativeHits;
@@ -318,11 +316,12 @@ export function tagEmotion(text: string, contextDomain?: string, logger: Logger 
     sentiment = rawSentiment * (0.5 + 0.5 * density);
   }
 
-  // Compute arousal
+  // Compute arousal: average intensity of the arousal words, then the boosts above
   const baseArousal = 0.2;
-  const arousal = arousalHits > 0
-    ? Math.min(baseArousal + arousalScore / Math.max(arousalHits, 1), 1.0)
+  const wordArousal = arousalHits > 0
+    ? baseArousal + arousalScore / arousalHits
     : baseArousal + (totalEmotional > 0 ? 0.1 : 0);
+  const arousal = Math.min(wordArousal + exclamationBoost + questionBoost + capsBoost, 1.0);
 
   // Compute valence: map sentiment (-1,1) to (0,1)
   const valence = (sentiment + 1) / 2;

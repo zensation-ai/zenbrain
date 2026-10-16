@@ -91,7 +91,7 @@ console.log(`Stability: ${memory.stability} -> ${updated.stability.toFixed(2)}`)
 // 4. Tag emotional significance
 const emotion = tagEmotion('I am absolutely thrilled — I got the promotion!');
 console.log(emotion);
-// { sentiment: 0.55, arousal: 0.35, valence: 0.78, significance: 0.85 }
+// { sentiment: 0.55, arousal: 0.45, valence: 0.775, significance: 0.85 }
 
 const weight = computeEmotionalWeight(emotion);
 console.log(`Decay multiplier: ${weight.decayMultiplier}x`);
