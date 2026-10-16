@@ -41,7 +41,7 @@ export interface CoordinatorConfig {
   llm?: LLMProvider;
   /** Cache provider. Optional; accepted, but no layer reads or writes it yet. */
   cache?: CacheProvider;
-  /** Context domains for cross-context memory. Defaults to ['personal', 'work', 'learning', 'creative']. */
+  /** Context domains for cross-context memory, an experimental layer the coordinator creates but does not call. Defaults to ['personal', 'work', 'learning', 'creative']. */
   contexts?: string[];
   /** Logger instance. Defaults to no-op. */
   logger?: Logger;

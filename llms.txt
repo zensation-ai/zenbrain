@@ -10,9 +10,11 @@ ZenBrain is not a vector database with a memory label — it is a set of
 principled, cited, inspectable algorithms for how memory should behave over
 time: what to strengthen, what to forget, and how confident to be. The open
 package (`@zensation/algorithms` + `@zensation/core`) ships 20 algorithm
-modules (10 core + 10 advanced) plus a `MemoryCoordinator` orchestrating the
-seven layers (Working, Short-Term, Episodic, Semantic, Procedural, Core,
-Cross-Context).
+modules (10 core + 10 advanced) plus a `MemoryCoordinator` over the seven
+layers (Working, Short-Term, Episodic, Semantic, Procedural, Core,
+Cross-Context): store, recall, forget and consolidate work on five of them,
+short-term memory goes through session methods, and cross-context memory is
+experimental and not wired in.
 
 ## Docs
 

@@ -53,6 +53,14 @@ may change or be dropped based on evidence and contributor interest.
 - Batch FSRS scheduling for large fact sets.
 - Episodic memory compression (summarize older episodes).
 - Event-driven consolidation (trigger sleep cycles on inactivity).
+- A power forgetting curve as an option (`curve: 'power'`, as in FSRS-4.5 and later) next to today's exponential
+  curve. Only after a measurement shows it holds better here: it would move every existing review date.
+
+**Memory layers**
+- Cross-context layer: a context column for entities (a schema migration in both adapters), a write path, and
+  a coordinator that uses the layer. Until then it is experimental and not wired in.
+- Resumable short-term sessions: `startSession(id)` continuing a stored conversation (needs its own table).
+  Today a session lives in the process.
 
 **Reproducibility & evaluation**
 - A reproducible, comparative benchmark suite against other open-source memory

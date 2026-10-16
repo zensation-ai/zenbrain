@@ -64,7 +64,7 @@ Each layer maps to a distinct cognitive system in the human brain:
 4. **Semantic** — Long-term facts with spaced repetition scheduling
 5. **Procedural** — "How to" knowledge (skills, workflows)
 6. **Core** — Pinned facts always in context (Letta/MemGPT pattern)
-7. **Cross-Context** — Entity deduplication across domains
+7. **Cross-Context** — links between entities of different domains (experimental, not wired into the coordinator)
 
 These aren't arbitrary — each has its own retrieval and its own place in consolidation. Only working memory decays; only emotional episodes are promoted to facts.
 

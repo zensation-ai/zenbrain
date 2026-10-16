@@ -5,7 +5,7 @@
 ZenBrain's architecture mirrors the human brain's memory systems. Each layer has distinct retention characteristics, consolidation rules, and retrieval mechanisms.
 
 ```
-Layer 7: Cross-Context Memory    ← Shared knowledge across domains
+Layer 7: Cross-Context Memory    ← Entity links across domains (experimental)
 Layer 6: Core Memory             ← Pinned facts (always available)
 Layer 5: Procedural Memory       ← "How to do X" (skills & workflows)
 Layer 4: Long-Term Semantic      ← Facts with FSRS scheduling
@@ -62,12 +62,16 @@ Facts with retrieval scheduling. FSRS determines when each fact is due; your app
 
 Pinned facts that are always available — user preferences, system rules, key relationships. Inspired by Letta's core memory blocks. These never decay and are always loaded.
 
-### Layer 7: Cross-Context Memory
+### Layer 7: Cross-Context Memory (experimental)
 
 **Retention:** Permanent
-**Key feature:** Shared across domains
+**Key feature:** Links between entities of different domains
 
-Knowledge that spans contexts (e.g., personal + work). When the same entity appears in multiple domains, cross-context memory merges and deduplicates the information.
+Meant for knowledge that spans contexts (e.g., personal + work). Today it is experimental and not wired into the
+coordinator: `detectMergeCandidates()` finds entities with similar names and `createLink()` records a link between
+two of them; nothing is merged, and no store or recall path writes or reads entities. The shipped schemas have no
+context column yet, so every context reads the same `knowledge_entities` table. Giving entities a context
+(a schema migration) and a write path is on the roadmap.
 
 ## Algorithms
 

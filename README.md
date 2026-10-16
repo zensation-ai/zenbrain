@@ -292,7 +292,7 @@ The integration examples additionally need their respective SDK installed; [`exa
 ### 7-Layer Memory Architecture
 
 ```
-Layer 7: Cross-Context Memory    ← Shared knowledge across domains
+Layer 7: Cross-Context Memory    ← Entity links across domains (experimental)
 Layer 6: Core Memory             ← Pinned facts (Letta-style)
 Layer 5: Procedural Memory       ← "How to do X" (skills & workflows)
 Layer 4: Long-Term Semantic      ← Facts with FSRS scheduling

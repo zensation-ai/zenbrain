@@ -59,7 +59,7 @@ cross-context memory is not wired to any tool.
 
 | | Layer | Holds |
 |--:|---|---|
-| 7 | Cross-Context Memory | Shared knowledge across domains |
+| 7 | Cross-Context Memory | Links between entities of different domains (experimental; no tool uses it) |
 | 6 | Core Memory | Pinned facts |
 | 5 | Procedural Memory | "How to do X" — skills and workflows |
 | 4 | Long-Term Semantic | Facts, with FSRS scheduling |

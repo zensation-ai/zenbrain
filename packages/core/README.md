@@ -11,7 +11,7 @@
 The orchestration layer that turns [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) into a complete memory system:
 
 - **MemoryCoordinator** — one API over the layers: auto-routing `store()`, cross-layer `recall()`, `forget()`, `consolidate()`, `decay()`, FSRS review queue
-- **7 Memory Layers** — Working, Short-Term, Episodic, Semantic, Procedural, Core, Cross-Context
+- **7 Memory Layers** — Working, Short-Term, Episodic, Semantic, Procedural, Core, Cross-Context (experimental: not wired into the coordinator)
 - **Consolidation** — `consolidate()` turns emotionally weighted episodes into semantic facts, once each. The sleep-replay functions live in `@zensation/algorithms` and are not called by the coordinator
 - **Pluggable Adapters** — bring your own storage (`@zensation/adapter-postgres`, `@zensation/adapter-sqlite`)
 
