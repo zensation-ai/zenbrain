@@ -37,7 +37,7 @@ change those four columns in the file before running it.
 
 ## Configuration
 
-```typescript
+```typescript prelude=postgres-page
 const storage = new PostgresAdapter({
   // Connection (URL or individual fields)
   connectionString: 'postgres://user:pass@host:5432/db',
@@ -83,7 +83,7 @@ PGOPTIONS='-c search_path=personal,public' psql -d your_database -f node_modules
 PGOPTIONS='-c search_path=work,public'     psql -d your_database -f node_modules/@zensation/adapter-postgres/sql/001_init.sql
 ```
 
-```typescript
+```typescript prelude=postgres-page
 const personal = new PostgresAdapter({ connectionString: DB_URL, schema: 'personal' });
 const work = new PostgresAdapter({ connectionString: DB_URL, schema: 'work' });
 

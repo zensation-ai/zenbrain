@@ -58,11 +58,21 @@ No key is needed to run any of them. The `ANTHROPIC_API_KEY` line in
 
 ## What CI runs
 
-The CI workflow runs a single smoke test over this folder:
+The CI workflow type-checks all seven examples, strict, against the built packages:
+
+```bash
+npx tsc -p examples
+```
+
+The three third-party SDKs are not installed for that: `examples/types/third-party.d.ts`
+stands in for the members of LangChain, LlamaIndex and Mastra the examples use. So the check
+covers every call into `@zensation/*`, not the third-party APIs themselves.
+
+It also runs one example end to end:
 
 ```bash
 npx tsx examples/basic-chatbot.ts
 ```
 
-So `basic-chatbot.ts` is exercised on every commit that reaches `main`. The
-other six are not covered by CI.
+So `basic-chatbot.ts` is executed on every commit that reaches `main`; the other six are
+type-checked, not run.

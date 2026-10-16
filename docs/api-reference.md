@@ -356,7 +356,7 @@ The recommended entry point. It creates all seven layers: `store`, `recall`, `fo
 working, episodic, semantic, procedural and core memory; short-term memory is reached through the session methods,
 cross-context memory through `getCrossContextMemory()`.
 
-```typescript
+```typescript prelude=adapter
 import { MemoryCoordinator } from '@zensation/core';
 
 const memory = new MemoryCoordinator({

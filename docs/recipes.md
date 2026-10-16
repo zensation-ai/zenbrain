@@ -20,7 +20,7 @@ shape of what you are writing, because the three layers answer three different q
 | `episodic` | *What happened?* | The event, its time, and its context are the point |
 | `procedural` | *How is this done?* | You have an ordered sequence that can be replayed |
 
-```ts
+```ts prelude=memory
 // A fact: true regardless of when it was said
 await memory.store('The production database is eu-central-1', { type: 'fact' });
 
@@ -52,14 +52,14 @@ When in doubt, leave `type: 'auto'`. A wrong explicit type is worse than letting
 recent) into semantic facts, each episode once, and decays working memory. It deletes nothing from
 long-term memory, so `pruned` is always 0. It returns what it did:
 
-```ts
+```ts prelude=memory
 const { promoted, decayed, pruned } = await memory.consolidate();
 ```
 
 It is modelled on sleep consolidation, so the useful mental picture is the same: run it **between**
 sessions, not during one.
 
-```ts
+```ts prelude=memory
 // Scheduled: a long-running assistant, consolidating while nobody is talking to it
 setInterval(() => void memory.consolidate(), 60 * 60 * 1000); // hourly
 
@@ -81,7 +81,7 @@ working memory ends with the process either way.
 that is already half-written. Decay touches only working memory, which the default `recall()` does not
 search. `decay()` alone is cheaper if all you want is to expire stale working-memory slots:
 
-```ts
+```ts prelude=memory
 const { removed } = memory.decay(); // synchronous, no promotion
 ```
 
@@ -92,7 +92,7 @@ const { removed } = memory.decay(); // synchronous, no promotion
 `scheduleNextReview()` takes the retention you want to hold at the moment of review. The default is
 `TARGET_RETENTION` (0.9): review just before there is a 10 % chance of having forgotten.
 
-```ts
+```ts prelude=fsrs-state
 import { scheduleNextReview, TARGET_RETENTION } from '@zensation/algorithms';
 
 // Default: review at 90 % predicted retention
@@ -111,7 +111,7 @@ is worse than 0.9 honestly maintained.
 
 Reviews go through the coordinator, so you rarely touch FSRS state by hand:
 
-```ts
+```ts prelude=memory,ask-user
 const due = await memory.getReviewQueue(10);
 for (const item of due) {
   const grade = await askUser(item.content); // integer 1..5: 1-2 forgotten, 3-5 recalled
@@ -127,7 +127,7 @@ for (const item of due) {
 is more relevant while its ticket is open — blend rather than replace, and keep the two factors
 visible:
 
-```ts
+```ts prelude=memory,hebbian-blend
 import { getImportance, hebbianUpdateTwoFactor, type TwoFactorEdge } from '@zensation/algorithms';
 
 // Co-activation strengthens the edge; variance shrinks as it matures
@@ -162,7 +162,7 @@ Emotional weight feeds both the initial FSRS state and the decay rate — `compu
 returns `decayMultiplier`, where values above 1 mean slower decay. The automatic tagger reads
 language, so it cannot know that in your domain "allergy" outranks any word with an exclamation mark:
 
-```ts
+```ts prelude=memory,content
 import { tagEmotion, computeEmotionalWeight, initFromDecayClass } from '@zensation/algorithms';
 
 const CRITICAL = /\b(allergy|contraindicat|dosage|safety)\b/i;

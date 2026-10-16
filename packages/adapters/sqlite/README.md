@@ -71,7 +71,7 @@ that writes these tables directly should use the same format — in SQL,
 
 ## Configuration
 
-```typescript
+```typescript prelude=sqlite-page
 const storage = new SqliteAdapter({
   filename: './data/memory.db', // default: './zenbrain.db'
   walMode: true,                // default: true (better read concurrency)

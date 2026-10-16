@@ -164,6 +164,18 @@ The README says every change is recorded here; these five were not.
 - `CITATION.cff` describes v0.5.1, archived as a new version of the software record (#136).
 - CI: the workflow token is read-only by default (#137).
 
+### Added — CI checks that keep the documentation's code and numbers true
+
+- `scripts/check-doc-snippets.mjs` compiles every TypeScript block in the README files and `docs/` against the
+  built packages (`tsc --strict`, each block as its own module). A block that continues an earlier one says so on
+  its fence (```` ```ts prelude=memory ````), which adds type declarations and nothing else. Run against the 0.5.1
+  `getting-started.md`, it reports the four errors that page had.
+- `npx tsc -p examples` type-checks all seven examples. The three third-party SDKs are stubbed in `examples/types/`,
+  so the check covers every call into `@zensation/*`, not the third-party APIs.
+- `scripts/verify-test-counts.mjs` compares every sentence that states a test count with what `vitest list`
+  collects. It found the README header still at 822 and the other counts one short (`@zensation/mcp` has 59
+  tests): the documentation now says 854 — 848 on each of Node 22, 24 and 26, and 6 against PostgreSQL.
+
 ### Changed — the ablation reproduction calls its nine non-PMA components what the paper calls them
 
 `backend/` carried an old working label for the nine components of the ablation that are not PMA components. They

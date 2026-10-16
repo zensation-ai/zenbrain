@@ -63,7 +63,7 @@ against the packed tarballs rather than the source tree.
 
 ## Options
 
-```typescript
+```typescript prelude=ai-sdk-page
 zenbrainMemory({
   coordinator,                     // required — you own its lifecycle
 
@@ -133,7 +133,7 @@ suits your application.
 
 `streamText` works the same way and passes the stream through untouched:
 
-```typescript
+```typescript prelude=ai-sdk-page
 const result = streamText({
   model: wrapLanguageModel({
     model: openai('gpt-5'),

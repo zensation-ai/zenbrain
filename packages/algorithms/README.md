@@ -218,7 +218,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 
 All functions accept an optional `Logger` parameter. Pass `console`, your favorite logger, or nothing (silent by default):
 
-```typescript
+```typescript prelude=fsrs-state
 import { updateAfterRecall } from '@zensation/algorithms';
 
 // Silent (default)
