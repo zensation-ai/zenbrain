@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "ai.zensation/zenbrain",
   "title": "ZenBrain Memory",
-  "description": "Seven-layer agent memory: episodic, semantic, procedural and core. Local SQLite, no account.",
+  "description": "Agent memory: working, episodic, semantic, procedural and core layers. Local SQLite, no account.",
   "websiteUrl": "https://zensation.ai/en/open-source",
   "repository": {
     "url": "https://github.com/zensation-ai/zenbrain",

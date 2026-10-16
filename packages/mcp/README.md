@@ -13,8 +13,8 @@ Five tools, one local SQLite file, no account and no network call.
 | Tool | What it does |
 |---|---|
 | `zenbrain_store` | Write something into long-term memory. Routing is automatic, first match wins: `steps` or wording such as "How to", "Steps:", "workflow:" make a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again is updated. |
-| `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back ranked, each with its id and the layer it came from. |
-| `zenbrain_forget` | Delete one memory for good, by the id and layer `zenbrain_recall` returned. Nothing else is touched. To correct a memory, forget it and store the corrected version. |
+| `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back sorted by score, each with its id and the layer it came from; each layer scores differently, so a procedure or core block that does not match can rank above a real hit. |
+| `zenbrain_forget` | Delete one memory for good, by the id and layer `zenbrain_recall` returned. Only that memory is deleted: a fact that consolidation made from an episode, and the working-memory copy of a recent store, stay — recall again and forget what still returns the content. To correct a memory, forget it and store the corrected version. |
 | `zenbrain_consolidate` | One maintenance pass: among the 100 most recent episodes, each with an emotional weight above 0.5 becomes a semantic fact, only once; working-memory slots decay, and those at a relevance of 0.01 or below are removed. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
@@ -85,8 +85,11 @@ Worth knowing before you wire it in:
   Without vectors, recall ranks by folded token overlap — umlauts and accents are folded,
   rarer words weigh more, and an adjacent phrase beats the same words scattered. It will
   find "Kieler Foerde" in a note about the "Kieler Förde"; it will *not* connect "car" to
-  "automobile". Ranking runs over the most recent 500 entries per layer, and a query that
-  matches nothing falls back to recency with `score: 0`. Pass an `EmbeddingProvider`
+  "automobile". Episodes and facts are ranked over the most recent 500 of each, procedures
+  over the 500 with the highest success rate. A query that matches nothing returns recent
+  episodes and facts with `score: 0` but procedures by success rate, with that rate as
+  score, and every core block comes with 0.5 or 0.8 — so these can rank above a real hit.
+  Working memory, when you ask for it, ignores the query. Pass an `EmbeddingProvider`
   through the library for true semantic matching — that is the configuration the published
   benchmarks were measured with.
 - **SQLite similarity search is a full scan.** Fine for one person's memory; use

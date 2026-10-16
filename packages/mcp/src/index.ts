@@ -101,7 +101,7 @@ export function storeOpenFailureMessage(filename: string, cwd: string, cause: un
     (absolute
       ? `Check that this user can write to that directory (missing directories are created).\n`
       : `That path is relative to the working directory your MCP client started the server in (${cwd}).\n` +
-        `Set ZENBRAIN_DB to an absolute path, for example "~/.zenbrain/memory.db".\n`)
+        `Set ZENBRAIN_DB to an absolute path or one starting with ~/, for example "~/.zenbrain/memory.db".\n`)
   );
 }
 

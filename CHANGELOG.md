@@ -172,6 +172,19 @@ Working-memory slots and sessions fell back to `Math.random()` for their ids whe
   review; SQLite keeps `-wal` and `-shm` files next to the store.
 - Every package README said ZenBrain is "built as zero-dependency TypeScript"; only `@zensation/algorithms` and
   `@zensation/core` are.
+- The start error for a store that cannot be opened told an absolute `ZENBRAIN_DB` to "set an absolute path"; it now
+  says to check the directory, and calls `~/…` what it is (a path the server expands, not an absolute one).
+- `zenbrain_recall` says how the layers score (a procedure or core block that does not match can rank above a real
+  hit) and that working memory ignores the query; `zenbrain_forget` and the server instructions say that a fact
+  consolidated from an episode, and the working-memory copy, stay when one memory is forgotten; `zenbrain_store`
+  says that each store replaces the oldest working-memory copy once seven are held; `skipped` says what it counts;
+  `server.json` lists the five layers the tools reach instead of "seven-layer".
+
+### Documentation — the ai-sdk README says what the middleware does in this release
+
+Without a lexical match, recall falls back to the most recent memories, and the middleware injects them like any
+other result; the README now says so. An aborted or failed stream stores nothing, not even the user's turn (the
+README said the user's turn was kept). `store.context` is kept with episodes only.
 
 ### Fixed — the ai-sdk README pointed at a CI check that did not check ai-sdk
 
@@ -199,6 +212,19 @@ the attribution on 18 September 2026 (doi:10.5281/zenodo.22831087, section 8), a
 claimed to be "the first" such extension with "no equivalent" anywhere — a claim nobody here measured — and to
 extend `./fsrs`, which it does not import. The `backend/` copy carried the same text. `cross-context.ts` called its
 layer "unique to ZenBrain"; that line is gone.
+
+### Documentation — what each layer scores, and what `forget` leaves
+
+`RecallResult.score`, `recall()` and the API reference say how each layer scores — cosine similarity (−1 to 1) with
+an embedding provider, lexical relevance (0 to 1) without; when nothing matches, recent episodes and facts at 0 but
+procedures at their success rate; core blocks at 0.8 or 0.5; working memory without regard to the query — and that
+the merged list is sorted by these unlike scales. `forget()` is final for the one memory it deletes: a fact that
+`consolidate()` made from an episode, and the working-memory copy, stay, so recall again and forget what still
+returns the content. Core blocks with the default `core: 'always'` compete for `limit` (12 blocks and `limit: 10`
+gave 9 blocks and 1 hit). The `cache` option and `ShortTermMemory`'s `storage` are deprecated (accepted, never
+used; removed in 1.0); `startSession(id)` starts a fresh session. Recipe 5 no longer stores a fact with an
+`emotionalWeight` the coordinator ignores for facts; it builds the FSRS state itself. The FSRS texts say that the
+library keeps an exponential curve with S as its time constant, while FSRS has used a power curve since v4.
 
 ### Documentation — project-wide texts
 

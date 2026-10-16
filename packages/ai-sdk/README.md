@@ -120,11 +120,13 @@ suits your application.
 
 - **No embedding provider is configured unless you pass one.** Recall then ranks
   lexically rather than semantically: folded token overlap, rarer words weighted higher,
-  a bonus for an adjacent phrase, over the most recent 500 entries per layer. It matches
+  a bonus for an adjacent phrase, over the most recent 500 episodes and facts. It matches
   wording, not meaning — synonyms need an `EmbeddingProvider`, which is also the
   configuration the published benchmarks were measured with.
-- **Streaming stores on flush.** The reply is written once the stream completes. An aborted
-  stream stores the user's turn but not the partial answer.
+- **No relevance threshold.** When nothing matches the prompt, recall falls back to the
+  most recent memories (score 0), and this release injects them like any other result.
+- **Streaming stores on flush.** The turn is written once the stream completes. An aborted
+  or failed stream stores nothing, not even the user's turn.
 - **Only text is read.** File and tool parts of a message are ignored when building the
   recall query and when storing.
 - **One recall per call.** There is no re-retrieval mid-generation.

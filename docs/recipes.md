@@ -158,11 +158,11 @@ you have built a retrieval system and are using this one as a cache.
 
 ## 5. Domain-specific facts that must not fade
 
-Emotional weight feeds both the initial FSRS state and the decay rate — `computeEmotionalWeight()`
-returns `decayMultiplier`, where values above 1 mean slower decay. The automatic tagger reads
-language, so it cannot know that in your domain "allergy" outranks any word with an exclamation mark:
+An emotional weight can stretch a fact's FSRS schedule: `initFromDecayClass()` multiplies the base
+stability by its second argument (1.0 to 2.0). The automatic tagger reads language, so it cannot know
+that in your domain "allergy" outranks any word with an exclamation mark:
 
-```ts prelude=memory,content
+```ts prelude=content
 import { tagEmotion, computeEmotionalWeight, initFromDecayClass } from '@zensation/algorithms';
 
 const CRITICAL = /\b(allergy|contraindicat|dosage|safety)\b/i;
@@ -173,11 +173,14 @@ function weightFor(content: string): number {
   return CRITICAL.test(content) ? Math.max(consolidationWeight, 0.9) : consolidationWeight;
 }
 
-await memory.store(content, { type: 'fact', emotionalWeight: weightFor(content) });
-
-// When you build FSRS state directly: the second argument multiplies the base stability, 1.0 to 2.0
+// The fact's FSRS state, scheduled further out the more critical it is
 const state = initFromDecayClass('normal_decay', 1 + weightFor(content));
 ```
+
+In 0.5.x the coordinator does not carry the weight into a fact: `store(content, { type: 'fact',
+emotionalWeight })` stores the fact with the default schedule, and with automatic routing a weight
+above 0.5 makes the content an episode instead. Where the schedule matters, keep the FSRS state
+yourself as above.
 
 ⚠️ **Use a floor, not a constant.** Writing `emotionalWeight: 1.0` for every domain hit flattens the
 ranking you were trying to sharpen: if everything is critical, the layer can no longer tell you what

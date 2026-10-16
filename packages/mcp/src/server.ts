@@ -90,7 +90,9 @@ export function createZenBrainServer(
         'zenbrain_store when they share something worth keeping (check with zenbrain_recall ' +
         'first, storing again adds a duplicate). When the user asks you to forget something, or ' +
         'a stored memory is wrong, call zenbrain_forget with the id and layer zenbrain_recall ' +
-        'returned; to correct it, forget it and store the corrected version. Run ' +
+        'returned, then recall again: a fact consolidated from it, or the working-memory copy, ' +
+        'is a separate memory, so forget those results too. To correct a memory, forget it and ' +
+        'store the corrected version. Run ' +
         'zenbrain_consolidate between sessions, not on every turn; zenbrain_health shows how ' +
         'much is stored.',
     },
@@ -108,7 +110,9 @@ export function createZenBrainServer(
         'set via `emotionalWeight`) an episode; a `confidence` above 0.9 a pinned core memory; ' +
         'anything else a semantic fact. Set `type` only when you want to override that. Every ' +
         'call adds a new memory, except that storing the same core memory again updates it; the ' +
-        'content is also kept in working memory (the most recent seven) while the server runs. ' +
+        'content is also kept in working memory (the most recent seven) while the server runs, ' +
+        'so once seven are held each store replaces the oldest copy there. Long-term memory is ' +
+        'never changed by a store. ' +
         'Returns the id of the stored memory. ' +
         'If it may already be stored, check with zenbrain_recall first: storing it again adds ' +
         'a duplicate.',
@@ -141,7 +145,7 @@ export function createZenBrainServer(
         source: z
           .string()
           .optional()
-          .describe("Where this came from, e.g. 'user', 'ai', 'import'."),
+          .describe("Where this came from, e.g. 'user', 'ai', 'import'. Kept with facts and episodes."),
         steps: z
           .array(z.string())
           .optional()
@@ -179,10 +183,13 @@ export function createZenBrainServer(
       title: 'Recall memories',
       description:
         'Search long-term memory for anything relevant to a query. By default it searches ' +
-        `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (a handful of recently ` +
-        'stored items, held only while the server runs) is searched only when named in ' +
-        '`layers`. Returns results ranked by relevance, each with its id and the layer it came ' +
-        'from; zenbrain_forget takes both. Use this before answering when the user refers to something from an earlier ' +
+        `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (the most recent stores, ` +
+        'held only while the server runs, returned whatever the query) is searched only when ' +
+        'named in `layers`. Returns results sorted by score, each with its id and the layer it ' +
+        'came from; zenbrain_forget takes both. Scores are per layer: lexical relevance from 0 ' +
+        'to 1 for a match; when nothing matches, recent episodes and facts come back at 0 but ' +
+        'procedures at their success rate, and core blocks always come at 0.5 or 0.8 — so not ' +
+        'every top result is a hit. Use this before answering when the user refers to something from an earlier ' +
         'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
       annotations: { readOnlyHint: true, openWorldHint: false },
@@ -193,7 +200,7 @@ export function createZenBrainServer(
           .optional()
           .describe(
             `Restrict the search to these layers. Defaults to ${listed(DEFAULT_RECALL_LAYERS)}; ` +
-              "add 'working' to include recently stored items held in memory.",
+              "add 'working' to include the most recent stores held in memory (returned whatever the query).",
           ),
         limit: z
           .number()
@@ -227,10 +234,13 @@ export function createZenBrainServer(
               emotionalWeight: z.number().optional(),
             }),
           )
-          .describe('Matching memories, most relevant first.'),
+          .describe('Memories sorted by score, highest first; scores are per layer (see the tool description).'),
         skipped: z
           .number()
-          .describe('Rows that carried no readable content and were left out of `results`.'),
+          .describe(
+            'Rows without readable content that this server left out of `results`. When recall finds more ' +
+              'than one row, the coordinator drops such rows while deduplicating, before they reach this count.',
+          ),
       },
     },
     async ({ query, ...rest }) => {
@@ -268,7 +278,10 @@ export function createZenBrainServer(
       title: 'Forget a memory',
       description:
         'Permanently delete one memory, addressed by the id and layer that zenbrain_recall ' +
-        'returned for it. Nothing else is deleted, and it cannot be undone. Use it when the ' +
+        'returned for it. Only this memory is deleted, and that cannot be undone: a fact that ' +
+        'zenbrain_consolidate made from an episode, and the working-memory copy of a recent ' +
+        'store, are memories of their own — recall again and forget what still returns the ' +
+        'content. Use it when the ' +
         'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
         'forget it and store the corrected version with zenbrain_store. An id the layer does ' +
         'not hold is reported as not forgotten, not as an error.',
