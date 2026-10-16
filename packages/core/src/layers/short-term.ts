@@ -6,6 +6,7 @@
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import { type Logger, noopLogger } from '../types';
+import { randomId } from '../id';
 
 export interface Interaction {
   role: 'user' | 'assistant' | 'system';
@@ -35,7 +36,7 @@ export class ShortTermMemory {
 
   /** Start or resume a session. */
   startSession(sessionId?: string): string {
-    this.sessionId = sessionId ?? globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+    this.sessionId = sessionId ?? randomId();
     this.interactions = [];
     return this.sessionId;
   }

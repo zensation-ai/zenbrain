@@ -5,6 +5,7 @@
 import type { StorageAdapter, QueryResult } from './interfaces/storage';
 import type { EmbeddingProvider } from './interfaces/embedding';
 import type { CacheProvider } from './interfaces/cache';
+import { randomId } from './id';
 
 /**
  * In-memory storage adapter for testing.
@@ -44,7 +45,7 @@ export class InMemoryStorage implements StorageAdapter {
     const table = match?.[1] ?? 'unknown';
 
     const row: Record<string, unknown> = {
-      id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      id: randomId(),
       created_at: new Date().toISOString(),
     };
 
