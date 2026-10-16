@@ -221,7 +221,7 @@ export {
   undirectedToDirected,
 } from './personalized-pagerank';
 
-// Surprise-Gradient Memory (Variational Free Energy)
+// Surprise-Gradient Memory (a surprise EMA, inspired by Titans and the free-energy principle)
 export type {
   SurpriseObservation,
   VFEUpdateOptions,

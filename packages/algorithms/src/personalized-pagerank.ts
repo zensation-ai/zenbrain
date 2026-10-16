@@ -1,15 +1,14 @@
 /**
  * Personalized PageRank (PPR) — graph-agnostic implementation.
  *
- * Phase H sprint reference: spec § H2 task 1 (HippoRAG 2 pattern,
- * arXiv:2502.14802). The HippoRAG 2 paper uses PPR over a parahippocampal
- * encoder graph; we use it over the Hebbian knowledge graph populated by
- * `services/knowledge-graph/hebbian-dynamics`.
+ * Based on the HippoRAG 2 pattern (arXiv:2502.14802), which runs PPR over
+ * a parahippocampal encoder graph; here it runs over whatever graph the
+ * caller passes, for example a Hebbian knowledge graph.
  *
  * Why PPR for multi-hop retrieval
  * --------------------------------
- * Naive 2-hop traversal (current `hybrid-retriever.ts` Step 3) gets a flat
- * union of neighbours and treats all of them equally. PPR runs a
+ * A naive 2-hop traversal gets a flat union of neighbours and treats all
+ * of them equally. PPR runs a
  * random-walk-with-restart from query-anchored seed nodes and assigns each
  * graph node a relevance score that:
  *   - decays with hop distance (geometrically, governed by alpha),
@@ -22,17 +21,13 @@
  * On a sparse KG (a few thousand entities, an order of magnitude more
  * edges) PPR runs in milliseconds with the iterative power-method.
  *
- * Why standalone (vs. inlining in hybrid-retriever.ts)
- * ----------------------------------------------------
+ * Why standalone
+ * --------------
  * - Pure algorithm: no DB, no I/O, no logger dependency. Trivially
  *   testable. Caller composes graph + seeds + options.
- * - Reusable: multi-hop retrieval is one consumer. Future consumers can
- *   include community detection seeding (centrality-flavoured PPR),
- *   the temporal-multi-route runner (per-route PPR), and the planned
- *   H4 4-network cross-network router.
- * - Migratable: this is the kind of foundational algorithm that will
- *   eventually live in `@zensation/algorithms` (mentioned in
- *   `algorithms/index.ts` as the destination for stabilised primitives).
+ * - Reusable: multi-hop retrieval is one consumer; community-detection
+ *   seeding (centrality-flavoured PPR) or per-route PPR in
+ *   `./temporal-multi-route` are others.
  *
  * Algorithm
  * ---------
@@ -56,9 +51,8 @@
  *
  * Edge weights: a directed edge `[src, tgt, w]` with w > 0 contributes
  * w to src's outgoing-mass denominator. Bidirectional edges should be
- * passed twice (once per direction). The KG-loader bridge that converts
- * Hebbian symmetric edges into a directed PPRGraph is a separate
- * concern (see services/knowledge-graph/hebbian-ppr.ts when implemented).
+ * passed twice (once per direction); `undirectedToDirected` does that
+ * for a list of symmetric edges such as Hebbian ones.
  *
  * Complexity
  * ----------
@@ -107,7 +101,7 @@ export interface PPRResult {
   /** Number of power-iteration steps performed. */
   readonly iterations: number;
   /** True if iteration stopped because L1 change < tol; false if stopped
-   *  at maxIterations. Production callers should log when this is false. */
+   *  at maxIterations. Callers should log when this is false. */
   readonly converged: boolean;
 }
 

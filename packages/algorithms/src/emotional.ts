@@ -44,9 +44,9 @@ export interface EmotionalWeight {
 /**
  * Contextual valence adjusts emotional valence based on the domain context.
  *
- * - Work: urgency words get higher arousal but neutral valence
+ * - Work: with urgency words, valence is pulled 20 % toward neutral (busy, not bad); arousal is unchanged
  * - Personal: emotional words get amplified valence
- * - Learning: difficulty words get neutral valence (challenges are expected)
+ * - Learning: with difficulty words and negative valence, valence is pulled 10 % toward neutral
  * - Creative: emotional intensity gets moderate amplification
  */
 export interface ContextualValence {
@@ -84,10 +84,11 @@ const DIFFICULTY_WORDS = new Set([
  * Compute context-adjusted valence for a given text and domain.
  *
  * Different domains interpret emotional signals differently:
- * - Work context: urgency is not negative, just high-arousal neutral
+ * - Work context: with urgency words, valence moves 20 % toward neutral (urgency is not negative)
  * - Personal context: emotions are amplified (personal relevance)
- * - Learning context: difficulty is expected, not negative
+ * - Learning context: with difficulty words and negative valence, valence moves 10 % toward neutral
  * - Creative context: moderate emotional amplification
+ * Arousal is not adjusted by context.
  *
  * @param text - The text to analyze
  * @param contextDomain - The domain: 'work', 'personal', 'learning', 'creative'
@@ -366,10 +367,11 @@ export function tagEmotion(text: string, contextDomain?: string, logger: Logger 
  *
  * Based on amygdala modulation of memory consolidation:
  * - High arousal + high significance = strong consolidation (flashbulb memories)
- * - Emotional memories get 3x longer decay half-life
+ * - Emotional memories decay up to 3x slower
  *
  * Consolidation weight formula: arousal * 0.4 + significance * 0.6
- * Decay multiplier: 1.0 (neutral) to 3.0 (highly emotional)
+ * Decay multiplier: 1 + 2 × max(|sentiment|, arousal, significance), from 1.0 to 3.0.
+ * A neutral sentence gets 1.4, since tagEmotion starts arousal at 0.2; only empty text gets 1.0.
  */
 export function computeEmotionalWeight(tag: EmotionalTag): EmotionalWeight {
   const consolidationWeight = tag.arousal * 0.4 + tag.significance * 0.6;
@@ -388,8 +390,9 @@ export function computeEmotionalWeight(tag: EmotionalTag): EmotionalWeight {
 }
 
 /**
- * Quick check: is this text emotionally significant enough to warrant tagging?
- * Used as a fast pre-filter before full analysis.
+ * Convenience wrapper: is this text emotionally significant enough to warrant
+ * tagging? It runs the full analysis (`tagEmotion` + `computeEmotionalWeight`)
+ * and compares the consolidation weight with the threshold.
  */
 export function isEmotionallySignificant(text: string, threshold = 0.3): boolean {
   const tag = tagEmotion(text);

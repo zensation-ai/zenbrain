@@ -1,16 +1,19 @@
 /**
- * FSRS (Free Spaced Repetition Scheduler)
+ * FSRS-style spaced repetition scheduler
  *
- * Implements the FSRS algorithm for spaced repetition scheduling.
+ * Follows FSRS (Free Spaced Repetition Scheduler) for the difficulty and
+ * stability updates, with an exponential forgetting curve R = e^(-t/S).
  *
  * Key concepts:
  * - Difficulty (D): 1.0–10.0, how hard the fact is to recall
- * - Stability (S): days until retention drops to target (usually 0.9)
+ * - Stability (S): the time constant of the curve, in days — R falls to
+ *   1/e ≈ 0.37 after S days. A review is scheduled when R reaches the target
+ *   retention 0.9, i.e. after −S · ln 0.9 ≈ 0.105 · S days.
  * - Retrievability (R): current probability of recall, R = e^(-t/S)
  * - Desirable difficulty: reviewing at low R gives a bigger stability boost
  *
  * References:
- * - FSRS paper: https://github.com/open-spaced-repetition/fsrs4anki
+ * - FSRS project (fsrs4anki repository): https://github.com/open-spaced-repetition/fsrs4anki
  * - Ebbinghaus (1885): R = e^(-t/S)
  *
  * @packageDocumentation
@@ -27,9 +30,9 @@ import { noopLogger } from './types';
 export interface FSRSState {
   /** Difficulty of the fact: 1.0 (easy) to 10.0 (very hard) */
   difficulty: number;
-  /** Stability in days: how long until retention drops to TARGET_RETENTION */
+  /** Stability in days: the time constant of R = e^(-t/S) (R = 1/e after S days) */
   stability: number;
-  /** When the next review should occur at TARGET_RETENTION */
+  /** When R reaches TARGET_RETENTION (0.105 · S days after the last review) */
   nextReview: Date;
 }
 
@@ -53,9 +56,9 @@ export const MAX_DIFFICULTY = 10.0;
 export const MS_PER_DAY = 86_400_000;
 
 /**
- * FSRS hyperparameters tuned from open-spaced-repetition/fsrs4anki.
- * Reference: https://github.com/open-spaced-repetition/fsrs4anki
- * These values are optimized across millions of Anki review logs.
+ * Constants of the recall update below. They follow the shape of FSRS's
+ * stability formula; they are not FSRS's fitted parameters, and nothing in
+ * this library was fitted to review logs.
  */
 const FSRS_A = 0.2;
 const FSRS_B = 0.2;
@@ -223,7 +226,11 @@ export function updateAfterRecall(
  * Update FSRS state after a failed recall (forgot the fact).
  *
  * Stability decreases:
- *   S_new = S * max(0.1, 0.2 * D^(-0.4) * (S+1)^0.2 * (e^(0.02*(1-R)) - 1))
+ *   S_new = max(MIN_STABILITY, S * max(0.1, 0.2 * D^(-0.4) * (S+1)^0.2 * (e^(0.02*(1-R)) - 1)))
+ *
+ * For any realistic state the inner term stays below 0.1 (it reaches 0.1 only
+ * for stabilities of millions of days), so in practice S_new = max(0.5, 0.1 · S):
+ * a lapse cuts stability to a tenth, independent of D and R.
  *
  * Difficulty increases by 0.2.
  *

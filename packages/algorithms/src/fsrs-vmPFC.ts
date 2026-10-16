@@ -106,7 +106,7 @@ export function computeAdaptiveFSRSInterval(
 }
 
 // ===========================================
-// PMA 4.8.2: Natural Recall -> FSRS Coupling
+// Natural recall -> FSRS coupling
 // ===========================================
 
 /**
@@ -116,12 +116,13 @@ export function computeAdaptiveFSRSInterval(
  *
  * Grade scale: 1 (barely recalled) to 5 (instant, effortless).
  * Default grade 4 = "Good" (recalled without difficulty).
+ * Pass `enabled: false` to switch the coupling off (it then returns null).
  */
 export function recordNaturalRecall(
   factId: string,
   grade: number = 4,
-  pmaEnabled: boolean = true,
+  enabled: boolean = true,
 ): { factId: string; grade: number; recordedAt: Date } | null {
-  if (!pmaEnabled) return null;
+  if (!enabled) return null;
   return { factId, grade, recordedAt: new Date() };
 }

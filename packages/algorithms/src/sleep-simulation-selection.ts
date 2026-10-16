@@ -1,33 +1,37 @@
 /**
  * Simulation-Selection Sleep Consolidation Loop
  *
- * Extends the basic sleep consolidation from
- * `./sleep-consolidation` (Stickgold & Walker 2013 replay) with a novel
- * two-stage offline RL model for replay selection.
+ * Complements the basic sleep consolidation of `./sleep-consolidation`
+ * (Stickgold & Walker 2013 replay; it does not call it) with a two-stage
+ * replay-selection model inspired by offline reinforcement learning.
  *
  * Based on: "Memory consolidation from a reinforcement learning perspective"
  * (Frontiers in Computational Neuroscience, 2025)
  *
- * Two-stage offline RL model:
- * Stage 1 (CA3-analog): Generate diverse replay candidates from episodic buffer,
- *   including counterfactual extrapolations of failed episodes
- * Stage 2 (CA1-analog): Score candidates by TD-value, strengthen high-value
- *   replays (LTP), decay low-value replays (LTD)
+ * Stage 1 (CA3-analog): merge the caller's real episodes and counterfactual
+ *   paths into one candidate pool. This module does not generate counterfactuals;
+ *   `identifyCounterfactualCandidates` only picks the episodes worth extrapolating.
+ * Stage 2 (CA1-analog): score each candidate with the TAG score — a weighted sum
+ *   of the caller-supplied TD error, reward, novelty and an emotional term (no TD
+ *   learning is computed here) — and mark it 'strengthen' (LTP) or 'decay' (LTD).
+ *   No candidate is skipped, so `skipped` is always 0.
  */
 
 /**
  * Optional feature-flag injection point for ablation experiments.
- * Pass an object with `isEnabled(featureId)` to disable PMA-aware scoring
- * and fall back to the original pre-PMA tag-score formula.
+ * Pass an object with `isEnabled(featureId)` to switch the emotional replay term
+ * off and fall back to the original 3-term tag score.
  *
- * Feature ID for the neuromodulator engine: `'pma_neuromodulator_engine'`.
+ * The feature ID is `'pma_neuromodulator_engine'`, kept as it is because it is part
+ * of the public API: it names the component that plugs into this hook (the
+ * neuromodulator of the Predictive Memory Architecture, which is not in this package).
  */
 export interface AblationRegistry {
   isEnabled(featureId: string): boolean;
 }
 
-const PMA_FEATURES = {
-  NEUROMODULATOR_ENGINE: 'pma_neuromodulator_engine',
+const FEATURE_IDS = {
+  EMOTIONAL_REPLAY: 'pma_neuromodulator_engine',
 } as const;
 
 export interface ReplayCandidate {
@@ -37,9 +41,9 @@ export interface ReplayCandidate {
   reward: number;
   source: 'real' | 'counterfactual';
   relatedEntityIds: string[];
-  /** PMA 4.8.4: Emotional valence (-1 to +1) */
+  /** Emotional valence (-1 to +1), for the emotional replay term */
   emotionalValence?: number;
-  /** PMA 4.8.4: Emotional arousal (0 to 1) */
+  /** Emotional arousal (0 to 1), for the emotional replay term */
   emotionalArousal?: number;
 }
 
@@ -62,7 +66,7 @@ export interface SleepConfig {
   alphaTag: number;
   betaTag: number;
   gammaTag: number;
-  /** PMA 4.8.4: Emotional replay weight */
+  /** Weight of the emotional replay term */
   deltaTag: number;
   valueThreshold: number;
   decayRate: number;
@@ -106,8 +110,8 @@ function computeNovelty(candidate: ReplayCandidate): number {
  *   Tag(e) = alpha * |PE| + beta * R + gamma * N + delta * E
  * where PE = prediction error (tdError), R = reward, N = novelty, E = emotional weight
  *
- * PMA 4.8.4: Extended with emotional replay weighting (delta term).
- * When PMA NEUROMODULATOR_ENGINE is disabled, uses the original 3-term formula
+ * The delta term is the emotional replay weighting. When the feature
+ * 'pma_neuromodulator_engine' is disabled, the original 3-term formula is used
  * (alpha=0.40, beta=0.35, gamma=0.25) without the emotional term.
  */
 export function computeTagScore(
@@ -116,9 +120,9 @@ export function computeTagScore(
   ablationRegistry?: AblationRegistry,
 ): number {
   const novelty = computeNovelty(candidate);
-  const pmaEnabled = ablationRegistry?.isEnabled(PMA_FEATURES.NEUROMODULATOR_ENGINE) ?? true;
-  if (!pmaEnabled) {
-    // Original pre-PMA formula (α=0.40, β=0.35, γ=0.25, no emotional term)
+  const emotionalTermEnabled = ablationRegistry?.isEnabled(FEATURE_IDS.EMOTIONAL_REPLAY) ?? true;
+  if (!emotionalTermEnabled) {
+    // Original 3-term formula (α=0.40, β=0.35, γ=0.25, no emotional term)
     return 0.40 * Math.abs(candidate.tdError) + 0.35 * candidate.reward + 0.25 * novelty;
   }
   const emotionalWeight = (Math.abs(candidate.emotionalValence ?? 0)) * (candidate.emotionalArousal ?? 0);
@@ -131,7 +135,8 @@ export function computeTagScore(
 }
 
 /**
- * Stage 2 (CA1-analog): Score a candidate by its TD value using the TAG formula.
+ * Stage 2 (CA1-analog): Score a candidate with the TAG formula. The name says
+ * "TD value" for compatibility; no TD learning is computed.
  */
 export function scoreByTDValue(
   candidate: ReplayCandidate,

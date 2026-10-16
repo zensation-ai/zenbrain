@@ -1,17 +1,19 @@
 /**
  * Two-Factor Synaptic Model for Knowledge Graph Edges
  *
- * 
- * Extends the basic Hebbian dynamics from @zensation/algorithms/hebbian
- * with a novel two-factor (weight, variance) consolidation model.
+ * Complements the basic Hebbian dynamics of `./hebbian` (it does not call
+ * them) with a two-factor (weight, variance) consolidation model.
  *
  * Based on: Zenke et al. (PNAS 2025) — "Two-factor synaptic consolidation
  * reconciles robustness with plasticity"
  *
  * Each edge carries (weight, variance). Variance decreases with activation
- * frequency (maturation), making mature edges robust against overwriting.
- * This is mathematically equivalent to Elastic Weight Consolidation (EWC)
- * where edge maturity (1/variance) serves as the Fisher Information proxy.
+ * frequency (maturation), and mature edges decay more slowly
+ * (`decayTwoFactor`). The weight update itself ignores the variance unless the
+ * caller passes a `stabilityProtector`, which lowers the learning rate of
+ * stable edges by up to 50 %. For overwrite protection, `computeEWCPenalty`
+ * gives an EWC-style penalty, (λ/2) · (1/variance) · Δw², with 1/variance
+ * standing in for the Fisher information.
  *
  * Note: The basic Hebbian module in @zensation/algorithms provides simple
  * weight-based operations (strengthening, decay, normalization). This file
@@ -63,7 +65,7 @@ export function hebbianUpdateTwoFactor(
   stabilityProtector?: { computeLockScoreFromVariance: (variance: number) => number },
 ): TwoFactorEdge {
   const newCount = edge.activationCount + 1;
-  // PMA: Reduce LR for stable edges (low variance = high lock score)
+  // Lock-score gated learning rate: stable edges (low variance = high lock score) learn more slowly
   const lockScore = stabilityProtector?.computeLockScoreFromVariance(edge.variance) ?? 0;
   const gatedLR = config.LR_W * (1 - 0.5 * lockScore); // Reduce LR by up to 50%
   const rawWeight = edge.weight + gatedLR * tagScore * activationProduct;

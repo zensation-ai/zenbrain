@@ -25,7 +25,8 @@
  * ---------------------
  * 1. `decomposeTemporalQuery` — pure-regex English cue detection that
  *    splits a query into 1–3 sub-queries, one per active route. No LLM,
- *    no I/O, < 1 ms.
+ *    no I/O; well under 1 ms for typical questions, linear in the length
+ *    of the query.
  * 2. `runTemporalMultiRoute` — runs every active route through a
  *    caller-supplied retriever in parallel.
  * 3. `fuseRoutes` — Reciprocal Rank Fusion (RRF) across routes plus a
@@ -33,39 +34,26 @@
  *    route, plus a per-route confidence weight. Returns
  *    `FusedHit<T>[]` sorted by score descending.
  *
- * Why standalone (vs. extending services/rag-query-decomposition.ts)
- * ------------------------------------------------------------------
- * - rag-query-decomposition.ts is German, surface-level
- *   ("vergleich" / "warum"), and produces sub-queries for general
- *   multi-hop retrieval.
- * - This module is English (LoCoMo-language), temporal-only, and
- *   produces sub-queries that are semantically TYPED (`absolute` /
- *   `relative` / `duration`) so downstream callers can apply
- *   route-specific behaviour (different KG-edge filters, different
- *   anchor handling, ordering hints).
+ * Why a dedicated temporal decomposer
+ * -----------------------------------
+ * It is English (LoCoMo-language), temporal-only, and produces
+ * sub-queries that are semantically TYPED (`absolute` / `relative` /
+ * `duration`) so downstream callers can apply route-specific behaviour
+ * (different KG-edge filters, different anchor handling, ordering
+ * hints). A general query decomposer can serve as the fall-back for
+ * non-temporal queries.
  *
- * The two should coexist; this one runs first when the query is
- * temporal, and the general decomposer is the fall-back for everything
- * else.
+ * Based on the EvoReasoner pattern (arXiv:2509.15464), which classifies
+ * with an LLM call; this module uses deterministic regexes for latency
+ * and cost. The cues target English temporal wording. The test suite
+ * covers them with hand-written examples, not LoCoMo data, and some
+ * questions that are not about time fire a cue too (e.g. "Since Melanie
+ * likes painting, what did she buy?" counts as relative).
  *
- * Phase H sprint reference: spec § H1 task 6 (EvoReasoner pattern,
- * arXiv:2509.15464). The paper does the type-classification with an
- * LLM call; we use deterministic regex because (a) latency, (b) cost,
- * and (c) on English LoCoMo wording the cue patterns are unambiguous
- * — see test suite for empirical coverage.
- *
- * Interplay with existing H1 modules
- * ----------------------------------
- * - `services/memory/temporal-normalizer` — normalises ingest-time
- *   timestamps into ISO-8601. This module operates on the QUERY side;
- *   the two are caller-composable.
- * - `services/reasoning/timeline-generator` — renders chronological
- *   text blocks from already-retrieved memories. Calling pattern:
- *   multi-route decomposition → routes retrieve memories → optional
- *   timeline rendering on the fused result.
- * - `services/tool-handlers/date-tools` — exposes `compute_date_delta`
- *   to the agent. The Duration route is what makes that tool actually
- *   useful for end-to-end LoCoMo Cat 2 answers.
+ * In a pipeline it composes with an ingest-time timestamp normaliser,
+ * a timeline renderer and a date-delta tool (in the ZenAI platform; not
+ * part of this package): decomposition → routes retrieve memories →
+ * optional timeline rendering on the fused result.
  *
  * @module algorithms/temporal-multi-route
  */
@@ -96,7 +84,7 @@ export interface TemporalSubQuery {
    *  load (e.g. "trip to Spain" stays intact). */
   query: string;
   /** The cue tokens that activated this route — kept for audit /
-   *  debugging and for logging which patterns are firing in production. */
+   *  debugging and for logging which patterns fire. */
   cues: string[];
   /** Pattern-matcher's confidence in [0, 1]. 1.0 = exact strong cue
    *  ("how long"); lower = weaker / inferred cue. Used as the
@@ -146,9 +134,9 @@ export interface RouteResult<T> {
 
 /** Options that tune the score-fusion. */
 export interface FuseRoutesOptions<T = unknown> {
-  /** RRF-K constant. Default 60 (matches synthesis-engine.ts and the
-   *  original Cormack/Clarke/Buettcher 2009 paper). Lower K → ranks
-   *  matter more; higher K → smoother ranking. */
+  /** RRF-K constant. Default 60, as in the original RRF paper (Cormack,
+   *  Clarke and Buettcher 2009). Lower K → ranks matter more; higher K →
+   *  smoother ranking. */
   rrfK?: number;
   /** Multiplier applied to an item's fused score when it appears under
    *  more than one route (capped at one application — boosting per
@@ -199,8 +187,8 @@ interface CuePattern {
   /** Optional ordering hint for relative cues. */
   orderingHint?: OrderingHint;
   /** Tokens to strip from the sub-query when this cue fires. Stripped
-   *  positionally on a per-cue basis; if the strip would remove > half
-   *  the query, the strip is skipped (preserves semantic content). */
+   *  positionally on a per-cue basis; if fewer than 2 content tokens
+   *  would remain, the strip is skipped (preserves semantic content). */
   strip?: RegExp;
 }
 
@@ -311,8 +299,8 @@ const CUE_PATTERNS: readonly CuePattern[] = [
  * Behaviour:
  *   - Walks every cue pattern, accumulates which routes fire.
  *   - For each firing route, builds a sub-query: original text minus
- *     the cue tokens (stripped) but only when the strip wouldn't
- *     remove more than half the query (preserves semantic load).
+ *     the cue tokens (stripped) but only when at least 2 content tokens
+ *     remain (preserves semantic load).
  *   - Aggregates per-route confidence via 1 − Π(1 − c_i) so multiple
  *     weak cues for the same route accumulate but don't exceed 1.0.
  *   - When no cues fire, returns a single pass-through `absolute` route
@@ -552,10 +540,8 @@ export function fuseRoutes<T>(
  * in parallel, fuse the results.
  *
  * The runner is injected so this module stays pure (testable without
- * the KG, the RAG pipeline, or any I/O). Production callers wire it
- * to whatever retrieval surface they want — see H2's
- * `services/knowledge-graph/hybrid-retriever.ts` for the planned
- * binding point.
+ * the KG, the RAG pipeline, or any I/O). Callers wire it to whatever
+ * retrieval surface they have.
  *
  * Performance note: routes execute in parallel via Promise.all, so the
  * wall-clock cost is max(route latencies), not sum.

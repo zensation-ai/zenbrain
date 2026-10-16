@@ -1,8 +1,12 @@
 /**
  * Retention Curve Visualization Helpers
  *
- * Generate data points for charting Ebbinghaus forgetting curves
- * and FSRS scheduling timelines.
+ * Generate data points for charting forgetting curves and FSRS scheduling
+ * timelines. `generateRetentionCurve` is illustrative: after a review it
+ * multiplies stability by a fixed factor per grade (5: 2.5, 4: 2.0, 3: 1.5,
+ * 2: 1.0, 1: 0.5) instead of running the library's FSRS update, so its curve
+ * does not match `updateAfterRecall`. `generateScheduleTimeline` uses the FSRS
+ * functions.
  *
  * @packageDocumentation
  * @module @zensation/algorithms/visualization
