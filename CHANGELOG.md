@@ -4,7 +4,7 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
-## [0.6.0] — unreleased
+## [0.6.0] — 2026-10-17
 
 **Behaviour changes, decided after the 0.5.2 audit.** `forget()` now deletes what consolidation linked to a
 memory (**breaking**, see below), every recall score runs from 0 to 1 and means the same in each layer, the
