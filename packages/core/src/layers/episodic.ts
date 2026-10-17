@@ -120,8 +120,9 @@ export class EpisodicMemory {
        FROM ${this.table} WHERE id = $1`,
       [id]
     );
-    // Checked again here, so a storage that does not evaluate WHERE cannot return another episode.
-    return result.rows.find(r => r.id === id) ?? null;
+    // Checked again here, so a storage that does not evaluate WHERE cannot return another episode
+    // (case ignored: PostgreSQL compares uuids that way and returns them in lower case).
+    return result.rows.find(r => String(r.id).toLowerCase() === id.toLowerCase()) ?? null;
   }
 
   /**
@@ -147,7 +148,7 @@ export class EpisodicMemory {
         `SELECT ${columns} FROM ${this.table} WHERE metadata IS NOT NULL`
       )).rows;
     }
-    return rows.filter(r => this.consolidatedInto(r) === factId);
+    return rows.filter(r => this.consolidatedInto(r)?.toLowerCase() === factId.toLowerCase());
   }
 
   /** Search episodes: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */

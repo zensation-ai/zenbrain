@@ -147,6 +147,14 @@ open('PostgreSQL with pgvector, through the coordinator', () => {
     expect(await left('episodic_memories', 'An unrelated note about gutters.')).toBe(1);
   });
 
+  it('forgets by an upper-case uuid, as PostgreSQL compares uuids ignoring case', async () => {
+    const content = 'The kite tore loose over the dunes and I was thrilled.';
+    const { c, episodeId } = await consolidated(content);
+    expect(await c.forget(episodeId.toUpperCase(), 'episodic')).toBe(true);
+    expect(await left('episodic_memories', content)).toBe(0);
+    expect(await left('learned_facts', content)).toBe(0);
+  });
+
   it('cascade: false keeps the episode and its mark, and consolidation does not promote it again', async () => {
     const content = 'The bridge was closed and I was stuck for hours, exhausted.';
     const { c, factId } = await consolidated(content);

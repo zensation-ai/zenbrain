@@ -14,7 +14,7 @@ Five tools, one local SQLite file, no account and no network call.
 |---|---|
 | `zenbrain_store` | Write something into long-term memory. Routing is automatic, first match wins: `steps` or wording such as "How to", "Steps:", "workflow:" make a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again is updated. |
 | `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back sorted by a score from 0 to 1, each with its id and the layer it came from; a layer in which nothing matches returns recent episodes and facts, or its most successful procedures, at score 0, behind every hit, and `minScore` above 0 leaves them out. Every core block scores 0.5 or 0.8. |
-| `zenbrain_forget` | Delete a memory for good, by the id and layer `zenbrain_recall` returned, together with what consolidation linked to it: forgetting an episode deletes the fact made from it, forgetting such a fact the episodes it was made from, and every layer loses the working-memory copies of that content. `alsoForgotten` lists what went with it. A memory stored separately with the same wording is not linked and its long-term entry stays (`duplicates` on a recall result names such copies); forget a long-term result rather than a working-memory slot, which is only a copy. To correct a memory, forget it and store the corrected version. |
+| `zenbrain_forget` | Delete a memory for good, by the id and layer `zenbrain_recall` returned, together with what consolidation linked to it: forgetting an episode deletes the fact made from it, forgetting such a fact every episode consolidated into it, and both delete the working-memory copies of that content. `alsoForgotten` lists what went with it. A memory stored on its own and never consolidated keeps its long-term entry (`duplicates` on a recall result names such copies); forget a long-term result rather than a working-memory slot, which is only a copy. To correct a memory, forget it and store the corrected version. |
 | `zenbrain_consolidate` | One maintenance pass: among the 100 most recent episodes, each with an emotional weight above 0.5 becomes a semantic fact, only once; working-memory slots decay, and those at a relevance of 0.01 or below are removed. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
@@ -137,7 +137,8 @@ configuration they were measured in, are reported in the paper; the reproduction
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
+to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
+provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

@@ -9,7 +9,7 @@
 
 ## What's Inside
 
-**20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 538 tests.
+**20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 539 tests.
 
 > ZenBrain's full architecture is **15 neuroscience-inspired mechanisms (9 foundational + 6 PMA)** ([paper](https://arxiv.org/abs/2604.23878)). The six Predictive Memory Architecture components themselves are proprietary and not in this package; it ships the algorithm library described below, including the hooks they plug into (the emotional replay term of `sleep-simulation-selection`, the natural-recall coupling of `fsrs-vmPFC`, the lock-score gate of `hebbian-two-factor`).
 
@@ -258,7 +258,8 @@ configuration they were measured in, are reported in the paper; the reproduction
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
+to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
+provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

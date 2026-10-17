@@ -304,11 +304,10 @@ export function createZenBrainServer(
         'Permanently delete a memory, addressed by the id and layer that zenbrain_recall ' +
         'returned for it, together with what consolidation linked to it; this cannot be undone. ' +
         'Forgetting an episode also deletes the fact zenbrain_consolidate made from it; ' +
-        'forgetting such a fact also deletes the episodes it was made from; every layer also ' +
-        'loses the working-memory copies of that content. Forgetting a working-memory result ' +
+        'forgetting such a fact also deletes every episode consolidated into it; both also ' +
+        'delete the working-memory copies of that content. Forgetting a working-memory result ' +
         'deletes only that copy. alsoForgotten lists everything deleted besides the memory ' +
-        'itself. A memory stored separately with the same wording is not linked: its long-term ' +
-        'entry stays, though working-memory copies with that content go. ' +
+        'itself. A memory stored on its own and never consolidated keeps its long-term entry. ' +
         'Use it when the ' +
         'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
         'forget it and store the corrected version with zenbrain_store. An id the layer does ' +

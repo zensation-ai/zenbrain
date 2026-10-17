@@ -77,6 +77,13 @@ export interface StoreOptions {
 /** The layers `recall()` can search and `forget()` can delete from. */
 export type RecallLayer = 'working' | 'episodic' | 'semantic' | 'procedural' | 'core';
 
+/**
+ * Which of two equally scored results recall keeps and lists first: long-term memories before the
+ * working-memory copy (forgetting a copy deletes only the copy), in a fixed layer order, so the
+ * outcome does not depend on which layer's search finished first.
+ */
+const LAYER_ORDER: Record<RecallLayer, number> = { episodic: 0, semantic: 1, procedural: 2, core: 3, working: 4 };
+
 /** Matches the UUIDs the layers write; anything else cannot be a stored id. */
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -236,6 +243,8 @@ export class MemoryCoordinator {
   private readonly embedding?: EmbeddingProvider;
   private readonly llm?: LLMProvider;
   private readonly log: Logger;
+  /** The working-memory slot each `store()` in this process created, by the stored memory's id. */
+  private readonly workingCopyOf = new Map<string, string>();
 
   constructor(config: CoordinatorConfig) {
     this.storage = config.storage;
@@ -370,7 +379,13 @@ export class MemoryCoordinator {
     }
 
     // Also add to working memory (most recent seven; not part of the default recall)
-    await this.working.add(content, 'fact', 1.0);
+    const slot = await this.working.add(content, 'fact', 1.0);
+    this.workingCopyOf.set(storedId, slot.id);
+    // Keep only entries whose slot still exists: the map never outgrows working memory.
+    const live = new Set(this.working.getSlots().map(s => s.id));
+    for (const [memoryId, slotId] of this.workingCopyOf) {
+      if (!live.has(slotId)) this.workingCopyOf.delete(memoryId);
+    }
 
     return storedId;
   }
@@ -431,8 +446,8 @@ export class MemoryCoordinator {
     // (after dedup, so a kept result still names a low-scoring twin in `duplicates`)
     const deduped = this.deduplicateResults(filtered).filter(r => r.score >= minScore);
 
-    // Sort by score descending and return top N
-    deduped.sort((a, b) => b.score - a.score);
+    // Sort by score descending (equal scores in a fixed layer order) and return top N
+    deduped.sort((a, b) => b.score - a.score || LAYER_ORDER[a.layer] - LAYER_ORDER[b.layer]);
     return deduped.slice(0, limit);
   }
 
@@ -445,12 +460,15 @@ export class MemoryCoordinator {
    * what consolidation linked to it (the cascade, on by default).
    *
    * - `forget(id, 'episodic')` deletes the episode, the fact `consolidate()` made from it,
-   *   any other episode promoted into that same fact, and the working-memory copies of
-   *   their content.
-   * - `forget(id, 'semantic')` deletes the fact, the episodes it was made from, and the
-   *   working-memory copies of their content.
+   *   and the working-memory copies of both.
+   * - `forget(id, 'semantic')` deletes the fact, every episode consolidated into it, and the
+   *   working-memory copies of all of them.
    * - `forget(id, 'procedural')` and `forget(id, 'core')` delete the memory and its
    *   working-memory copy.
+   *
+   * Working-memory copies are the slot `store()` created for each deleted memory in this
+   * process and, for episodes, facts and core blocks, any slot holding exactly their content
+   * (a procedure keeps only the first 200 characters, so only its own slot goes).
    * - `forget(id, 'working')` deletes only that working-memory slot: the slot is a copy,
    *   and forgetting a copy does not reach into long-term memory.
    *
@@ -460,9 +478,12 @@ export class MemoryCoordinator {
    * `consolidate()` finds its verbatim fact (among the 100 most recent episodes); one an LLM
    * distilled before 0.4.8 has no edge. A fact distilled by an LLM since then is linked like
    * any other: the cascade follows the recorded edge, it does not search for memories that say
-   * something similar. A memory stored on its own with the same wording is not derived: its
-   * long-term entry stays (`RecallResult.duplicates` names such twins), though working-memory
-   * copies are matched by content and go with the forgotten one.
+   * something similar. `consolidate()` links a second episode with the same text to the fact
+   * the first one became instead of copying it again (also a fact stored with source
+   * `'consolidation'` and that exact text): forgetting one of those episodes keeps the other,
+   * forgetting the fact deletes both. A memory stored on its own and never linked keeps its
+   * long-term entry (`RecallResult.duplicates` names such twins); a working-memory slot with
+   * exactly the forgotten content goes, whichever store created it.
    *
    * With `{ cascade: false }` only the addressed memory is deleted (the behaviour before
    * 0.6.0); an episode keeps its mark, so a later `consolidate()` does not promote it again.
@@ -503,9 +524,11 @@ export class MemoryCoordinator {
       // would otherwise reject the query for its uuid column).
       removed = false;
     } else if (!cascade) {
-      removed = await this.deleteOne(id, layer);
+      removed = await this.deleteOne(id.toLowerCase(), layer);
     } else {
-      removed = await this.deleteWithDerived(id, layer, alsoForgotten);
+      // Both adapters write lower-case UUIDs; PostgreSQL compares uuids ignoring case and
+      // returns them in lower case, so the id is compared in lower case too.
+      removed = await this.deleteWithDerived(id.toLowerCase(), layer, alsoForgotten);
     }
 
     this.log.debug(
@@ -525,39 +548,37 @@ export class MemoryCoordinator {
       case 'procedural':
         return this.procedural.delete(id);
       case 'core': {
-        const block = (await this.core.getBlocks()).find(b => b.id === id);
+        const block = (await this.core.getBlocks()).find(b => b.id.toLowerCase() === id);
         return block ? this.core.deleteBlock(block.label) : false;
       }
     }
   }
 
-  /** The cascade of `forgetWithDerived()`: derived memories first, the addressed one last. */
+  /** The cascade of `forgetWithDerived()`: linked memories first, the addressed one last. */
   private async deleteWithDerived(
     id: string,
     layer: Exclude<RecallLayer, 'working'>,
     alsoForgotten: ForgetResult['alsoForgotten']
   ): Promise<boolean> {
-    // Working-memory copies are matched on the content `store()` put there.
+    // Working-memory copies: the slot store() created for each deleted memory, and for
+    // episodes, facts and core blocks also any slot holding exactly their content.
     const contents = new Set<string>();
-    let isCopy = (content: string) => contents.has(content);
+    const memoryIds = [id];
 
     if (layer === 'episodic') {
       const episode = await this.episodic.getById(id);
       if (!episode) return false;
       contents.add(episode.content);
-      const factId = this.episodic.consolidatedInto(episode);
+      // The fact consolidated from this episode. Another episode promoted into the same fact
+      // (consolidate() links a second episode with the same text to the existing fact) was
+      // stored on its own and stays; it keeps its mark, so it is not promoted again.
+      const factId = this.episodic.consolidatedInto(episode)?.toLowerCase();
       if (factId && UUID_PATTERN.test(factId)) {
-        for (const sibling of await this.episodic.findConsolidatedInto(factId)) {
-          if (sibling.id === id) continue;
-          if (await this.episodic.delete(sibling.id)) {
-            alsoForgotten.push({ id: sibling.id, layer: 'episodic' });
-            contents.add(sibling.content);
-          }
-        }
         const fact = await this.semantic.getById(factId);
         if (fact && (await this.semantic.delete(factId))) {
           alsoForgotten.push({ id: factId, layer: 'semantic' });
           contents.add(fact.content);
+          memoryIds.push(factId);
         }
       }
     } else if (layer === 'semantic') {
@@ -568,20 +589,24 @@ export class MemoryCoordinator {
         if (await this.episodic.delete(episode.id)) {
           alsoForgotten.push({ id: episode.id, layer: 'episodic' });
           contents.add(episode.content);
+          memoryIds.push(episode.id);
         }
       }
     } else if (layer === 'procedural') {
-      const procedure = await this.procedural.getById(id);
-      if (!procedure) return false;
-      // store() keeps the first 200 characters of the content as the trigger.
-      isCopy = (content: string) => content.substring(0, 200) === procedure.trigger;
+      // Only the slot store() created: a procedure keeps the first 200 characters of its
+      // content, which can match other memories and can lose a split character.
+      if (!(await this.procedural.getById(id))) return false;
     } else {
-      const block = (await this.core.getBlocks()).find(b => b.id === id);
+      const block = (await this.core.getBlocks()).find(b => b.id.toLowerCase() === id);
       if (!block) return false;
       contents.add(block.content);
     }
 
-    for (const slotId of this.working.removeWhere(isCopy)) {
+    const slotIds = new Set(
+      memoryIds.map(m => this.workingCopyOf.get(m)).filter((s): s is string => s !== undefined)
+    );
+    for (const memoryId of memoryIds) this.workingCopyOf.delete(memoryId);
+    for (const slotId of this.working.removeWhere((content, slotId) => slotIds.has(slotId) || contents.has(content))) {
       alsoForgotten.push({ id: slotId, layer: 'working' });
     }
     return this.deleteOne(id, layer);
@@ -1067,8 +1092,11 @@ export class MemoryCoordinator {
         if (!existing.content) continue;
         if (this.contentSimilarity(r.content, existing.content) > 0.9) {
           isDuplicate = true;
-          // Keep the higher-scored version; it carries the other one (and what that one carried).
-          const [kept, dropped] = r.score > existing.score ? [r, existing] : [existing, r];
+          // Keep the higher-scored version (on a tie, the earlier layer in LAYER_ORDER); it carries
+          // the other one (and what that one carried).
+          const rWins = r.score > existing.score ||
+            (r.score === existing.score && LAYER_ORDER[r.layer] < LAYER_ORDER[existing.layer]);
+          const [kept, dropped] = rWins ? [r, existing] : [existing, r];
           deduped[i] = {
             ...kept,
             duplicates: [

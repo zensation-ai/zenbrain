@@ -177,8 +177,9 @@ export class ProceduralMemory {
   /** One procedure by id, or null. */
   async getById(id: string): Promise<Procedure | null> {
     const result = await this.storage.query<ProcedureRow>(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
-    // Checked again here, so a storage that does not evaluate WHERE cannot return another procedure.
-    const row = result.rows.find(r => r.id === id);
+    // Checked again here, so a storage that does not evaluate WHERE cannot return another procedure
+    // (case ignored, as PostgreSQL compares uuids).
+    const row = result.rows.find(r => String(r.id).toLowerCase() === id.toLowerCase());
     return row ? rowToProcedure(row) : null;
   }
 

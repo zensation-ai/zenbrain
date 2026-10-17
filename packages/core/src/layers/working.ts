@@ -190,9 +190,9 @@ export class WorkingMemory {
     return this.slots.length < before;
   }
 
-  /** Remove every slot whose content passes `match`. Returns the ids of the removed slots. */
-  removeWhere(match: (content: string) => boolean): string[] {
-    const removed = this.slots.filter(s => match(s.content)).map(s => s.id);
+  /** Remove every slot that passes `match` (its content and id). Returns the ids of the removed slots. */
+  removeWhere(match: (content: string, slotId: string) => boolean): string[] {
+    const removed = this.slots.filter(s => match(s.content, s.id)).map(s => s.id);
     for (const id of removed) this.remove(id);
     return removed;
   }

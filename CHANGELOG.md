@@ -30,16 +30,19 @@ verbatim copy), a recall showing one hit because deduplication hid the semantic 
 and an MCP agent could not see the twin before it forgot.
 
 `forget(id, layer, options?)` now follows the edge `consolidate()` records, in both directions: forgetting an
-episode deletes the fact consolidated from it (and any other episode promoted into that same fact), forgetting a
-fact deletes the episodes it was made from, and every layer's forget deletes the working-memory copies of that
-content. Forgetting a working-memory result deletes only that copy. `{ cascade: false }` restores the old
+episode deletes the fact consolidated from it, forgetting a fact deletes every episode consolidated into it, and
+both delete the working-memory copies — the slot `store()` created for each deleted memory and, except for
+procedures, any slot with exactly that content. Forgetting a working-memory result deletes only that copy. `{ cascade: false }` restores the old
 behaviour of deleting only the addressed memory; an episode then keeps its `consolidatedInto` mark, so the next
 `consolidate()` does not promote it again. The return value is unchanged (`boolean`); the new
 `forgetWithDerived()` also returns `alsoForgotten: { id, layer }[]`, and the MCP tool `zenbrain_forget` reports
 that list. A fact an LLM distilled into other words is linked the same way: the cascade follows the recorded edge,
-it does not search for memories with a similar meaning. A memory stored on its own with the same wording is not
-linked and its long-term entry stays — `RecallResult.duplicates` (new, also in `zenbrain_recall`) names the copies
-deduplication hid; working-memory copies are matched by content and go with the forgotten memory.
+it does not search for memories with a similar meaning. A second episode with the same text, which
+`consolidate()` links to the existing fact instead of copying it again, stays when one episode is forgotten and
+goes when the fact is. A memory stored on its own and never linked keeps its long-term entry —
+`RecallResult.duplicates` (new, also in `zenbrain_recall`) names the copies deduplication hid. On equal scores
+recall now keeps long-term memories before the working-memory copy, in a fixed layer order, so the kept result no
+longer depends on which layer's search finished first.
 
 The edge is the episode's `consolidatedInto` mark, written since 0.4.8, so the cascade works on existing
 databases without a schema change: checked with a file written by the published 0.5.2, where forgetting the fact
@@ -125,7 +128,13 @@ for the empty list. They and the other coordinator tests from core now run on ad
 hits (the duplicate test also checks `duplicates`). CONTRIBUTING states the rule: coordinator behaviour is tested
 on adapter-sqlite, never on `InMemoryStorage`, and a loop over results first asserts that there are results. The
 new tests of this release follow it — the forget cascade, the score model and the fact weight run on SQLite and on
-PostgreSQL (the PostgreSQL suite grows from 6 to 11 tests).
+PostgreSQL (the PostgreSQL suite grows from 6 to 12 tests).
+
+### Documentation — which embedding provider the paper's measurements used
+
+The six package READMEs said "The paper's measurements used `nomic-embed-text`". That holds for ZenBrain's
+benchmark runs against other systems; the paper's retrieval ablations used OpenAI `text-embedding-3-small`. The
+sentence now says both.
 
 ### Documentation — two-factor Hebbian attribution, uncertainty bands (#142, now on npm)
 

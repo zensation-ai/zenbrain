@@ -119,8 +119,9 @@ export class SemanticMemory {
   /** One fact by id, or null. */
   async getById(id: string): Promise<MemoryFact | null> {
     const result = await this.storage.query<FactRow>(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
-    // Checked again here, so a storage that does not evaluate WHERE cannot return another fact.
-    const row = result.rows.find(r => r.id === id);
+    // Checked again here, so a storage that does not evaluate WHERE cannot return another fact
+    // (case ignored, as PostgreSQL compares uuids).
+    const row = result.rows.find(r => String(r.id).toLowerCase() === id.toLowerCase());
     return row ? rowToFact(row) : null;
   }
 

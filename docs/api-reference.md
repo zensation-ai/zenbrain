@@ -389,7 +389,8 @@ Every store also adds the content to working memory.
 
 #### `recall(query, options?): Promise<RecallResult[]>`
 Cross-layer search with ranked, deduplicated results (two results whose words and numbers overlap by more than
-90 %, case and punctuation ignored, count as one; the higher score stays). Options: `layers`, `limit` (default 10; the episodic,
+90 %, case and punctuation ignored, count as one; the higher score stays, on a tie the earlier layer in the order
+episodic, semantic, procedural, core, working). Options: `layers`, `limit` (default 10; the episodic,
 semantic and procedural layers are searched with it, then the merged list is cut to it), `minConfidence`
 (applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
 confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1),
@@ -430,8 +431,8 @@ The cascade (`cascade: true`, the default since 0.6.0) follows the edge `consoli
 
 | Forgotten | Also deleted |
 |---|---|
-| an episode | the fact consolidated from it, any other episode promoted into that same fact, and the working-memory copies of their content |
-| a fact | the episodes it was consolidated from, and the working-memory copies of their content |
+| an episode | the fact consolidated from it, and the working-memory copies of both |
+| a fact | every episode consolidated into it, and the working-memory copies of all of them |
 | a procedure or core block | its working-memory copy |
 | a working-memory result | nothing: the slot is a copy, and forgetting it does not reach into long-term memory |
 
@@ -439,10 +440,15 @@ The edge is the episode's `consolidatedInto` mark, written by `consolidate()` si
 databases without a schema change. An episode promoted before 0.4.8 is linked only once a later `consolidate()`
 finds its verbatim fact (among the 100 most recent episodes); one an LLM distilled before 0.4.8 has no edge. A fact
 an LLM distilled since then is linked like any other — the cascade follows the recorded edge and does not search for
-memories that say something similar. A memory stored on its own with the same wording is not linked: its long-term
-entry stays (`RecallResult.duplicates` names such copies), but working-memory copies are matched by content and go
-with the forgotten memory. When the result deduplication kept is a working-memory slot, forget a long-term
-duplicate instead: forgetting the slot deletes only the slot. `{ cascade: false }`
+memories that say something similar. `consolidate()` links a second episode with the same text to the fact the
+first one became instead of copying it again (also a fact stored with source `'consolidation'` and that exact text):
+forgetting one of those episodes keeps the other, forgetting the fact deletes both. A memory stored on its own and
+never linked keeps its long-term entry (`RecallResult.duplicates` names such copies). Working-memory copies are the
+slot `store()` created for each deleted memory in this process and, for episodes, facts and core blocks, any slot
+holding exactly their content; a procedure keeps only its first 200 characters, so only its own slot goes. On equal
+scores recall keeps and lists long-term memories before the working-memory copy (episodic, semantic, procedural,
+core, then working), so the result to forget is a long-term one; forgetting a working-memory slot deletes only the
+slot. `{ cascade: false }`
 deletes only the addressed memory (the behaviour before 0.6.0); an episode keeps its mark, so a later
 `consolidate()` does not promote it again. To correct a memory, forget it and store the corrected version.
 

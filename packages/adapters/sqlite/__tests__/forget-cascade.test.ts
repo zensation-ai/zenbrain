@@ -101,12 +101,13 @@ describe('forget() cascade on SQLite', () => {
     await c.close();
   });
 
-  it('also deletes a second episode that was promoted into the same fact', async () => {
+  it('keeps a second episode linked to the same fact when one episode is forgotten; the fact takes both', async () => {
+    // consolidate() links a second episode with the same text to the existing fact instead of
+    // copying it again. That episode was stored on its own: forgetting the first one keeps it.
     const storage = createMemoryAdapter();
     const c = new MemoryCoordinator({ storage });
     const first = await c.store(MOMENT, { type: 'episode', emotionalWeight: 0.9 });
     await c.consolidate();
-    // Stored again and consolidated: consolidate() finds the verbatim fact and only marks it.
     const second = await c.store(MOMENT, { type: 'episode', emotionalWeight: 0.9 });
     expect((await c.consolidate()).promoted).toBe(0);
     const db = storage.getDatabase();
@@ -114,10 +115,55 @@ describe('forget() cascade on SQLite', () => {
     expect(rows(db, 'learned_facts', MOMENT)).toBe(1);
 
     const result = await c.forgetWithDerived(first, 'episodic');
+    expect(result.alsoForgotten.map((f) => f.layer).sort()).toEqual(['semantic', 'working', 'working']);
+    expect(rows(db, 'episodic_memories', MOMENT)).toBe(1);
+    expect(rows(db, 'learned_facts', MOMENT)).toBe(0);
+    // The kept episode keeps its mark and is not promoted again.
+    expect((await c.consolidate()).promoted).toBe(0);
+    expect(rows(db, 'learned_facts', MOMENT)).toBe(0);
+    await c.forget(second, 'episodic');
+    expect(rows(db, 'episodic_memories', MOMENT)).toBe(0);
+    await c.close();
+  });
 
-    expect(result.alsoForgotten).toContainEqual({ id: second, layer: 'episodic' });
+  it('forgetting the fact deletes every episode consolidated into it', async () => {
+    const storage = createMemoryAdapter();
+    const c = new MemoryCoordinator({ storage });
+    await c.store(MOMENT, { type: 'episode', emotionalWeight: 0.9 });
+    await c.consolidate();
+    await c.store(MOMENT, { type: 'episode', emotionalWeight: 0.9 });
+    await c.consolidate();
+    const db = storage.getDatabase();
+    const { id: factId } = db.prepare('SELECT id FROM learned_facts').get() as { id: string };
+
+    const result = await c.forgetWithDerived(factId, 'semantic');
+    expect(result.alsoForgotten.filter((f) => f.layer === 'episodic')).toHaveLength(2);
+    expect(rows(db, 'episodic_memories', MOMENT)).toBe(0);
+    await c.close();
+  });
+
+  it('accepts an id in upper case, as PostgreSQL does for its uuid columns', async () => {
+    const { c, db, episodeId } = await consolidated();
+    const result = await c.forgetWithDerived(episodeId.toUpperCase(), 'episodic');
+    expect(result.removed).toBe(true);
     expect(rows(db, 'episodic_memories', MOMENT)).toBe(0);
     expect(rows(db, 'learned_facts', MOMENT)).toBe(0);
+    await c.close();
+  });
+
+  it("forgetting a procedure removes its own working-memory copy and no other", async () => {
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    // 199 characters, then an emoji the 200-character cut splits in half.
+    const head = 'How to ' + 'x'.repeat(192);
+    const procedure = await c.store(`${head}🙂 steps: one, two`, { type: 'procedure' });
+    // An episode that shares the procedure's first 200 characters.
+    await c.store(`${head}🙂 and then something else happened`, { type: 'episode', emotionalWeight: 0.9 });
+    expect(c.getWorkingMemory().size).toBe(2);
+
+    const result = await c.forgetWithDerived(procedure, 'procedural');
+
+    expect(result.alsoForgotten).toEqual([{ id: expect.any(String), layer: 'working' }]);
+    expect(c.getWorkingMemory().getSlots().map((s) => s.content)).toEqual([`${head}🙂 and then something else happened`]);
     await c.close();
   });
 
@@ -135,6 +181,16 @@ describe('forget() cascade on SQLite', () => {
     expect(rows(db, 'episodic_memories', MOMENT)).toBe(0);
     expect(rows(db, 'learned_facts', 'The user lives in Hamburg.')).toBe(1);
     expect(rows(db, 'episodic_memories', 'Unrelated note.')).toBe(1);
+    await c.close();
+  });
+
+  it('on equal scores recall keeps the long-term memory, not the working-memory copy', async () => {
+    const { c, episodeId } = await consolidated();
+    for (let i = 0; i < 5; i++) {
+      const [top] = await c.recall(MOMENT, { layers: ['working', 'episodic', 'semantic'] });
+      expect(top.id).toBe(episodeId);
+      expect(top.duplicates?.map((d) => d.layer).sort()).toEqual(['semantic', 'working']);
+    }
     await c.close();
   });
 

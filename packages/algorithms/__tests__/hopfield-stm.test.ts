@@ -302,6 +302,14 @@ describe('hopfieldRecall — default β at the documented sizes', () => {
     });
   }
 
+  it('keeps the order of the lower matches when their weights underflow to 0', () => {
+    // At β = 16 and vectors of norm 10 every weight after the first is exactly 0; the order
+    // used to fall back to the input order (the opposite pattern before an orthogonal one).
+    const P = [[10, 0, 0], [0, 10, 0], [-10, 0, 0], [0, 0, 10]].map((v, i) => makePattern(v, i));
+    const r = hopfieldRecall([10, 5, 0], P);
+    expect(r.matches.map((m) => m.pattern.payload)).toEqual([0, 1, 3, 2]);
+  });
+
   it('an explicit β still applies (β = 1 averages, as before)', () => {
     const patterns = randomUnitPatterns(600, 384, 7);
     expect(hopfieldRecall(patterns[0].vector, patterns, { beta: 1 }).matches[0].weight).toBeLessThan(0.05);

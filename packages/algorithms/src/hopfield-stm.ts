@@ -297,7 +297,9 @@ export function hopfieldRecall<T>(
     weight: lastWeights[i] ?? 0,
     score: lastScores[i] ?? 0,
   }));
-  matches.sort((a, b) => b.weight - a.weight);
+  // Ties broken by the score: at a large β the weights of all but the best patterns can
+  // underflow to exactly 0, and the score still orders them (softmax is monotonic in it).
+  matches.sort((a, b) => b.weight - a.weight || b.score - a.score);
 
   return {
     recoveredVector: state,
