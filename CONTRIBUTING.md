@@ -82,6 +82,14 @@ npx turbo test
 - Use descriptive test names: `it('returns 0 when stability is zero')`
 - Test edge cases and boundary conditions
 - Use `toBeCloseTo()` for floating-point comparisons
+- **Coordinator behaviour is tested on adapter-sqlite, never on `InMemoryStorage`.** That test double
+  ignores `WHERE`, and its `UPDATE` and `DELETE` report a row without changing anything, so a test of
+  recall, forget or consolidation can pass on it without testing anything (two recall tests in core
+  did, on zero results, until 0.6.0). Put such tests in `packages/adapters/sqlite/__tests__/`; what
+  only PostgreSQL decides (uuid and JSONB columns, pgvector) goes into its `real-postgres` suite.
+  `InMemoryStorage` is fine for checks that throw before storage is reached.
+- **Assert that there is something to check.** A loop or `every()` over recall results passes on an
+  empty list: assert the number of results, or that the expected one is among them, first.
 
 ### 5. Build and Lint
 

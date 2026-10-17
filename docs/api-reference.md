@@ -408,7 +408,7 @@ How much to trust a result is `confidence` (a fact's stored confidence, a proced
 |---|---|---|---|
 | episodic, semantic | cosine similarity of the nearest rows, a negative one counted as 0 | lexical relevance over the 500 most recent rows | the most recent rows, at 0 |
 | procedural | cosine similarity of the nearest rows, a negative one counted as 0 | lexical relevance over the 500 rows with the highest success rate | the highest success rates, at 0 |
-| working (on request) | cosine similarity, a negative one counted as 0 | lexical relevance over the slots | the most relevant slots, at 0 |
+| working (on request, up to five) | cosine similarity, a negative one counted as 0 | lexical relevance over the slots | the most relevant slots, at 0 |
 | core | 0.8 when a query word longer than two characters occurs in the block's label or content (substring, case ignored), else 0.5 | same | with `core: 'always'` every block comes, at 0.5 |
 
 Without an embedding provider a layer with at least one lexical hit returns only hits; with one, it returns the

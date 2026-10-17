@@ -89,6 +89,16 @@ now also deleted its episode (zero rows left in both tables; 0.5.2 itself left t
 tables directly, on SQLite and on PostgreSQL. **Migration:** pass `{ cascade: false }` where you relied on a
 consolidated fact outliving its episode.
 
+### Tests — coordinator behaviour runs on SQLite, and every recall test has hits
+
+Two recall tests in core ran on the `InMemoryStorage` double, which cannot round-trip content: measured on
+2026-10-17, both recalls returned zero results, and "no result lacks content" and "every content is unique" held
+for the empty list. They and the other coordinator tests from core now run on adapter-sqlite and assert their
+hits (the duplicate test also checks `duplicates`). CONTRIBUTING states the rule: coordinator behaviour is tested
+on adapter-sqlite, never on `InMemoryStorage`, and a loop over results first asserts that there are results. The
+new tests of this release follow it — the forget cascade, the score model and the fact weight run on SQLite and on
+PostgreSQL.
+
 ## [0.5.2] — 2026-10-16
 
 **Fixes and corrected texts, all six packages.** A review of 414 claims the packages and their docs make, 67 of
