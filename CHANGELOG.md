@@ -28,6 +28,19 @@ docs said 0 to 1. Every result's `score` now runs from 0 to 1 and says how well 
 The API reference has one section for it, *How scores are computed, per layer*. Re-check thresholds you set on
 `score`: procedure and working-memory scores mean something else now.
 
+### Changed — ai-sdk injects only memories that match, and an aborted stream keeps the user's turn
+
+Measured on ai-sdk 0.3.1: on "What is the capital of France?" unrelated memories — the recall fallback at score 0 —
+were injected as "Relevant memories from earlier sessions:". With core 0.6.0 a score of 0 means no match in every
+layer, so the middleware now injects only results scoring above 0 by default. `recall.minScore` sets another bar
+and is passed on to `recall()`; `minScore: 0` injects the fallbacks as before.
+
+A stream aborted through `abortSignal` used to store nothing. The abort is observable in the middleware (a test
+aborts a streaming model mid-reply, once with a provider that errors its stream as `fetch` does and once with one
+that closes it), so the middleware now does what the README said until 0.3.0: it stores the user's turn and
+not the partial reply. A stream that fails for any other reason still stores nothing. The peer range on
+`@zensation/core` is `^0.6.0`: the score threshold means something else on earlier versions.
+
 ### Breaking — `forget()` deletes what consolidation derived from a memory
 
 Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a

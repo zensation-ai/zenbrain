@@ -71,6 +71,7 @@ zenbrainMemory({
     limit: 5,                      // how many memories to inject
     layers: ['semantic', 'core'],  // which layers to search
     minConfidence: 0.6,            // drop anything below this
+    minScore: 0.2,                 // default: only memories that match (score above 0)
   },
 
   store: {                         // or false to switch writing off
@@ -80,13 +81,21 @@ zenbrainMemory({
   },
 
   header: 'Relevant memories from earlier sessions:',
-  role: 'system',                  // or 'user': see "Three defaults worth knowing"
+  role: 'system',                  // or 'user': see "Four defaults worth knowing"
 
   onError: (err, phase) => console.warn(`[zenbrain] ${phase} failed`, err),
 });
 ```
 
-### Three defaults worth knowing
+### Four defaults worth knowing
+
+**Only memories that match are injected.** When nothing stored matches the message, recall
+falls back to recent memories at score 0, so that a direct `recall()` is never empty for a
+reason you cannot see. The middleware leaves those out: a question about the capital of France
+gets no "relevant memories" about your bicycle. `recall.minScore` sets the bar yourself (scores
+run from 0 to 1, see the [API reference](https://github.com/zensation-ai/zenbrain/blob/main/docs/api-reference.md));
+`minScore: 0` injects the fallbacks too, as releases before 0.4.0 did. This needs
+`@zensation/core` 0.6.0 or later, where every layer scores 0 to 1 and 0 means no match.
 
 **Memories arrive as a system message.** That is the strongest place in the prompt, and it
 is also why it needs a decision: whatever a user once said comes back with system authority
@@ -123,10 +132,12 @@ suits your application.
   a bonus for an adjacent phrase, over the most recent 500 episodes and facts. It matches
   wording, not meaning — synonyms need an `EmbeddingProvider`, which is also the
   configuration the published benchmarks were measured with.
-- **No relevance threshold.** When nothing matches the prompt, recall falls back to the
-  most recent memories (score 0), and this release injects them like any other result.
-- **Streaming stores on flush.** The turn is written once the stream completes. An aborted
-  or failed stream stores nothing, not even the user's turn.
+- **Streaming stores on flush.** The turn is written once the stream completes. A stream
+  aborted through `abortSignal` stores the user's turn but not the partial reply; a stream
+  that fails for any other reason stores nothing.
+- **Core blocks are not filtered by match.** With the default `core: 'always'` every core
+  block scores 0.5 or more, passes the default filter and competes for `limit`; pass
+  `recall: { core: 'matching' }` to inject only blocks that share a word with the message.
 - **Only text is read.** File and tool parts of a message are ignored when building the
   recall query and when storing.
 - **One recall per call.** There is no re-retrieval mid-generation.

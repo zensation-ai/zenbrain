@@ -34,6 +34,14 @@ export interface ZenBrainMemoryOptions {
         /** Drop memories below this confidence. */
         minConfidence?: number;
         /**
+         * Drop memories that score below this value (0 to 1). By default only memories that
+         * match the message are injected (score above 0): when nothing matches, recall returns
+         * recent memories at score 0 as a fallback, and those are left out. Set `minScore: 0`
+         * to inject them too, as releases before 0.4.0 did. Needs `@zensation/core` 0.6.0,
+         * where every layer scores 0 to 1 and 0 means no match.
+         */
+        minScore?: number;
+        /**
          * `'matching'` injects only core blocks that share a content word with the message;
          * `'always'` (default) injects every core block. With many core blocks and a small
          * `limit`, `'matching'` keeps them from crowding out the actual hits.
@@ -83,6 +91,13 @@ export interface ZenBrainMemoryOptions {
    */
   onError?: (error: unknown, phase: 'recall' | 'store') => void;
 }
+
+/**
+ * A transformer with the `cancel` callback of the Streams standard, which Node's
+ * TransformStream calls when the stream is aborted or cancelled. TypeScript's DOM lib
+ * does not list it yet.
+ */
+type CancellableTransformer<I, O> = Transformer<I, O> & { cancel?: (reason: unknown) => void | Promise<void> };
 
 const DEFAULT_HEADER = 'Relevant memories from earlier sessions:';
 const DEFAULT_LIMIT = 5;
@@ -173,12 +188,17 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         if (recallOpts.layers) search.layers = recallOpts.layers;
         if (recallOpts.minConfidence !== undefined) search.minConfidence = recallOpts.minConfidence;
         if (recallOpts.core !== undefined) search.core = recallOpts.core;
+        if (recallOpts.minScore !== undefined) search.minScore = recallOpts.minScore;
 
         const results = await coordinator.recall(query, search);
+        // Fallbacks (score 0) come after every hit, so dropping them never costs a hit.
+        const relevant = (score: unknown) =>
+          typeof score === 'number' &&
+          (recallOpts.minScore === undefined ? score > 0 : score >= recallOpts.minScore);
         // `content` is typed as required but assembled from whatever the storage
         // adapter returned. A row that lost it must not produce a blank bullet.
         memories = results
-          .filter((r) => typeof r.content === 'string' && r.content.length > 0)
+          .filter((r) => relevant(r.score) && typeof r.content === 'string' && r.content.length > 0)
           .map((r) => `- ${r.content}`);
       } catch (err) {
         report(err, 'recall');
@@ -227,8 +247,15 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
       // The reply only exists once the stream has run, so accumulate the deltas and
       // write on flush. The stream is passed through unchanged — a memory layer must
       // not sit between the model and the screen.
+      //
+      // An abort through `abortSignal` stores the user's turn but not the partial reply:
+      // what the user said is complete, half an answer is not. A provider whose stream
+      // errors on abort (fetch does) reaches `cancel`; one that just ends the stream
+      // reaches `flush` with the signal set. Until 0.4.0 an aborted stream stored nothing.
+      // A stream that fails for any other reason still stores nothing.
       let assistantText = '';
-      const capture = new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>({
+      const aborted = () => params.abortSignal?.aborted === true;
+      const transformer: CancellableTransformer<LanguageModelV4StreamPart, LanguageModelV4StreamPart> = {
         transform(chunk, controller) {
           if (chunk.type === 'text-delta' && typeof chunk.delta === 'string') {
             assistantText += chunk.delta;
@@ -236,9 +263,13 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
           controller.enqueue(chunk);
         },
         async flush() {
-          await remember(userText, assistantText.trim());
+          await remember(userText, aborted() ? '' : assistantText.trim());
         },
-      });
+        async cancel() {
+          if (aborted()) await remember(userText, '');
+        },
+      };
+      const capture = new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(transformer);
 
       return { ...result, stream: result.stream.pipeThrough(capture) };
     },
