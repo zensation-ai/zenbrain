@@ -103,7 +103,7 @@ export {
   safeJsonParse,
 } from './similarity';
 
-// Confidence Intervals
+// Uncertainty bands (heuristic, Wald-type; the type keeps its name ConfidenceInterval)
 export type { ConfidenceInterval } from './intervals';
 export { getRetrievabilityWithCI, propagateWithCI } from './intervals';
 

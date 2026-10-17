@@ -4,6 +4,48 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.6.0] — unreleased
+
+**Behaviour changes, decided after the 0.5.2 audit.** `forget()` now deletes what consolidation derived from a
+memory (**breaking**, see below), every recall score runs from 0 to 1 and means the same in each layer, the
+ai-sdk injects only memories that match, an emotional weight given for a fact sets its starting schedule, and
+`hopfieldRecall` defaults to β = 16. Each change was measured on the published packages first and has a test
+that fails without it, on SQLite and, where PostgreSQL decides, on PostgreSQL. Under 1.0 a behaviour change goes
+into a minor version (see *Compatibility history* in `docs/ROADMAP.md`).
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/algorithms` | 0.5.2 | 0.6.0 | Hopfield default β; two-factor Hebbian attribution and uncertainty-band wording (texts on `main` since #142) |
+| `@zensation/core` | 0.5.2 | 0.6.0 | forget cascade, `forgetWithDerived`, `duplicates`, score model, `minScore`, fact weight; needs algorithms `^0.6.0` |
+| `@zensation/adapter-postgres` | 0.2.8 | 0.2.9 | peer range admits core 0.6 |
+| `@zensation/adapter-sqlite` | 0.2.7 | 0.2.8 | peer range admits core 0.6 |
+| `@zensation/mcp` | 0.2.2 | 0.3.0 | `zenbrain_forget` cascades and reports `alsoForgotten`; `zenbrain_recall` scores, `minScore`, `duplicates`; `server.json` |
+| `@zensation/ai-sdk` | 0.3.1 | 0.4.0 | injects only matching memories, abort keeps the user's turn; peer core `^0.6.0` |
+
+### Breaking — `forget()` deletes what consolidation derived from a memory
+
+Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a
+verbatim copy), a recall showing one hit because deduplication hid the semantic twin, `forget(id, 'episodic')` =
+`true` — and the same recall then returned the text from semantic memory. "Forget this" left the content stored,
+and an MCP agent could not see the twin before it forgot.
+
+`forget(id, layer, options?)` now follows the edge `consolidate()` records, in both directions: forgetting an
+episode deletes the fact consolidated from it (and any other episode promoted into that same fact), forgetting a
+fact deletes the episodes it was made from, and every layer's forget deletes the working-memory copies of that
+content. Forgetting a working-memory result deletes only that copy. `{ cascade: false }` restores the old
+behaviour of deleting only the addressed memory; an episode then keeps its `consolidatedInto` mark, so the next
+`consolidate()` does not promote it again. The return value is unchanged (`boolean`); the new
+`forgetWithDerived()` also returns `alsoForgotten: { id, layer }[]`, and the MCP tool `zenbrain_forget` reports
+that list. A fact an LLM distilled into other words is linked the same way: the cascade follows the recorded edge,
+it does not search for memories with a similar meaning. A memory stored on its own with the same wording is not
+derived and stays — `RecallResult.duplicates` (new, also in `zenbrain_recall`) names the copies deduplication hid.
+
+The edge is the episode's `consolidatedInto` mark, written since 0.4.8, so the cascade works on existing
+databases without a schema change: checked with a file written by the published 0.5.2, where forgetting the fact
+now also deleted its episode (zero rows left in both tables; 0.5.2 itself left the fact). The tests read the
+tables directly, on SQLite and on PostgreSQL. **Migration:** pass `{ cascade: false }` where you relied on a
+consolidated fact outliving its episode.
+
 ### Changed — one score model across layers
 
 Measured on 0.5.1 (SQLite, and over MCP): "Which city is the capital?" returned `procedural 1.000 "How to bake
@@ -65,30 +107,6 @@ resemble each other need more: about ln(99 · (N − 1)) / (1 − c) for a typic
 and 38.5 for c = 0.3, 0.5 and 0.7 at N = 600). The ranking in `matches` is unchanged at any β. Pass `beta: 1` for
 the old soft averaging.
 
-### Breaking — `forget()` deletes what consolidation derived from a memory
-
-Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a
-verbatim copy), a recall showing one hit because deduplication hid the semantic twin, `forget(id, 'episodic')` =
-`true` — and the same recall then returned the text from semantic memory. "Forget this" left the content stored,
-and an MCP agent could not see the twin before it forgot.
-
-`forget(id, layer, options?)` now follows the edge `consolidate()` records, in both directions: forgetting an
-episode deletes the fact consolidated from it (and any other episode promoted into that same fact), forgetting a
-fact deletes the episodes it was made from, and every layer's forget deletes the working-memory copies of that
-content. Forgetting a working-memory result deletes only that copy. `{ cascade: false }` restores the old
-behaviour of deleting only the addressed memory; an episode then keeps its `consolidatedInto` mark, so the next
-`consolidate()` does not promote it again. The return value is unchanged (`boolean`); the new
-`forgetWithDerived()` also returns `alsoForgotten: { id, layer }[]`, and the MCP tool `zenbrain_forget` reports
-that list. A fact an LLM distilled into other words is linked the same way: the cascade follows the recorded edge,
-it does not search for memories with a similar meaning. A memory stored on its own with the same wording is not
-derived and stays — `RecallResult.duplicates` (new, also in `zenbrain_recall`) names the copies deduplication hid.
-
-The edge is the episode's `consolidatedInto` mark, written since 0.4.8, so the cascade works on existing
-databases without a schema change: checked with a file written by the published 0.5.2, where forgetting the fact
-now also deleted its episode (zero rows left in both tables; 0.5.2 itself left the fact). The tests read the
-tables directly, on SQLite and on PostgreSQL. **Migration:** pass `{ cascade: false }` where you relied on a
-consolidated fact outliving its episode.
-
 ### Tests — coordinator behaviour runs on SQLite, and every recall test has hits
 
 Two recall tests in core ran on the `InMemoryStorage` double, which cannot round-trip content: measured on
@@ -98,6 +116,15 @@ hits (the duplicate test also checks `duplicates`). CONTRIBUTING states the rule
 on adapter-sqlite, never on `InMemoryStorage`, and a loop over results first asserts that there are results. The
 new tests of this release follow it — the forget cascade, the score model and the fact weight run on SQLite and on
 PostgreSQL.
+
+### Documentation — two-factor Hebbian attribution, uncertainty bands (#142, now on npm)
+
+`hebbian-two-factor` named "Zenke et al. (PNAS 2025)" with a title that is not the paper's. The PNAS 2025 paper
+(doi:10.1073/pnas.2422602122) is by Iatropoulos, Gerstner & Brea, and the (weight, variance) form is our own
+construction; the module header and the algorithms README now say so and name the paper as related work. The
+interval helpers give heuristic Wald-type bands (nominally 95 %, not calibrated), not confidence intervals; the
+API reference, the ROADMAP and the section comment in the algorithms index say so. These texts reached `main`
+after 0.5.2; this release puts them on npm.
 
 ## [0.5.2] — 2026-10-16
 

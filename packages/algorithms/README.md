@@ -9,7 +9,7 @@
 
 ## What's Inside
 
-**20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 534 tests.
+**20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 538 tests.
 
 > ZenBrain's full architecture is **15 neuroscience-inspired mechanisms (9 foundational + 6 PMA)** ([paper](https://arxiv.org/abs/2604.23878)). The six Predictive Memory Architecture components themselves are proprietary and not in this package; it ships the algorithm library described below, including the hooks they plug into (the emotional replay term of `sleep-simulation-selection`, the natural-recall coupling of `fsrs-vmPFC`, the lock-score gate of `hebbian-two-factor`).
 
