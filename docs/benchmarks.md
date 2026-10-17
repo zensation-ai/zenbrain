@@ -34,11 +34,12 @@ competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and versi
 system. The advantage is most pronounced in the judge-graded comparisons and on cross-session
 reasoning.
 
-**Ablations.** Under moderate load, fourteen of the fifteen mechanism ablations look costless.
-With decay raised to 0.25/day over 60 days and no change to the mechanisms, ten of the fifteen
-reach the criterion printed in the paper, a Wilcoxon test over ten seeds with the same
-p = 5.062 × 10⁻³ for all ten: removing nine lowers quality (Delta-Q down to -93.7%), removing
-PriorityMap raises it (correction notice of 18 September 2026). Mild-load ablation
+**Ablations.** In the paper's simulation, under moderate load, fourteen of the fifteen component
+ablations look costless. With decay raised to 0.25/day over 60 days and no change to the components,
+ten of the fifteen reach the criterion printed in the paper, a Wilcoxon test over ten seeds with the
+same p = 5.062 × 10⁻³ for all ten, the smallest value possible with ten seeds: removing nine lowers
+quality (Delta-Q down to -93.7%), removing PriorityMap raises it (correction notice of 18 September
+2026). Mild-load ablation
 systematically underestimates architectural contributions — the paper calls this cooperative
 masking.
 
