@@ -6,23 +6,23 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [0.6.0] — unreleased
 
-**Behaviour changes, decided after the 0.5.2 audit.** `forget()` now deletes what consolidation derived from a
+**Behaviour changes, decided after the 0.5.2 audit.** `forget()` now deletes what consolidation linked to a
 memory (**breaking**, see below), every recall score runs from 0 to 1 and means the same in each layer, the
-ai-sdk injects only memories that match, an emotional weight given for a fact sets its starting schedule, and
+ai-sdk injects only memories scoring above 0, an emotional weight given for a fact sets its starting schedule, and
 `hopfieldRecall` defaults to β = 16. Each change was measured on the published packages first and has a test
 that fails without it, on SQLite and, where PostgreSQL decides, on PostgreSQL. Under 1.0 a behaviour change goes
 into a minor version (see *Compatibility history* in `docs/ROADMAP.md`).
 
 | Package | From | To | Why |
 |---|---|---|---|
-| `@zensation/algorithms` | 0.5.2 | 0.6.0 | Hopfield default β; two-factor Hebbian attribution and uncertainty-band wording (texts on `main` since #142) |
+| `@zensation/algorithms` | 0.5.2 | 0.6.0 | Hopfield default β; two-factor Hebbian attribution and uncertainty-band wording (#142 and this release) |
 | `@zensation/core` | 0.5.2 | 0.6.0 | forget cascade, `forgetWithDerived`, `duplicates`, score model, `minScore`, fact weight; needs algorithms `^0.6.0` |
 | `@zensation/adapter-postgres` | 0.2.8 | 0.2.9 | peer range admits core 0.6 |
 | `@zensation/adapter-sqlite` | 0.2.7 | 0.2.8 | peer range admits core 0.6 |
 | `@zensation/mcp` | 0.2.2 | 0.3.0 | `zenbrain_forget` cascades and reports `alsoForgotten`; `zenbrain_recall` scores, `minScore`, `duplicates`; `server.json` |
-| `@zensation/ai-sdk` | 0.3.1 | 0.4.0 | injects only matching memories, abort keeps the user's turn; peer core `^0.6.0` |
+| `@zensation/ai-sdk` | 0.3.1 | 0.4.0 | injects only memories scoring above 0, abort keeps the user's turn; peer core `^0.6.0` |
 
-### Breaking — `forget()` deletes what consolidation derived from a memory
+### Breaking — `forget()` deletes what consolidation linked to a memory
 
 Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a
 verbatim copy), a recall showing one hit because deduplication hid the semantic twin, `forget(id, 'episodic')` =
@@ -38,12 +38,15 @@ behaviour of deleting only the addressed memory; an episode then keeps its `cons
 `forgetWithDerived()` also returns `alsoForgotten: { id, layer }[]`, and the MCP tool `zenbrain_forget` reports
 that list. A fact an LLM distilled into other words is linked the same way: the cascade follows the recorded edge,
 it does not search for memories with a similar meaning. A memory stored on its own with the same wording is not
-derived and stays — `RecallResult.duplicates` (new, also in `zenbrain_recall`) names the copies deduplication hid.
+linked and its long-term entry stays — `RecallResult.duplicates` (new, also in `zenbrain_recall`) names the copies
+deduplication hid; working-memory copies are matched by content and go with the forgotten memory.
 
 The edge is the episode's `consolidatedInto` mark, written since 0.4.8, so the cascade works on existing
 databases without a schema change: checked with a file written by the published 0.5.2, where forgetting the fact
-now also deleted its episode (zero rows left in both tables; 0.5.2 itself left the fact). The tests read the
-tables directly, on SQLite and on PostgreSQL. **Migration:** pass `{ cascade: false }` where you relied on a
+now also deleted its episode (zero rows left in both tables; 0.5.2 itself, forgetting the episode, left the fact).
+An episode promoted before 0.4.8 is linked only once a later `consolidate()` finds its verbatim fact (among the 100
+most recent episodes); one an LLM distilled before 0.4.8 has no edge. The tests read the tables directly, on
+SQLite and on PostgreSQL. **Migration:** pass `{ cascade: false }` where you relied on a
 consolidated fact outliving its episode.
 
 ### Changed — one score model across layers
@@ -61,8 +64,9 @@ docs said 0 to 1. Every result's `score` now runs from 0 to 1 and says how well 
   moved to `metadata.relevance`. `WorkingMemory.search()` is new; `findRelevant()` is unchanged.
 - **Vector similarity** is clamped to [0, 1] in the episodic, semantic, procedural and working layers: a negative
   similarity matches no better than an unrelated memory.
-- **Core blocks** are unchanged (0.8 with a shared word, else 0.5) and documented: with `core: 'always'` a block
-  can still rank above a weak hit.
+- **Core blocks** are unchanged and documented: 0.8 when a query word longer than two characters occurs as a
+  substring of the block (stopwords such as "the" included), else 0.5; with `core: 'always'` a block can still
+  rank above a weak hit.
 - **`recall(query, { minScore })`** (also on `zenbrain_recall`), default 0: fallbacks at 0 are not dropped by
   default, they come after every hit; any `minScore` above 0 leaves them out. A value outside 0–1 throws a
   `RangeError`.
@@ -70,17 +74,20 @@ docs said 0 to 1. Every result's `score` now runs from 0 to 1 and says how well 
 The API reference has one section for it, *How scores are computed, per layer*. Re-check thresholds you set on
 `score`: procedure and working-memory scores mean something else now.
 
-### Changed — ai-sdk injects only memories that match, and an aborted stream keeps the user's turn
+### Changed — ai-sdk injects only memories scoring above 0, and an aborted stream keeps the user's turn
 
 Measured on ai-sdk 0.3.1: on "What is the capital of France?" unrelated memories — the recall fallback at score 0 —
 were injected as "Relevant memories from earlier sessions:". With core 0.6.0 a score of 0 means no match in every
-layer, so the middleware now injects only results scoring above 0 by default. `recall.minScore` sets another bar
-and is passed on to `recall()`; `minScore: 0` injects the fallbacks as before.
+layer, so the middleware now injects only results scoring above 0 by default — without an embedding provider
+that means at least one shared content word; with one, any positive similarity, so set a higher bar there.
+`recall.minScore` sets another bar and is passed on to `recall()`; `minScore: 0` injects the fallbacks as before.
 
-A stream aborted through `abortSignal` used to store nothing. The abort is observable in the middleware (a test
-aborts a streaming model mid-reply, once with a provider that errors its stream as `fetch` does and once with one
-that closes it), so the middleware now does what the README said until 0.3.0: it stores the user's turn and
-not the partial reply. A stream that fails for any other reason still stores nothing. The peer range on
+A stream aborted through `abortSignal` used to store nothing when the provider errored its stream (as `fetch`
+does), and the user's turn with the partial reply when the provider closed it. The abort is observable in the
+middleware (a test aborts a streaming model mid-reply, once with each kind of provider), so the middleware now does
+what the README said until 0.3.0: it stores the user's turn and not the partial reply. A stream that errors for any
+other reason still stores nothing; a provider that reports a failure as an `error` part and then ends the stream
+is stored like a finished one. The peer range on
 `@zensation/core` is `^0.6.0`: the score threshold means something else on earlier versions.
 
 ### Changed — an emotional weight given for a fact sets its starting schedule
@@ -88,12 +95,13 @@ not the partial reply. A stream that fails for any other reason still stores not
 Measured on 0.5.1 (PostgreSQL): facts stored with `emotionalWeight` 0.1 and 0.95 both started at difficulty 5,
 stability 7 — the option was accepted and dropped, while `docs/recipes.md` promised an effect on the schedule (and
 called `initFromDecayClass('good', …)`, which throws). `store(content, { type: 'fact', emotionalWeight })` now
-multiplies the fact's starting FSRS stability by `1 + emotionalWeight` (7 days at 0, 14 at 1, the
-`initFromDecayClass` multiplier), so its first review comes later. The weight acts once, at creation, through the
+multiplies the fact's starting FSRS stability by `1 + emotionalWeight` (7 at 0, 14 at 1, the
+`initFromDecayClass` multiplier), so its first review comes later: after about 0.105 × stability days, ≈ 0.7 and
+≈ 1.5. The weight acts once, at creation, through the
 existing FSRS columns — no schema change — and is not stored with the fact. A weight the coordinator detects
 itself does not change a fact's schedule, so facts stored without the option start as before.
 `SemanticMemory.storeFact()` takes the weight as a fourth argument and throws a `RangeError` outside 0–1. Tested
-on SQLite and PostgreSQL (0.1 ⇒ 7.7 days, 0.95 ⇒ 13.65); the recipe uses the coordinator now.
+on SQLite and PostgreSQL (stability 0.1 ⇒ 7.7, 0.95 ⇒ 13.65); the recipe uses the coordinator now.
 
 ### Changed — `hopfieldRecall` defaults to β = 16
 
@@ -101,10 +109,12 @@ With the default β = 1, a recall over 600 random unit patterns put a weight of 
 returned a state near the average of all patterns (cosine 0.10 to the pattern), while the module described sharp
 pattern completion. Measured with `scripts/measure-docs-numbers.mjs` (new table): the β at which every queried
 pattern keeps a weight of at least 0.99 is 9.5 for N = 100, 11.5 for N = 600 and 12.5 for N = 2000 — the same at
-d = 384, 768 and 1536, so the rule depends on N, about ln(99 · (N − 1)), not on d. The default is now 16, which
-gives at least 0.999 up to N = 2000 at those dimensions; a test holds it at N = 600 for all three. Patterns that
+d = 384, 768 and 1536, so the rule depends on N, about ln(99 · (N − 1)) (11.0 at N = 600), not on d. The default
+is now 16, which gives at least 0.999 up to N = 2000 at those dimensions; a test holds 0.99 at N = 600 for all
+three. Patterns that
 resemble each other need more: about ln(99 · (N − 1)) / (1 − c) for a typical pairwise cosine c (measured 16.5, 23
-and 38.5 for c = 0.3, 0.5 and 0.7 at N = 600). The ranking in `matches` is unchanged at any β. Pass `beta: 1` for
+and 38.5 for c = 0.3, 0.5 and 0.7 at N = 600). With the default single iteration the ranking in `matches` is the
+same at any β. Pass `beta: 1` for
 the old soft averaging.
 
 ### Tests — coordinator behaviour runs on SQLite, and every recall test has hits
@@ -115,7 +125,7 @@ for the empty list. They and the other coordinator tests from core now run on ad
 hits (the duplicate test also checks `duplicates`). CONTRIBUTING states the rule: coordinator behaviour is tested
 on adapter-sqlite, never on `InMemoryStorage`, and a loop over results first asserts that there are results. The
 new tests of this release follow it — the forget cascade, the score model and the fact weight run on SQLite and on
-PostgreSQL.
+PostgreSQL (the PostgreSQL suite grows from 6 to 11 tests).
 
 ### Documentation — two-factor Hebbian attribution, uncertainty bands (#142, now on npm)
 
@@ -123,8 +133,8 @@ PostgreSQL.
 (doi:10.1073/pnas.2422602122) is by Iatropoulos, Gerstner & Brea, and the (weight, variance) form is our own
 construction; the module header and the algorithms README now say so and name the paper as related work. The
 interval helpers give heuristic Wald-type bands (nominally 95 %, not calibrated), not confidence intervals; the
-API reference, the ROADMAP and the section comment in the algorithms index say so. These texts reached `main`
-after 0.5.2; this release puts them on npm.
+API reference and the ROADMAP say so (#142), and so does the section comment in the algorithms index (this
+release). #142 reached `main` after 0.5.2; this release puts its texts on npm.
 
 ## [0.5.2] — 2026-10-16
 

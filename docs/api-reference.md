@@ -311,10 +311,11 @@ Estimate query difficulty and route retrieval accordingly (reward-modulated).
 
 #### `hopfieldRecall(query, patterns, options?): HopfieldRecallResult`
 Modern (continuous) Hopfield associative recall over stored patterns: `ξ_new = X · softmax(β · Xᵀ · ξ)`, O(N · d)
-per step. The ranking in `matches` does not depend on β; the weights and `recoveredVector` do. The default β is 16
+per step. With the default single iteration the ranking in `matches` does not depend on β; the weights and
+`recoveredVector` do. The default β is 16
 (1 until 0.6.0): measured on random unit vectors, it puts a weight of at least 0.999 on the queried pattern up to
-N = 2000 at d = 384, 768 and 1536. The β needed for 0.99 grows with the number of patterns, about ln(99 · (N − 1)),
-not with d; for patterns with a typical pairwise cosine c, divide by (1 − c) — 23 at N = 600 and c = 0.5. All
+N = 2000 at d = 384, 768 and 1536. The β needed for 0.99 grows with the number of patterns, about ln(99 · (N − 1))
+(measured 11.5 at N = 600, where the formula gives 11.0), not with d; for patterns with a typical pairwise cosine c, divide by (1 − c) — 23 at N = 600 and c = 0.5. All
 numbers come from `scripts/measure-docs-numbers.mjs`.
 
 #### `hopfieldEnergy(state, patterns, beta): number`
@@ -382,7 +383,8 @@ Route content to a memory layer and return the id of the stored memory. With `ty
 is: `steps` or procedural wording ("How to …", "Steps:", "workflow:" …) → procedure; an emotional weight above 0.5
 (given or detected) → episode; `confidence` above 0.9 → core block; otherwise a fact. Only episodes keep `context`.
 An `emotionalWeight` you pass for a fact is not stored with it; it multiplies the fact's starting FSRS stability by
-`1 + emotionalWeight` (7 days at 0, 14 at 1), so the first review comes later. A detected weight does not.
+`1 + emotionalWeight` (7 at 0, 14 at 1); the first review comes after about 0.105 × stability days (≈ 0.7 and
+≈ 1.5). A detected weight does not.
 Every store also adds the content to working memory.
 
 #### `recall(query, options?): Promise<RecallResult[]>`
@@ -420,7 +422,7 @@ vector path returned −1 to 1, a procedure that matched nothing scored its succ
 without an embedding provider ignored the query.
 
 #### `forget(id, layer, options?): Promise<boolean>`
-Delete a memory, addressed by the `id` and `layer` of a recall result, together with what was derived from it.
+Delete a memory, addressed by the `id` and `layer` of a recall result, together with what consolidation linked to it.
 Returns `true` if the addressed memory was deleted, `false` if the layer holds no memory with that id (an id that
 is not a UUID counts as unknown, not as an error). Nothing in long-term memory is deleted on its own.
 
@@ -433,16 +435,22 @@ The cascade (`cascade: true`, the default since 0.6.0) follows the edge `consoli
 | a procedure or core block | its working-memory copy |
 | a working-memory result | nothing: the slot is a copy, and forgetting it does not reach into long-term memory |
 
-The edge is the episode's `consolidatedInto` mark, written since 0.4.8; it is found in databases written by earlier
-versions, without a schema change. A fact an LLM distilled into other words is linked the same way — the cascade
-follows the recorded edge and does not search for memories that say something similar. A memory stored on its own
-with the same wording is not derived and stays; `RecallResult.duplicates` names such copies. `{ cascade: false }`
+The edge is the episode's `consolidatedInto` mark, written by `consolidate()` since 0.4.8 and found in existing
+databases without a schema change. An episode promoted before 0.4.8 is linked only once a later `consolidate()`
+finds its verbatim fact (among the 100 most recent episodes); one an LLM distilled before 0.4.8 has no edge. A fact
+an LLM distilled since then is linked like any other — the cascade follows the recorded edge and does not search for
+memories that say something similar. A memory stored on its own with the same wording is not linked: its long-term
+entry stays (`RecallResult.duplicates` names such copies), but working-memory copies are matched by content and go
+with the forgotten memory. When the result deduplication kept is a working-memory slot, forget a long-term
+duplicate instead: forgetting the slot deletes only the slot. `{ cascade: false }`
 deletes only the addressed memory (the behaviour before 0.6.0); an episode keeps its mark, so a later
 `consolidate()` does not promote it again. To correct a memory, forget it and store the corrected version.
 
 #### `forgetWithDerived(id, layer, options?): Promise<{ removed, alsoForgotten }>`
-`forget()`, and in addition `alsoForgotten: { id, layer }[]`, every other memory the cascade deleted. Derived
-memories are deleted before the addressed one, which holds the edge, so a call that fails half-way can be repeated.
+`forget()`, and in addition `alsoForgotten: { id, layer }[]`, every other memory the cascade deleted. Linked
+memories are deleted before the addressed one, so a call repeated after a failure still deletes the remaining
+long-term memories; working-memory copies of what the failed call deleted may remain, and the repeated call does
+not list what the failed one deleted.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic

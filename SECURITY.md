@@ -8,7 +8,8 @@ package versions. One release publishes several packages at different numbers, s
 
 | Release | Supported | |
 |---------|-----------|---|
-| 0.5.x   | Yes | Current line. Requires Node.js 22 or newer. |
+| 0.6.x   | Yes | Current line. Requires Node.js 22 or newer. |
+| 0.5.x   | Security fixes until 31 December 2026 | Previous line. Moving to 0.6.x changes behaviour: `forget()` also deletes what consolidation linked to a memory, and scores mean the same in every layer — see [CHANGELOG](CHANGELOG.md) and the [compatibility history](docs/ROADMAP.md#compatibility-history). |
 | 0.4.x   | Security fixes until 31 December 2026 | Previous line. Moving to 0.5.x needs no code change unless you pass `includeContext` or `taskType` (they never had an effect) or construct `RecallResult` yourself — see [CHANGELOG](CHANGELOG.md#050--2026-10-10). |
 | 0.3.x   | Security fixes until 31 December 2026 | Last line that runs on Node.js 20, which reached end-of-life on 30 April 2026 — see [compatibility history](docs/ROADMAP.md#compatibility-history). |
 | < 0.3   | No | |
@@ -46,7 +47,8 @@ ZenBrain follows these security principles:
 - **Input validation** — where a bad value would be stored or computed on silently, the function throws a
   `RangeError` naming the argument: FSRS states, grades and retention targets; Hebbian weights (NaN or
   negative); working-memory relevance and the `emotionalWeight` and `confidence` options of `store()` (outside
-  0–1); `ib-budget` contexts; `initFromSM2`; table names. Other functions expect the ranges their
+  0–1), the `emotionalWeight` of `SemanticMemory.storeFact()` and the `minScore` of `recall()` (outside 0–1);
+  `ib-budget` contexts; `initFromSM2`; table names. Other functions expect the ranges their
   documentation states and do not check them
 - **Dependency minimization** — core algorithms have zero dependencies
 

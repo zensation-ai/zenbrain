@@ -61,9 +61,9 @@ export class SemanticMemory {
   /**
    * Store a new fact with FSRS initial scheduling.
    *
-   * An `emotionalWeight` (0 to 1) stretches the starting stability by `1 + emotionalWeight`
-   * (the `initFromDecayClass` multiplier): 7 days without a weight, up to 14 at 1, so the
-   * first review comes later. It acts once, at creation, through the FSRS columns; the
+   * An `emotionalWeight` (0 to 1) multiplies the starting stability by `1 + emotionalWeight`
+   * (the `initFromDecayClass` multiplier): 7 without a weight, up to 14 at 1. The first review
+   * comes after about 0.105 × stability days (≈ 0.7 and ≈ 1.5 days). It acts once, at creation, through the FSRS columns; the
    * weight itself is not stored with the fact.
    *
    * @throws RangeError if emotionalWeight is not a number from 0 to 1

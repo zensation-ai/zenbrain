@@ -168,6 +168,31 @@ open('PostgreSQL with pgvector, through the coordinator', () => {
     expect(await s(high)).toBeCloseTo(13.65, 5);
   });
 
+  it('scores every layer from 0 to 1: a procedure that matches nothing scores 0, minScore drops it', async () => {
+    const c = coordinator();
+    await c.store('How to knead sourdough: fold, rest, shape.', { type: 'procedure' });
+    await c.store('Lisbon is the capital of Portugal.', { type: 'fact' });
+
+    const all = await c.recall('Which city is the capital of Portugal?', { layers: ['semantic', 'procedural'], limit: 50 });
+    const hit = all.find((r) => r.content === 'Lisbon is the capital of Portugal.');
+    expect(hit?.score).toBeGreaterThan(0);
+    expect(all.filter((r) => r.layer === 'procedural').every((r) => r.score === 0)).toBe(true);
+    expect(all.some((r) => r.layer === 'procedural')).toBe(true);
+    expect(all[0].layer).toBe('semantic');
+
+    const hits = await c.recall('Which city is the capital of Portugal?', { layers: ['semantic', 'procedural'], limit: 50, minScore: 0.01 });
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.every((r) => r.score > 0)).toBe(true);
+
+    // pgvector returns cosine similarity as 1 - distance, which can be negative; it is clamped.
+    const v = coordinator(new FakeEmbeddingProvider(1536));
+    for (const q of ['Lisbon', 'zebra quantum', 'knead']) {
+      const res = await v.recall(q, { layers: ['semantic', 'procedural', 'episodic'], limit: 50 });
+      expect(res.length).toBeGreaterThan(0);
+      for (const r of res) expect(r.score >= 0 && r.score <= 1, `${q} ${r.layer} ${r.score}`).toBe(true);
+    }
+  });
+
   it('writes the FSRS state back on recordReview', async () => {
     const c = coordinator();
     await c.store('The accountant is reachable by phone only.', { type: 'fact' });

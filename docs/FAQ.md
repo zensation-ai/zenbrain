@@ -19,7 +19,7 @@ Most algorithm modules name the work they follow in their source (not yet `bayes
 
 ### Is ZenBrain production-ready?
 
-The algorithms and core layers were extracted from ZenAI, a production AI platform, where they ran against real users and real data. The repository's 938 tests pass in CI: 928 on each of Node 22, 24 and 26, and ten more against a real PostgreSQL with pgvector.
+The algorithms and core layers were extracted from ZenAI, a production AI platform, where they ran against real users and real data. The repository's 939 tests pass in CI: 928 on each of Node 22, 24 and 26, and 11 more against a real PostgreSQL with pgvector.
 
 That said, ZenBrain is still pre-1.0 — expect API changes before v1.0. We follow semver, and the [CHANGELOG](../CHANGELOG.md) records what changed in each release.
 

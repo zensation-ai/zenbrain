@@ -58,7 +58,8 @@ export interface StoreOptions {
   /**
    * Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing,
    * above 0.5 makes the memory an episode. Stored with episodes; for a fact, a weight given here
-   * stretches its starting FSRS stability by `1 + weight` (7 days at 0, 14 at 1) and is not stored.
+   * multiplies its starting FSRS stability by `1 + weight` (7 at 0, 14 at 1; the first review
+   * comes after about 0.105 × stability days) and is not stored.
    */
   emotionalWeight?: number;
   /** Confidence score (0-1), stored with facts. In auto routing, above 0.9 routes to core memory — unless steps, procedural wording or an emotional weight above 0.5 routed it first. */
@@ -133,9 +134,11 @@ export interface RecallResult {
   /**
    * Results that deduplication left out because their content is (nearly) the same as this
    * one's — for example the fact `consolidate()` made verbatim from this episode. Present only
-   * when there were any. A duplicate linked to this result by consolidation, and a working-memory
-   * copy, go with it when this result is forgotten (cascade on, the default); any other
-   * duplicate was stored on its own and needs its own `forget()`.
+   * when there were any. When this result is a long-term memory, forgetting it (cascade on, the
+   * default) also deletes a duplicate linked to it by consolidation and the working-memory copies
+   * of its content; any other duplicate was stored on its own and needs its own `forget()`. When
+   * this result is itself a working-memory slot, forgetting it deletes only the slot — forget a
+   * long-term duplicate instead.
    */
   duplicates?: Array<{ id: string; layer: RecallLayer }>;
 }
@@ -439,7 +442,7 @@ export class MemoryCoordinator {
 
   /**
    * Delete a memory, addressed by the `id` and `layer` of a recall result, together with
-   * what was derived from it (the cascade, on by default).
+   * what consolidation linked to it (the cascade, on by default).
    *
    * - `forget(id, 'episodic')` deletes the episode, the fact `consolidate()` made from it,
    *   any other episode promoted into that same fact, and the working-memory copies of
@@ -452,11 +455,14 @@ export class MemoryCoordinator {
    *   and forgetting a copy does not reach into long-term memory.
    *
    * The edge between an episode and its fact is the episode's `consolidatedInto` mark, which
-   * `consolidate()` has written since 0.4.8; it is found on databases written by earlier
-   * versions, without a schema change. A fact distilled by an LLM is linked the same way:
-   * the cascade follows the recorded edge, it does not search for other memories that say
-   * something similar. A memory stored on its own with the same wording is not derived and
-   * stays — `RecallResult.duplicates` names such twins.
+   * `consolidate()` has written since 0.4.8; it is found in existing databases without a
+   * schema change. An episode promoted before 0.4.8 is linked only once a later
+   * `consolidate()` finds its verbatim fact (among the 100 most recent episodes); one an LLM
+   * distilled before 0.4.8 has no edge. A fact distilled by an LLM since then is linked like
+   * any other: the cascade follows the recorded edge, it does not search for memories that say
+   * something similar. A memory stored on its own with the same wording is not derived: its
+   * long-term entry stays (`RecallResult.duplicates` names such twins), though working-memory
+   * copies are matched by content and go with the forgotten one.
    *
    * With `{ cascade: false }` only the addressed memory is deleted (the behaviour before
    * 0.6.0); an episode keeps its mark, so a later `consolidate()` does not promote it again.
@@ -476,8 +482,10 @@ export class MemoryCoordinator {
   /**
    * `forget()`, and in addition the list of every other memory the cascade deleted.
    *
-   * Derived memories are deleted before the addressed one, because the addressed episode
-   * holds the edge: if a deletion fails half-way, calling this again finishes the job.
+   * Linked memories are deleted before the addressed one, so if a deletion fails half-way,
+   * calling this again still deletes the remaining long-term memories; working-memory copies of
+   * what the failed call already deleted may remain, and the repeated call does not list what
+   * the failed one deleted.
    *
    * @returns `removed` for the addressed memory and `alsoForgotten` for the rest.
    */

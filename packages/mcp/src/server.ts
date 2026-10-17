@@ -90,10 +90,12 @@ export function createZenBrainServer(
         'zenbrain_store when they share something worth keeping (check with zenbrain_recall ' +
         'first, storing again adds a duplicate). When the user asks you to forget something, or ' +
         'a stored memory is wrong, call zenbrain_forget with the id and layer zenbrain_recall ' +
-        'returned: it also deletes what consolidation derived from that memory and its ' +
-        'working-memory copies, and lists them in alsoForgotten. A recall result\'s duplicates ' +
-        'name copies that recall hid; a copy that zenbrain_forget did not list was stored on its ' +
-        'own, so forget it too. To correct a memory, forget it and ' +
+        'returned: it also deletes what consolidation linked to that memory (the fact made from ' +
+        'an episode, or the episodes a fact was made from) and its working-memory copies, and ' +
+        'lists them in alsoForgotten. A recall result\'s duplicates name copies that recall hid; ' +
+        'forget a long-term result rather than a working-memory one (a working slot is only a ' +
+        'copy), and forget any duplicate that zenbrain_forget did not list, since it was stored ' +
+        'on its own. To correct a memory, forget it and ' +
         'store the corrected version. Run ' +
         'zenbrain_consolidate between sessions, not on every turn; zenbrain_health shows how ' +
         'much is stored.',
@@ -187,12 +189,12 @@ export function createZenBrainServer(
       description:
         'Search long-term memory for anything relevant to a query. By default it searches ' +
         `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (the most recent stores, ` +
-        'held only while the server runs, returned whatever the query) is searched only when ' +
+        'held only while the server runs, up to five results) is searched only when ' +
         'named in `layers`. Returns results sorted by score, each with its id and the layer it ' +
         'came from; zenbrain_forget takes both. The score runs from 0 to 1 and says how well a ' +
         'result matches the query; a layer in which nothing matches returns recent memories (or ' +
         'its most successful procedures) at 0, behind every hit, and minScore above 0 leaves ' +
-        'them out. Core blocks always come, at 0.5 or 0.8, so a block can rank above a weak hit. ' +
+        'them out. Every core block scores 0.5 or 0.8, so a block can rank above a weak hit. ' +
         'Use this before answering when the user refers to something from an earlier ' +
         'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
@@ -204,7 +206,7 @@ export function createZenBrainServer(
           .optional()
           .describe(
             `Restrict the search to these layers. Defaults to ${listed(DEFAULT_RECALL_LAYERS)}; ` +
-              "add 'working' to include the most recent stores held in memory (returned whatever the query).",
+              "add 'working' to include the most recent stores held in memory (up to five, ranked by the query).",
           ),
         limit: z
           .number()
@@ -300,12 +302,13 @@ export function createZenBrainServer(
       title: 'Forget a memory',
       description:
         'Permanently delete a memory, addressed by the id and layer that zenbrain_recall ' +
-        'returned for it, together with what was derived from it; this cannot be undone. ' +
+        'returned for it, together with what consolidation linked to it; this cannot be undone. ' +
         'Forgetting an episode also deletes the fact zenbrain_consolidate made from it; ' +
         'forgetting such a fact also deletes the episodes it was made from; every layer also ' +
         'loses the working-memory copies of that content. Forgetting a working-memory result ' +
         'deletes only that copy. alsoForgotten lists everything deleted besides the memory ' +
-        'itself. A memory stored separately with the same wording is not derived and stays. ' +
+        'itself. A memory stored separately with the same wording is not linked: its long-term ' +
+        'entry stays, though working-memory copies with that content go. ' +
         'Use it when the ' +
         'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
         'forget it and store the corrected version with zenbrain_store. An id the layer does ' +
@@ -325,7 +328,7 @@ export function createZenBrainServer(
         layer: z.string(),
         alsoForgotten: z
           .array(z.object({ id: z.string(), layer: z.string() }))
-          .describe('Memories deleted with it: what consolidation derived from it or it from, and working-memory copies.'),
+          .describe('Memories deleted with it: what consolidation linked to it (derived from it, or it from), and working-memory copies.'),
       },
     },
     async ({ id, layer }) => {

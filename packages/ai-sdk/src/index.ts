@@ -34,11 +34,13 @@ export interface ZenBrainMemoryOptions {
         /** Drop memories below this confidence. */
         minConfidence?: number;
         /**
-         * Drop memories that score below this value (0 to 1). By default only memories that
-         * match the message are injected (score above 0): when nothing matches, recall returns
-         * recent memories at score 0 as a fallback, and those are left out. Set `minScore: 0`
-         * to inject them too, as releases before 0.4.0 did. Needs `@zensation/core` 0.6.0,
-         * where every layer scores 0 to 1 and 0 means no match.
+         * Drop memories that score below this value (0 to 1). By default only memories scoring
+         * above 0 are injected: when nothing matches, recall returns fallbacks at score 0
+         * (recent episodes and facts, the most successful procedures), and those are left out.
+         * Without an embedding provider, above 0 means at least one shared content word; with
+         * one, any positive similarity — set a higher bar here if you need one. `minScore: 0`
+         * injects the fallbacks too, as releases before 0.4.0 did. Needs `@zensation/core`
+         * 0.6.0, where every layer scores 0 to 1.
          */
         minScore?: number;
         /**
@@ -251,8 +253,10 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
       // An abort through `abortSignal` stores the user's turn but not the partial reply:
       // what the user said is complete, half an answer is not. A provider whose stream
       // errors on abort (fetch does) reaches `cancel`; one that just ends the stream
-      // reaches `flush` with the signal set. Until 0.4.0 an aborted stream stored nothing.
-      // A stream that fails for any other reason still stores nothing.
+      // reaches `flush` with the signal set. Until 0.4.0 an abort stored nothing when the
+      // provider errored its stream, and the turn with the partial reply when it closed it.
+      // A stream that errors for any other reason stores nothing; a provider that reports a
+      // failure as an `error` part and then ends the stream reaches `flush` as usual.
       let assistantText = '';
       const aborted = () => params.abortSignal?.aborted === true;
       const transformer: CancellableTransformer<LanguageModelV4StreamPart, LanguageModelV4StreamPart> = {

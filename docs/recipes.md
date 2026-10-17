@@ -160,7 +160,8 @@ you have built a retrieval system and are using this one as a cache.
 
 An emotional weight given for a fact stretches its FSRS schedule: since 0.6.0,
 `store(content, { type: 'fact', emotionalWeight })` multiplies the fact's starting stability by
-`1 + emotionalWeight` — 7 days at weight 0, 14 at weight 1 — so its first review comes later. The
+`1 + emotionalWeight` — 7 at weight 0, 14 at weight 1 — so its first review comes later (after about
+0.105 × stability days: ≈ 0.7 and ≈ 1.5). The
 weight acts once, when the fact is created, through the FSRS state the fact keeps; it is not stored
 with the fact. The automatic tagger reads language, so it cannot know that in your domain "allergy"
 outranks any word with an exclamation mark:
@@ -185,9 +186,9 @@ weight the coordinator detects itself does not change a fact's schedule — only
 Without the coordinator, `initFromDecayClass('normal_decay', 1 + weight)` from
 `@zensation/algorithms` gives the same starting state.
 
-⚠️ **Use a floor, not a constant.** Writing `emotionalWeight: 1.0` for every domain hit flattens the
-ranking you were trying to sharpen: if everything is critical, the layer can no longer tell you what
-is *most* critical. `Math.max()` keeps the tagger's ordering inside the protected set.
+⚠️ **Use a floor, not a constant.** Writing `emotionalWeight: 1.0` for every domain hit gives every
+critical fact the same schedule: if everything is critical, the schedule can no longer tell the most
+critical facts from the rest. `Math.max()` keeps the tagger's ordering inside the protected set.
 
 **Do not use this to pin marketing copy.** The mechanism models why emotionally significant events
 consolidate faster; spending it on material that merely *should* be seen means the signal no longer

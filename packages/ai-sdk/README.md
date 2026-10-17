@@ -71,7 +71,7 @@ zenbrainMemory({
     limit: 5,                      // how many memories to inject
     layers: ['semantic', 'core'],  // which layers to search
     minConfidence: 0.6,            // drop anything below this
-    minScore: 0.2,                 // default: only memories that match (score above 0)
+    minScore: 0.2,                 // default: only memories scoring above 0
   },
 
   store: {                         // or false to switch writing off
@@ -89,13 +89,15 @@ zenbrainMemory({
 
 ### Four defaults worth knowing
 
-**Only memories that match are injected.** When nothing stored matches the message, recall
-falls back to recent memories at score 0, so that a direct `recall()` is never empty for a
-reason you cannot see. The middleware leaves those out: a question about the capital of France
-gets no "relevant memories" about your bicycle. `recall.minScore` sets the bar yourself (scores
-run from 0 to 1, see the [API reference](https://github.com/zensation-ai/zenbrain/blob/main/docs/api-reference.md));
+**Only memories scoring above 0 are injected.** When nothing stored matches the message,
+recall falls back to recent episodes and facts, or the most successful procedures, at score 0,
+so that a direct `recall()` is never empty for a reason you cannot see. The middleware leaves
+those out: without an embedding provider, a question about the capital of France gets no
+"relevant memories" about your bicycle. With an embedding provider, any positive similarity
+scores above 0, so set `recall.minScore` for a real bar (scores run from 0 to 1, see the
+[API reference](https://github.com/zensation-ai/zenbrain/blob/main/docs/api-reference.md));
 `minScore: 0` injects the fallbacks too, as releases before 0.4.0 did. This needs
-`@zensation/core` 0.6.0 or later, where every layer scores 0 to 1 and 0 means no match.
+`@zensation/core` 0.6.0 or later, where every layer scores 0 to 1.
 
 **Memories arrive as a system message.** That is the strongest place in the prompt, and it
 is also why it needs a decision: whatever a user once said comes back with system authority
@@ -134,7 +136,8 @@ suits your application.
   configuration the published benchmarks were measured with.
 - **Streaming stores on flush.** The turn is written once the stream completes. A stream
   aborted through `abortSignal` stores the user's turn but not the partial reply; a stream
-  that fails for any other reason stores nothing.
+  that errors for any other reason stores nothing. A provider that reports a failure as an
+  `error` part and then ends the stream normally is stored like a finished one.
 - **Core blocks are not filtered by match.** With the default `core: 'always'` every core
   block scores 0.5 or more, passes the default filter and competes for `limit`; pass
   `recall: { core: 'matching' }` to inject only blocks that share a word with the message.

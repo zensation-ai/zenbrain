@@ -373,7 +373,8 @@ function hangingModel(onAbort: 'error' | 'close' = 'error') {
 describe('aborted and failed streams', () => {
   for (const onAbort of ['error', 'close'] as const) {
     it(`an abort stores the user's turn but not the partial reply (provider ${onAbort}s the stream)`, async () => {
-      // Until 0.4.0 an aborted stream stored nothing. The user's turn is complete; half an
+      // Until 0.4.0 an abort stored nothing (provider errors) or the partial reply too (provider
+      // closes; red on 0.3.1 here). The user's turn is complete; half an
       // answer is not.
       const { coordinator, stored } = stubCoordinator();
       const controller = new AbortController();

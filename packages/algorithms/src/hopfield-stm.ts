@@ -44,8 +44,9 @@
  * ln(99 · (N − 1)); patterns with a typical pairwise cosine c need about
  * ln(99 · (N − 1)) / (1 − c) (N = 600, d = 768: 16.5 at c = 0.3, 23 at
  * c = 0.5, 38.5 at c = 0.7). The default β = 16 covers uncorrelated
- * patterns up to N = 2000 with weight ≥ 0.999. The ranking (`matches[0]`)
- * is the queried pattern at every β: softmax keeps the order. The MHN energy:
+ * patterns up to N = 2000 with weight ≥ 0.999. With one step (the default)
+ * the ranking (`matches[0]`) is the queried pattern at every β: softmax keeps
+ * the order. The MHN energy:
  *
  *     E(ξ) = -1/β · log(Σ_i exp(β · ξ^T · X_i)) + 1/2 · ξ^T · ξ
  *
@@ -91,10 +92,11 @@ export interface HopfieldPattern<T = unknown> {
 export interface HopfieldOptions {
   /** Inverse temperature. Higher → sharper attractor, more like argmax;
    *  lower → smoother averaging across patterns. Default 16 (1 until
-   *  0.6.0). The ranking does not depend on β; the recovered state does:
-   *  for weight ≥ 0.99 on the queried pattern, β ≈ ln(99 · (N − 1)) for
-   *  uncorrelated patterns (11.5 at N = 600), divided by (1 − c) for a
-   *  typical pairwise cosine c (measured; see the module header). */
+   *  0.6.0). With the default single iteration the ranking does not depend
+   *  on β; the recovered state does: for weight ≥ 0.99 on the queried
+   *  pattern, β ≈ ln(99 · (N − 1)) for uncorrelated patterns (measured 11.5
+   *  at N = 600, the formula gives 11.0), divided by (1 − c) for a typical
+   *  pairwise cosine c (see the module header). */
   beta?: number;
   /** Maximum recall iterations. Default 1. One step suffices for
    *  separated patterns at a large enough β; set it higher when the
