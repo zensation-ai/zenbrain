@@ -55,7 +55,11 @@ export interface StoreOptions {
   type?: 'auto' | 'fact' | 'episode' | 'procedure' | 'core';
   /** Context domain (e.g., 'work', 'personal'). Episodes keep it; facts, procedures and core blocks do not. */
   context?: string;
-  /** Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing, above 0.5 makes the memory an episode. */
+  /**
+   * Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing,
+   * above 0.5 makes the memory an episode. Stored with episodes; for a fact, a weight given here
+   * stretches its starting FSRS stability by `1 + weight` (7 days at 0, 14 at 1) and is not stored.
+   */
   emotionalWeight?: number;
   /** Confidence score (0-1), stored with facts. In auto routing, above 0.9 routes to core memory — unless steps, procedural wording or an emotional weight above 0.5 routed it first. */
   confidence?: number;
@@ -354,7 +358,8 @@ export class MemoryCoordinator {
       default: {
         const confidence = options.confidence ?? 0.7;
         const source = options.source ?? 'user';
-        const fact = await this.semantic.storeFact(content, source, confidence);
+        // An explicit weight stretches the fact's first FSRS interval (E-6); a detected one does not.
+        const fact = await this.semantic.storeFact(content, source, confidence, options.emotionalWeight);
         storedId = fact.id;
         this.log.debug(`Stored as fact: ${storedId}`);
         break;

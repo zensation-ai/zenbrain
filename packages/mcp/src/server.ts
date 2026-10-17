@@ -142,7 +142,8 @@ export function createZenBrainServer(
           .optional()
           .describe(
             'Emotional significance (0–1). Detected from the content when omitted. ' +
-              'Above 0.5 routes to episodic memory unless steps or procedural wording matched first.',
+              'Above 0.5 routes to episodic memory unless steps or procedural wording matched first. ' +
+              "With type 'fact' it is not stored, but lengthens the fact's first review interval (×(1 + weight)).",
           ),
         source: z
           .string()

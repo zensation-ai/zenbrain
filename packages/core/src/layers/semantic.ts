@@ -58,8 +58,20 @@ export class SemanticMemory {
     this.log = config.logger ?? noopLogger;
   }
 
-  /** Store a new fact with FSRS initial scheduling. */
-  async storeFact(content: string, source: string, confidence = 0.7): Promise<MemoryFact> {
+  /**
+   * Store a new fact with FSRS initial scheduling.
+   *
+   * An `emotionalWeight` (0 to 1) stretches the starting stability by `1 + emotionalWeight`
+   * (the `initFromDecayClass` multiplier): 7 days without a weight, up to 14 at 1, so the
+   * first review comes later. It acts once, at creation, through the FSRS columns; the
+   * weight itself is not stored with the fact.
+   *
+   * @throws RangeError if emotionalWeight is not a number from 0 to 1
+   */
+  async storeFact(content: string, source: string, confidence = 0.7, emotionalWeight?: number): Promise<MemoryFact> {
+    if (emotionalWeight !== undefined && (typeof emotionalWeight !== 'number' || !(emotionalWeight >= 0 && emotionalWeight <= 1))) {
+      throw new RangeError(`storeFact: emotionalWeight must be a number from 0 to 1, got ${emotionalWeight}`);
+    }
     let embStr: string | null = null;
     if (this.embedding) {
       try {
@@ -70,7 +82,7 @@ export class SemanticMemory {
       }
     }
 
-    const fsrs = initFromDecayClass('normal_decay');
+    const fsrs = initFromDecayClass('normal_decay', 1 + (emotionalWeight ?? 0));
 
     const result = await this.storage.query<FactRow>(
       `INSERT INTO ${this.table} (id, content, confidence, source, embedding,

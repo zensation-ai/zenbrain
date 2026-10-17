@@ -41,6 +41,18 @@ that closes it), so the middleware now does what the README said until 0.3.0: it
 not the partial reply. A stream that fails for any other reason still stores nothing. The peer range on
 `@zensation/core` is `^0.6.0`: the score threshold means something else on earlier versions.
 
+### Changed — an emotional weight given for a fact sets its starting schedule
+
+Measured on 0.5.1 (PostgreSQL): facts stored with `emotionalWeight` 0.1 and 0.95 both started at difficulty 5,
+stability 7 — the option was accepted and dropped, while `docs/recipes.md` promised an effect on the schedule (and
+called `initFromDecayClass('good', …)`, which throws). `store(content, { type: 'fact', emotionalWeight })` now
+multiplies the fact's starting FSRS stability by `1 + emotionalWeight` (7 days at 0, 14 at 1, the
+`initFromDecayClass` multiplier), so its first review comes later. The weight acts once, at creation, through the
+existing FSRS columns — no schema change — and is not stored with the fact. A weight the coordinator detects
+itself does not change a fact's schedule, so facts stored without the option start as before.
+`SemanticMemory.storeFact()` takes the weight as a fourth argument and throws a `RangeError` outside 0–1. Tested
+on SQLite and PostgreSQL (0.1 ⇒ 7.7 days, 0.95 ⇒ 13.65); the recipe uses the coordinator now.
+
 ### Breaking — `forget()` deletes what consolidation derived from a memory
 
 Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a

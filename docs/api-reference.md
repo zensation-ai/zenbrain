@@ -376,6 +376,8 @@ const memory = new MemoryCoordinator({
 Route content to a memory layer and return the id of the stored memory. With `type: 'auto'` (the default) the order
 is: `steps` or procedural wording ("How to …", "Steps:", "workflow:" …) → procedure; an emotional weight above 0.5
 (given or detected) → episode; `confidence` above 0.9 → core block; otherwise a fact. Only episodes keep `context`.
+An `emotionalWeight` you pass for a fact is not stored with it; it multiplies the fact's starting FSRS stability by
+`1 + emotionalWeight` (7 days at 0, 14 at 1), so the first review comes later. A detected weight does not.
 Every store also adds the content to working memory.
 
 #### `recall(query, options?): Promise<RecallResult[]>`

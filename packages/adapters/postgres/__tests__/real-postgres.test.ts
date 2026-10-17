@@ -158,6 +158,16 @@ open('PostgreSQL with pgvector, through the coordinator', () => {
     expect(await left('learned_facts', content)).toBe(0);
   });
 
+  it("stretches a fact's starting FSRS stability by 1 + its emotional weight", async () => {
+    const c = coordinator();
+    const low = await c.store('The intern prefers tea over coffee.', { type: 'fact', emotionalWeight: 0.1 });
+    const high = await c.store('The intern is allergic to wasps.', { type: 'fact', emotionalWeight: 0.95 });
+    const s = async (id: string) =>
+      (await row<{ s: number }>('SELECT fsrs_stability AS s FROM learned_facts WHERE id = $1', [id])).s;
+    expect(await s(low)).toBeCloseTo(7.7, 5);
+    expect(await s(high)).toBeCloseTo(13.65, 5);
+  });
+
   it('writes the FSRS state back on recordReview', async () => {
     const c = coordinator();
     await c.store('The accountant is reachable by phone only.', { type: 'fact' });
