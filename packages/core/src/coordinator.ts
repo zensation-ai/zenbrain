@@ -142,10 +142,11 @@ export interface RecallResult {
    * Results that deduplication left out because their content is (nearly) the same as this
    * one's — for example the fact `consolidate()` made verbatim from this episode. Present only
    * when there were any. When this result is a long-term memory, forgetting it (cascade on, the
-   * default) also deletes a duplicate linked to it by consolidation and the working-memory copies
-   * of its content; any other duplicate was stored on its own and needs its own `forget()`. When
-   * this result is itself a working-memory slot, forgetting it deletes only the slot — forget a
-   * long-term duplicate instead.
+   * default) also deletes the duplicates consolidation linked to it (the fact made from this
+   * episode, or the episodes consolidated into this fact) and the working-memory copies of its
+   * content; any other duplicate was stored on its own and needs its own `forget()`. On equal
+   * scores the long-term memory is the one kept; when a working-memory slot scored higher and was
+   * kept, forgetting it deletes only the slot — forget a long-term duplicate instead.
    */
   duplicates?: Array<{ id: string; layer: RecallLayer }>;
 }
