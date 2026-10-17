@@ -7,7 +7,7 @@
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
-import { type MemoryFact, type Logger, noopLogger, formatForPgVector } from '../types';
+import { type MemoryFact, type Logger, noopLogger, formatForPgVector, toUnitScore } from '../types';
 import { getRetrievability, updateAfterRecall, updateAfterForgot, initFromDecayClass } from '@zensation/algorithms/fsrs';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 import { assertSqlIdentifier } from '../sql-identifier';
@@ -130,7 +130,7 @@ export class SemanticMemory {
       [embStr, limit]
     );
 
-    return result.rows.map(row => ({ ...rowToFact(row), score: row.score ?? 0 }));
+    return result.rows.map(row => ({ ...rowToFact(row), score: toUnitScore(row.score) }));
   }
 
   /**

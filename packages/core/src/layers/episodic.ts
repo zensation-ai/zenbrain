@@ -7,7 +7,7 @@
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
-import { type Episode, type Logger, noopLogger, formatForPgVector, cosineSimilarity } from '../types';
+import { type Episode, type Logger, noopLogger, formatForPgVector, toUnitScore } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 import { assertSqlIdentifier } from '../sql-identifier';
 
@@ -178,7 +178,7 @@ export class EpisodicMemory {
       [embStr, limit]
     );
 
-    return result.rows;
+    return result.rows.map(r => ({ ...r, score: toUnitScore(r.score) }));
   }
 
   /** Get episodes within a time range. */

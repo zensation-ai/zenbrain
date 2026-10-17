@@ -99,6 +99,16 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
+/**
+ * A similarity as a recall score in [0, 1]. Cosine similarity runs from −1 to 1, and pgvector
+ * may return it as text; a negative similarity matches the query no better than an unrelated
+ * memory, so it scores 0 like the recency fallback. Anything unreadable scores 0.
+ */
+export function toUnitScore(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
+}
+
 /** Format a number[] vector for PostgreSQL pgvector storage. */
 export function formatForPgVector(embedding: number[]): string {
   return `[${embedding.join(',')}]`;

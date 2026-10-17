@@ -32,7 +32,7 @@ const memory = new MemoryCoordinator({ storage: new SqliteAdapter({ filename: '.
 // Auto-routes to the right layer (semantic, episodic, procedural, or core)
 await memory.store('User prefers TypeScript', { type: 'auto' });
 
-// Cross-layer search: deduplicated results, sorted by each layer's score
+// Cross-layer search: deduplicated results, sorted by score (0 to 1; 0 = nothing matched)
 const results = await memory.recall('programming preferences');
 
 // Forget a memory by the id and layer of a recall result (a fact consolidated from it goes too)

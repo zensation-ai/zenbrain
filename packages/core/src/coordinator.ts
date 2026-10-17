@@ -83,6 +83,13 @@ export interface RecallOptions {
   /** Minimum confidence threshold for results. Defaults to 0. */
   minConfidence?: number;
   /**
+   * Leave out results that score below this value (0 to 1). Defaults to 0, which keeps
+   * everything: a layer in which the query matches nothing returns fallbacks at score 0
+   * (see `RecallResult.score`), and they come after every real hit. Any value above 0 drops
+   * them. Applied after deduplication, so fewer than `limit` results may come back.
+   */
+  minScore?: number;
+  /**
    * Which core blocks a recall considers. `'always'` (default) adds every core block to the
    * candidates of every recall; the blocks then compete for `limit` like any other result
    * (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). `'matching'` adds only
@@ -101,13 +108,16 @@ export interface RecallResult {
   /** Which layer this result came from; pass it with `id` to `forget()`. */
   layer: RecallLayer;
   /**
-   * Score from the result's layer, higher is better. The layers score differently, and
-   * `recall()` sorts all results by this one number: with an embedding provider, episodic,
-   * semantic and procedural results carry the cosine similarity (−1 to 1); without one,
-   * lexical relevance (0 to 1), and a recall that matches nothing returns recent episodes
-   * and facts at 0 but procedures at their success rate (up to 1). Core blocks score 0.8
-   * when a query word occurs in them, else 0.5. Working-memory results carry the slot's
-   * relevance, which without an embedding provider does not depend on the query.
+   * How well the result matches the query, from 0 to 1; `recall()` sorts by it. Episodic,
+   * semantic, procedural and working memory score alike: the cosine similarity with an
+   * embedding provider (a negative similarity counts as 0), lexical relevance without one.
+   * 0 means no match: with an embedding provider a similarity of 0 or below; without one,
+   * no content word of the query occurs in the layer's candidates, and the result is a
+   * fallback (recent episodes and facts, the most successful procedures, the most relevant
+   * working-memory slots) that keeps the recall from coming back empty. Core blocks score
+   * 0.8 when a query word longer than two characters occurs in their label or content (as a
+   * substring, case ignored), else 0.5 — so with `core: 'always'` a block outranks lexical
+   * hits below 0.5. How much to trust a result is `confidence`, not the score.
    */
   score: number;
   /** Confidence level, if available. */
@@ -365,8 +375,8 @@ export class MemoryCoordinator {
    * Cross-layer recall: search across memory layers and return ranked results.
    *
    * Searches each requested layer, deduplicates by content similarity, and returns the
-   * top N results sorted by score. The scores of different layers are not on one scale
-   * (see `RecallResult.score`).
+   * top N results sorted by score (0 to 1 in every layer, see `RecallResult.score`).
+   * Results that match nothing score 0 and come after every real hit.
    *
    * @param query - The search query
    * @param options - Layer selection and limits
@@ -376,6 +386,10 @@ export class MemoryCoordinator {
     const layers = options.layers ?? ['episodic', 'semantic', 'procedural', 'core'];
     const limit = options.limit ?? 10;
     const minConfidence = options.minConfidence ?? 0;
+    const minScore = options.minScore ?? 0;
+    if (typeof minScore !== 'number' || !(minScore >= 0 && minScore <= 1)) {
+      throw new RangeError(`recall: options.minScore must be a number from 0 to 1, got ${minScore}`);
+    }
 
     const results: RecallResult[] = [];
 
@@ -405,8 +419,9 @@ export class MemoryCoordinator {
       ? results.filter(r => (r.confidence ?? 1.0) >= minConfidence)
       : results;
 
-    // Deduplicate by content similarity (threshold 0.9)
-    const deduped = this.deduplicateResults(filtered);
+    // Deduplicate by content similarity (threshold 0.9), then drop what scores below minScore
+    // (after dedup, so a kept result still names a low-scoring twin in `duplicates`)
+    const deduped = this.deduplicateResults(filtered).filter(r => r.score >= minScore);
 
     // Sort by score descending and return top N
     deduped.sort((a, b) => b.score - a.score);
@@ -910,14 +925,14 @@ export class MemoryCoordinator {
   /** Recall from working memory and push results. */
   private async recallFromWorking(query: string, results: RecallResult[]): Promise<void> {
     try {
-      const slots = await this.working.findRelevant(query, 5);
+      const slots = await this.working.search(query, 5);
       for (const slot of slots) {
         results.push({
           id: slot.id,
           content: slot.content,
           layer: 'working',
-          score: slot.relevance,
-          metadata: { type: slot.type, addedAt: slot.addedAt },
+          score: slot.score,
+          metadata: { type: slot.type, addedAt: slot.addedAt, relevance: slot.relevance },
         });
       }
     } catch {

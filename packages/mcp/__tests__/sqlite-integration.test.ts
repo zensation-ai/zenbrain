@@ -247,6 +247,28 @@ open('forgetting over MCP on SQLite', () => {
     expect(after.results.some((r) => r.content === MOMENT)).toBe(false);
   });
 
+  it('minScore leaves out what a layer returns when nothing in it matches', async () => {
+    // Over MCP on 0.5.1, "Which city is the capital?" put "How to bake bread" first at 1.000.
+    // This suite runs with an embedding provider; the default server has none, so do the same.
+    const sqliteAdapter = new sqlite!.SqliteAdapter({ filename: ':memory:' });
+    coordinator = new MemoryCoordinator({ storage: sqliteAdapter });
+    const server = createZenBrainServer(coordinator);
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    client = new Client({ name: 'sqlite-test-client', version: '1.0.0' });
+    await Promise.all([client.connect(clientSide), server.connect(serverSide)]);
+    await client.callTool({ name: 'zenbrain_store', arguments: { content: 'How to bake bread: knead, rest, bake.', type: 'procedure' } });
+    await client.callTool({ name: 'zenbrain_store', arguments: { content: 'Kiel is the capital of Schleswig-Holstein.', type: 'fact' } });
+
+    type Out = { results: { layer: string; score: number }[] };
+    const all = (await client.callTool({ name: 'zenbrain_recall', arguments: { query: 'Which city is the capital?' } }))
+      .structuredContent as Out;
+    const hits = (await client.callTool({ name: 'zenbrain_recall', arguments: { query: 'Which city is the capital?', minScore: 0.01 } }))
+      .structuredContent as Out;
+
+    expect(all.results.map((r) => [r.layer, r.score > 0])).toEqual([['semantic', true], ['procedural', false]]);
+    expect(hits.results.map((r) => r.layer)).toEqual(['semantic']);
+  });
+
   it('reports an id the layer does not hold as not forgotten', async () => {
     const c = await connect();
     const out = await c.callTool({

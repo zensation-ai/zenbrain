@@ -383,18 +383,34 @@ Cross-layer search with ranked, deduplicated results (two results whose words an
 90 %, case and punctuation ignored, count as one; the higher score stays). Options: `layers`, `limit` (default 10; the episodic,
 semantic and procedural layers are searched with it, then the merged list is cut to it), `minConfidence`
 (applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
-confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1).
+confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1),
+`minScore` (0 to 1, default 0: results scoring below it are left out after deduplication; any value above 0 drops
+the fallbacks described below).
 `core: 'matching'` returns only the core blocks that share a content word with the query (stopwords do not
 count); the default `'always'` adds every core block to the candidates, where the blocks compete for `limit`
 like any result (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). Every result carries the `id` of
 the memory in its layer, next to `layer`; a result that deduplication kept over others names them in
 `duplicates` (`{ id, layer }[]`, present only when there were any).
 
-Scores are per layer and not on one scale, yet the merged list is sorted by them: with an embedding provider,
-episodic, semantic and procedural results carry the cosine similarity (−1 to 1); without one, lexical relevance
-(0 to 1), and when nothing matches, recent episodes and facts come back at 0 but procedures at their success rate
-(up to 1). Core blocks score 0.8 when a query word occurs in them, else 0.5. Working-memory results carry the
-slot's relevance, which without an embedding provider does not depend on the query.
+##### How scores are computed, per layer
+
+Every result's `score` runs from 0 to 1 and says how well it matches the query; the merged list is sorted by it.
+How much to trust a result is `confidence` (a fact's stored confidence, a procedure's success rate), not the score.
+
+| Layer | With an embedding provider | Without one | Without one, when no word matches |
+|---|---|---|---|
+| episodic, semantic | cosine similarity of the nearest rows, a negative one counted as 0 | lexical relevance over the 500 most recent rows | the most recent rows, at 0 |
+| procedural | cosine similarity of the nearest rows, a negative one counted as 0 | lexical relevance over the 500 rows with the highest success rate | the highest success rates, at 0 |
+| working (on request) | cosine similarity, a negative one counted as 0 | lexical relevance over the slots | the most relevant slots, at 0 |
+| core | 0.8 when a query word longer than two characters occurs in the block's label or content (substring, case ignored), else 0.5 | same | with `core: 'always'` every block comes, at 0.5 |
+
+Without an embedding provider a layer with at least one lexical hit returns only hits; with one, it returns the
+nearest rows whatever their similarity. Results at 0 come after every hit and keep a recall from coming back empty
+for a reason the caller cannot see; `minScore` above 0 leaves them out. Core blocks are the exception to
+"one scale": with `core: 'always'` a block that shares no word with the query still scores 0.5 and ranks above
+lexical hits below 0.5; use `core: 'matching'` to get only the blocks that share a content word. Until 0.6.0 the
+vector path returned −1 to 1, a procedure that matched nothing scored its success rate (up to 1), and working memory
+without an embedding provider ignored the query.
 
 #### `forget(id, layer, options?): Promise<boolean>`
 Delete a memory, addressed by the `id` and `layer` of a recall result, together with what was derived from it.

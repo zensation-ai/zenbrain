@@ -6,7 +6,7 @@
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
-import { type Procedure, type Logger, noopLogger, formatForPgVector } from '../types';
+import { type Procedure, type Logger, noopLogger, formatForPgVector, toUnitScore } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 import { assertSqlIdentifier } from '../sql-identifier';
 
@@ -96,13 +96,21 @@ export class ProceduralMemory {
     return rowToProcedure(result.rows[0]);
   }
 
-  /** Recall procedures similar to a query. */
+  /**
+   * Recall procedures similar to a query: by vector similarity with an embedding provider,
+   * by wording (lexical ranking) without one. The score says how well a procedure matches
+   * the query, from 0 to 1, as in every other layer; how well it worked is its
+   * `successRate`. When nothing matches, the procedures with the highest success rate come
+   * back at score 0.
+   */
   async recall(query: string, limit = 3): Promise<(Procedure & { score: number })[]> {
     if (!this.embedding) {
       // This fallback was defensible — "the procedures that work best" is a real answer —
       // but it was query-blind: the same list came back whatever was asked. Lexical
-      // relevance now decides WHICH procedures, while the recorded success rate still
-      // decides how much to trust each one, so neither signal is thrown away.
+      // relevance now decides WHICH procedures; candidates arrive sorted by success rate,
+      // so among equally relevant ones the more reliable comes first. Until 0.6.0 the score
+      // was relevance × success rate, and a fallback scored its success rate — up to 1, so
+      // an unrelated procedure ranked above every real hit of the other layers.
       const result = await this.storage.query<ProcedureRow>(
         `SELECT * FROM ${this.table} ORDER BY success_rate DESC, execution_count DESC LIMIT $1`,
         [LEXICAL_CANDIDATE_WINDOW]
@@ -115,9 +123,9 @@ export class ProceduralMemory {
         limit
       );
       if (ranked.length > 0) {
-        return ranked.map(({ item, score }) => ({ ...item, score: score * item.successRate }));
+        return ranked.map(({ item, score }) => ({ ...item, score }));
       }
-      return procedures.slice(0, limit).map(p => ({ ...p, score: p.successRate }));
+      return procedures.slice(0, limit).map(p => ({ ...p, score: 0 }));
     }
 
     const queryEmb = await this.embedding.embed(query);
@@ -132,7 +140,7 @@ export class ProceduralMemory {
       [embStr, limit]
     );
 
-    return result.rows.map(r => ({ ...rowToProcedure(r), score: r.score ?? 0 }));
+    return result.rows.map(r => ({ ...rowToProcedure(r), score: toUnitScore(r.score) }));
   }
 
   /** Record feedback for a procedure (success/failure). */

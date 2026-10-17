@@ -188,10 +188,11 @@ export function createZenBrainServer(
         `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (the most recent stores, ` +
         'held only while the server runs, returned whatever the query) is searched only when ' +
         'named in `layers`. Returns results sorted by score, each with its id and the layer it ' +
-        'came from; zenbrain_forget takes both. Scores are per layer: lexical relevance from 0 ' +
-        'to 1 for a match; when nothing matches, recent episodes and facts come back at 0 but ' +
-        'procedures at their success rate, and core blocks always come at 0.5 or 0.8 — so not ' +
-        'every top result is a hit. Use this before answering when the user refers to something from an earlier ' +
+        'came from; zenbrain_forget takes both. The score runs from 0 to 1 and says how well a ' +
+        'result matches the query; a layer in which nothing matches returns recent memories (or ' +
+        'its most successful procedures) at 0, behind every hit, and minScore above 0 leaves ' +
+        'them out. Core blocks always come, at 0.5 or 0.8, so a block can rank above a weak hit. ' +
+        'Use this before answering when the user refers to something from an earlier ' +
         'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
       annotations: { readOnlyHint: true, openWorldHint: false },
@@ -222,6 +223,15 @@ export function createZenBrainServer(
               'confidence, procedures their success rate; core blocks, episodes and working-memory ' +
               'items count as 1 and are kept.',
           ),
+        minScore: z
+          .number()
+          .min(0)
+          .max(1)
+          .optional()
+          .describe(
+            'Leave out results scoring below this value (default 0 keeps all). Any value above 0 ' +
+              'drops the score-0 fallbacks that a layer returns when nothing in it matches.',
+          ),
       },
       outputSchema: {
         count: z.number().describe('How many memories were returned.'),
@@ -243,7 +253,7 @@ export function createZenBrainServer(
                 ),
             }),
           )
-          .describe('Memories sorted by score, highest first; scores are per layer (see the tool description).'),
+          .describe('Memories sorted by score (0 to 1), highest first; 0 means nothing in that layer matched.'),
         skipped: z
           .number()
           .describe(
@@ -258,6 +268,7 @@ export function createZenBrainServer(
       };
       if (rest.limit !== undefined) opts.limit = rest.limit;
       if (rest.minConfidence !== undefined) opts.minConfidence = rest.minConfidence;
+      if (rest.minScore !== undefined) opts.minScore = rest.minScore;
 
       const found: RecallResult[] = await coordinator.recall(query, opts);
 

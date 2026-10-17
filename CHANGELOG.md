@@ -4,6 +4,30 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Changed — one score model across layers
+
+Measured on 0.5.1 (SQLite, and over MCP): "Which city is the capital?" returned `procedural 1.000 "How to bake
+bread"` first, then a core block at 0.500, and the actual hit `semantic 0.309` last; working memory without an
+embedding provider ignored the query ("trains" returned "boats" at 1); the vector path returned −1 to 1 while the
+docs said 0 to 1. Every result's `score` now runs from 0 to 1 and says how well it matches the query:
+
+- **Procedures** score their match, not match × success rate; a procedure that matches nothing scores 0 instead
+  of its success rate. The success rate stays `confidence`, and among equally relevant procedures the more
+  reliable one still comes first.
+- **Working memory** (on request) is ranked like the other layers: cosine similarity with an embedding provider,
+  lexical relevance without one, its most relevant slots at 0 when nothing matches. The slot's own relevance
+  moved to `metadata.relevance`. `WorkingMemory.search()` is new; `findRelevant()` is unchanged.
+- **Vector similarity** is clamped to [0, 1] in the episodic, semantic, procedural and working layers: a negative
+  similarity matches no better than an unrelated memory.
+- **Core blocks** are unchanged (0.8 with a shared word, else 0.5) and documented: with `core: 'always'` a block
+  can still rank above a weak hit.
+- **`recall(query, { minScore })`** (also on `zenbrain_recall`), default 0: fallbacks at 0 are not dropped by
+  default, they come after every hit; any `minScore` above 0 leaves them out. A value outside 0–1 throws a
+  `RangeError`.
+
+The API reference has one section for it, *How scores are computed, per layer*. Re-check thresholds you set on
+`score`: procedure and working-memory scores mean something else now.
+
 ### Breaking — `forget()` deletes what consolidation derived from a memory
 
 Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a

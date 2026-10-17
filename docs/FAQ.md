@@ -86,7 +86,7 @@ Tree-shaking ensures you only bundle what you import.
 
 The coordinator creates all seven layers and works on five of them (working, episodic, semantic, procedural, core); short-term memory goes through its session methods, cross-context memory through a getter:
 - **Auto-routing**: `store()` routes content to a layer
-- **Cross-layer recall**: `recall()` searches several layers and sorts the results by score (each layer scores differently; see the API reference)
+- **Cross-layer recall**: `recall()` searches several layers and sorts the results by one score from 0 to 1 (see *How scores are computed, per layer* in the API reference)
 - **Consolidation**: `consolidate()` promotes emotional episodes to semantic facts when you call it
 - **Decay**: `decay()` and `consolidate()` decay working memory; long-term memory does not decay
 
