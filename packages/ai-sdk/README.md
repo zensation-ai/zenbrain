@@ -71,6 +71,7 @@ zenbrainMemory({
     limit: 5,                      // how many memories to inject
     layers: ['semantic', 'core'],  // which layers to search
     minConfidence: 0.6,            // drop anything below this
+    minScore: 0.2,                 // default: only memories scoring above 0
   },
 
   store: {                         // or false to switch writing off
@@ -80,13 +81,23 @@ zenbrainMemory({
   },
 
   header: 'Relevant memories from earlier sessions:',
-  role: 'system',                  // or 'user': see "Three defaults worth knowing"
+  role: 'system',                  // or 'user': see "Four defaults worth knowing"
 
   onError: (err, phase) => console.warn(`[zenbrain] ${phase} failed`, err),
 });
 ```
 
-### Three defaults worth knowing
+### Four defaults worth knowing
+
+**Only memories scoring above 0 are injected.** When nothing stored matches the message,
+recall falls back to recent episodes and facts, or the most successful procedures, at score 0,
+so that a direct `recall()` is never empty for a reason you cannot see. The middleware leaves
+those out: without an embedding provider, a question about the capital of France gets no
+"relevant memories" about your bicycle. With an embedding provider, any positive similarity
+scores above 0, so set `recall.minScore` for a real bar (scores run from 0 to 1, see the
+[API reference](https://github.com/zensation-ai/zenbrain/blob/main/docs/api-reference.md));
+`minScore: 0` injects the fallbacks too, as releases before 0.4.0 did. This needs
+`@zensation/core` 0.6.0 or later, where every layer scores 0 to 1.
 
 **Memories arrive as a system message.** That is the strongest place in the prompt, and it
 is also why it needs a decision: whatever a user once said comes back with system authority
@@ -123,10 +134,13 @@ suits your application.
   a bonus for an adjacent phrase, over the most recent 500 episodes and facts. It matches
   wording, not meaning — synonyms need an `EmbeddingProvider`, which is also the
   configuration the published benchmarks were measured with.
-- **No relevance threshold.** When nothing matches the prompt, recall falls back to the
-  most recent memories (score 0), and this release injects them like any other result.
-- **Streaming stores on flush.** The turn is written once the stream completes. An aborted
-  or failed stream stores nothing, not even the user's turn.
+- **Streaming stores on flush.** The turn is written once the stream completes. A stream
+  aborted through `abortSignal` stores the user's turn but not the partial reply; a stream
+  that errors for any other reason stores nothing. A provider that reports a failure as an
+  `error` part and then ends the stream normally is stored like a finished one.
+- **Core blocks are not filtered by match.** With the default `core: 'always'` every core
+  block scores 0.5 or more, passes the default filter and competes for `limit`; pass
+  `recall: { core: 'matching' }` to inject only blocks that share a word with the message.
 - **Only text is read.** File and tool parts of a message are ignored when building the
   recall query and when storing.
 - **One recall per call.** There is no re-retrieval mid-generation.
@@ -156,7 +170,8 @@ configuration they were measured in, are reported in the paper; the reproduction
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
+to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
+provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

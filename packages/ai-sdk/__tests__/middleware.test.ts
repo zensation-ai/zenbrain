@@ -159,6 +159,48 @@ describe('recall injection', () => {
     expect(systemTexts(model.doGenerateCalls[0].prompt)[0]).toContain('What I remember:');
   });
 
+  it('leaves out score-0 fallbacks by default and injects them with minScore: 0', async () => {
+    // Measured on 0.3.1: "What is the capital of France?" got unrelated memories (the recall
+    // fallback, score 0) injected as "Relevant memories from earlier sessions:".
+    const results = [
+      { content: 'Paris is the capital of France.', layer: 'semantic' as const, score: 0.6 },
+      { content: 'The user owns a red bicycle.', layer: 'semantic' as const, score: 0 },
+    ];
+    const injected = async (recall?: { minScore?: number }) => {
+      const { coordinator, recalls } = stubCoordinator(results);
+      const model = new MockLanguageModelV4({ doGenerate: async () => reply('ok') });
+      await generateText({
+        model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator, recall }) }),
+        prompt: 'What is the capital of France?',
+      });
+      return { text: systemTexts(model.doGenerateCalls[0].prompt).join('\n'), options: recalls[0].options };
+    };
+
+    const byDefault = await injected();
+    expect(byDefault.text).toContain('Paris');
+    expect(byDefault.text).not.toContain('bicycle');
+    expect(byDefault.options).not.toHaveProperty('minScore');
+
+    const all = await injected({ minScore: 0 });
+    expect(all.text).toContain('bicycle');
+    expect(all.options).toMatchObject({ minScore: 0 });
+
+    const strict = await injected({ minScore: 0.7 });
+    expect(strict.text).toBe('');
+  });
+
+  it('injects nothing when only fallbacks came back', async () => {
+    const { coordinator } = stubCoordinator([{ content: 'The user owns a red bicycle.', layer: 'semantic', score: 0 }]);
+    const model = new MockLanguageModelV4({ doGenerate: async () => reply('ok') });
+
+    await generateText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator }) }),
+      prompt: 'What is the capital of France?',
+    });
+
+    expect(systemTexts(model.doGenerateCalls[0].prompt)).toEqual([]);
+  });
+
   it('does not search at all when recall is switched off', async () => {
     const { coordinator, recalls } = stubCoordinator([
       { content: 'never used', layer: 'semantic', score: 1 },
@@ -305,6 +347,90 @@ describe('streaming', () => {
     expect(text).toBe('Use dark mode.');
     // And both sides of the turn were written once the stream finished.
     expect(stored.map((s) => s.content)).toEqual(['Which theme?', 'Use dark mode.']);
+  });
+});
+
+/** A model that streams one delta and then waits; an abort errors its stream, as fetch does. */
+function hangingModel(onAbort: 'error' | 'close' = 'error') {
+  return new MockLanguageModelV4({
+    doStream: async ({ abortSignal }) => ({
+      stream: new ReadableStream({
+        start(controller) {
+          controller.enqueue({ type: 'stream-start', warnings: [] });
+          controller.enqueue({ type: 'text-start', id: '1' });
+          controller.enqueue({ type: 'text-delta', id: '1', delta: 'Half an ans' });
+          abortSignal?.addEventListener('abort', () =>
+            onAbort === 'error'
+              ? controller.error(Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' }))
+              : controller.close(),
+          );
+        },
+      }),
+    }),
+  });
+}
+
+describe('aborted and failed streams', () => {
+  for (const onAbort of ['error', 'close'] as const) {
+    it(`an abort stores the user's turn but not the partial reply (provider ${onAbort}s the stream)`, async () => {
+      // Until 0.4.0 an abort stored nothing (provider errors) or the partial reply too (provider
+      // closes; red on 0.3.1 here). The user's turn is complete; half an
+      // answer is not.
+      const { coordinator, stored } = stubCoordinator();
+      const controller = new AbortController();
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: hangingModel(onAbort),
+          middleware: zenbrainMemory({ coordinator, store: { assistant: true } }),
+        }),
+        prompt: 'Explain the tides.',
+        abortSignal: controller.signal,
+      });
+
+      let text = '';
+      try {
+        for await (const part of result.textStream) {
+          text += part;
+          controller.abort();
+        }
+      } catch {
+        // the reader sees the abort; that is the caller's business
+      }
+      await vi.waitFor(() => expect(stored).toHaveLength(1));
+
+      expect(text).toBe('Half an ans');
+      expect(stored.map((s) => s.content)).toEqual(['Explain the tides.']);
+    });
+  }
+
+  it('a stream that fails for another reason stores nothing', async () => {
+    const { coordinator, stored } = stubCoordinator();
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] });
+            controller.enqueue({ type: 'text-start', id: '1' });
+            controller.enqueue({ type: 'text-delta', id: '1', delta: 'Half' });
+            controller.error(new Error('connection reset'));
+          },
+        }),
+      }),
+    });
+    const result = streamText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator, store: { assistant: true } }) }),
+      prompt: 'Explain the tides.',
+      onError: () => {},
+    });
+
+    try {
+      for await (const part of result.textStream) void part;
+    } catch {
+      // expected
+    }
+    await new Promise((r) => setTimeout(r, 20));
+
+    expect(stored).toEqual([]);
   });
 });
 

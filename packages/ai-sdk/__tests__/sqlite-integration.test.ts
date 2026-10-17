@@ -76,6 +76,22 @@ open('the middleware over a real SQLite store', () => {
     expect(injected[0]).toContain('Hamburg');
   });
 
+  it('injects nothing for a question no memory matches (no embedding provider)', async () => {
+    // Measured on 0.3.1 with core 0.5: "What is the capital of France?" got the stored, unrelated
+    // memories injected as "Relevant memories from earlier sessions:" — the recall fallback.
+    coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
+    await coordinator.store('The user owns a red bicycle.', { type: 'fact' });
+    await coordinator.store('How to bake bread: knead, rest, bake.', { type: 'procedure' });
+
+    const model = new MockLanguageModelV4({ doGenerate: async () => reply('Paris.') });
+    await generateText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator, store: false, recall: { core: 'matching' } }) }),
+      prompt: 'What is the capital of France?',
+    });
+
+    expect(model.doGenerateCalls[0].prompt.filter((m) => m.role === 'system')).toEqual([]);
+  });
+
   it('actually persists the turn, not just the prompt', async () => {
     coordinator = new MemoryCoordinator({
       storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }),

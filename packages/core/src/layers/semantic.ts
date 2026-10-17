@@ -7,7 +7,7 @@
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
-import { type MemoryFact, type Logger, noopLogger, formatForPgVector } from '../types';
+import { type MemoryFact, type Logger, noopLogger, formatForPgVector, toUnitScore } from '../types';
 import { getRetrievability, updateAfterRecall, updateAfterForgot, initFromDecayClass } from '@zensation/algorithms/fsrs';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 import { assertSqlIdentifier } from '../sql-identifier';
@@ -58,8 +58,20 @@ export class SemanticMemory {
     this.log = config.logger ?? noopLogger;
   }
 
-  /** Store a new fact with FSRS initial scheduling. */
-  async storeFact(content: string, source: string, confidence = 0.7): Promise<MemoryFact> {
+  /**
+   * Store a new fact with FSRS initial scheduling.
+   *
+   * An `emotionalWeight` (0 to 1) multiplies the starting stability by `1 + emotionalWeight`
+   * (the `initFromDecayClass` multiplier): 7 without a weight, up to 14 at 1. The first review
+   * comes after about 0.105 × stability days (≈ 0.7 and ≈ 1.5 days). It acts once, at creation, through the FSRS columns; the
+   * weight itself is not stored with the fact.
+   *
+   * @throws RangeError if emotionalWeight is not a number from 0 to 1
+   */
+  async storeFact(content: string, source: string, confidence = 0.7, emotionalWeight?: number): Promise<MemoryFact> {
+    if (emotionalWeight !== undefined && (typeof emotionalWeight !== 'number' || !(emotionalWeight >= 0 && emotionalWeight <= 1))) {
+      throw new RangeError(`storeFact: emotionalWeight must be a number from 0 to 1, got ${emotionalWeight}`);
+    }
     let embStr: string | null = null;
     if (this.embedding) {
       try {
@@ -70,7 +82,7 @@ export class SemanticMemory {
       }
     }
 
-    const fsrs = initFromDecayClass('normal_decay');
+    const fsrs = initFromDecayClass('normal_decay', 1 + (emotionalWeight ?? 0));
 
     const result = await this.storage.query<FactRow>(
       `INSERT INTO ${this.table} (id, content, confidence, source, embedding,
@@ -104,6 +116,15 @@ export class SemanticMemory {
     return row ? rowToFact(row) : null;
   }
 
+  /** One fact by id, or null. */
+  async getById(id: string): Promise<MemoryFact | null> {
+    const result = await this.storage.query<FactRow>(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
+    // Checked again here, so a storage that does not evaluate WHERE cannot return another fact
+    // (case ignored, as PostgreSQL compares uuids).
+    const row = result.rows.find(r => String(r.id).toLowerCase() === id.toLowerCase());
+    return row ? rowToFact(row) : null;
+  }
+
   /** Retrieve facts: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
   async search(query: string, limit = 5): Promise<(MemoryFact & { score: number })[]> {
     if (!this.embedding) {
@@ -122,7 +143,7 @@ export class SemanticMemory {
       [embStr, limit]
     );
 
-    return result.rows.map(row => ({ ...rowToFact(row), score: row.score ?? 0 }));
+    return result.rows.map(row => ({ ...rowToFact(row), score: toUnitScore(row.score) }));
   }
 
   /**

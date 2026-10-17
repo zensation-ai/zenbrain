@@ -310,7 +310,13 @@ Estimate query difficulty and route retrieval accordingly (reward-modulated).
 ### Hopfield Short-Term Memory — `./hopfield-stm`
 
 #### `hopfieldRecall(query, patterns, options?): HopfieldRecallResult`
-Modern (continuous) Hopfield associative recall over stored patterns.
+Modern (continuous) Hopfield associative recall over stored patterns: `ξ_new = X · softmax(β · Xᵀ · ξ)`, O(N · d)
+per step. With the default single iteration the ranking in `matches` does not depend on β; the weights and
+`recoveredVector` do. The default β is 16
+(1 until 0.6.0): measured on random unit vectors, it puts a weight of at least 0.999 on the queried pattern up to
+N = 2000 at d = 384, 768 and 1536. The β needed for 0.99 grows with the number of patterns, about ln(99 · (N − 1))
+(measured 11.5 at N = 600, where the formula gives 11.0), not with d; for patterns with a typical pairwise cosine c, divide by (1 − c) — 23 at N = 600 and c = 0.5. All
+numbers come from `scripts/measure-docs-numbers.mjs`.
 
 #### `hopfieldEnergy(state, patterns, beta): number`
 Energy of a state given the stored patterns.
@@ -376,33 +382,81 @@ const memory = new MemoryCoordinator({
 Route content to a memory layer and return the id of the stored memory. With `type: 'auto'` (the default) the order
 is: `steps` or procedural wording ("How to …", "Steps:", "workflow:" …) → procedure; an emotional weight above 0.5
 (given or detected) → episode; `confidence` above 0.9 → core block; otherwise a fact. Only episodes keep `context`.
+An `emotionalWeight` you pass for a fact is not stored with it; it multiplies the fact's starting FSRS stability by
+`1 + emotionalWeight` (7 at 0, 14 at 1); the first review comes after about 0.105 × stability days (≈ 0.7 and
+≈ 1.5). A detected weight does not.
 Every store also adds the content to working memory.
 
 #### `recall(query, options?): Promise<RecallResult[]>`
 Cross-layer search with ranked, deduplicated results (two results whose words and numbers overlap by more than
-90 %, case and punctuation ignored, count as one; the higher score stays). Options: `layers`, `limit` (default 10; the episodic,
+90 %, case and punctuation ignored, count as one; the higher score stays, on a tie the earlier layer in the order
+episodic, semantic, procedural, core, working). Options: `layers`, `limit` (default 10; the episodic,
 semantic and procedural layers are searched with it, then the merged list is cut to it), `minConfidence`
 (applied before the final ranking, so fewer than `limit` results may come back; facts use their stored
-confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1).
+confidence, procedures their success rate, core blocks count as 1, results without a confidence count as 1),
+`minScore` (0 to 1, default 0: results scoring below it are left out after deduplication; any value above 0 drops
+the fallbacks described below).
 `core: 'matching'` returns only the core blocks that share a content word with the query (stopwords do not
 count); the default `'always'` adds every core block to the candidates, where the blocks compete for `limit`
 like any result (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). Every result carries the `id` of
-the memory in its layer, next to `layer`.
+the memory in its layer, next to `layer`; a result that deduplication kept over others names them in
+`duplicates` (`{ id, layer }[]`, present only when there were any).
 
-Scores are per layer and not on one scale, yet the merged list is sorted by them: with an embedding provider,
-episodic, semantic and procedural results carry the cosine similarity (−1 to 1); without one, lexical relevance
-(0 to 1), and when nothing matches, recent episodes and facts come back at 0 but procedures at their success rate
-(up to 1). Core blocks score 0.8 when a query word occurs in them, else 0.5. Working-memory results carry the
-slot's relevance, which without an embedding provider does not depend on the query.
+##### How scores are computed, per layer
 
-#### `forget(id, layer): Promise<boolean>`
-Delete one memory, addressed by the `id` and `layer` of a recall result. Returns `true` if it was deleted,
-`false` if the layer holds no memory with that id (an id that is not a UUID counts as unknown, not as an error).
-Forgetting is explicit and final for that one memory; nothing in long-term memory is deleted on its own. A fact that
-`consolidate()` derived from an episode is a memory of its own and stays when the episode is forgotten: if the
-content has to go, recall again and forget whatever still returns it. To correct a memory, forget it and store the
-corrected version. Working memory keeps a copy of the most recent seven stores in the same process; it is not part
-of the default recall, and its result can be forgotten with `layer: 'working'`.
+Every result's `score` runs from 0 to 1 and says how well it matches the query; the merged list is sorted by it.
+How much to trust a result is `confidence` (a fact's stored confidence, a procedure's success rate), not the score.
+
+| Layer | With an embedding provider | Without one | Without one, when no word matches |
+|---|---|---|---|
+| episodic, semantic | cosine similarity of the nearest rows, a negative one counted as 0 | lexical relevance over the 500 most recent rows | the most recent rows, at 0 |
+| procedural | cosine similarity of the nearest rows, a negative one counted as 0 | lexical relevance over the 500 rows with the highest success rate | the highest success rates, at 0 |
+| working (on request, up to five) | cosine similarity, a negative one counted as 0 | lexical relevance over the slots | the most relevant slots, at 0 |
+| core | 0.8 when a query word longer than two characters occurs in the block's label or content (substring, case ignored), else 0.5 | same | with `core: 'always'` every block comes, at 0.5 |
+
+Without an embedding provider a layer with at least one lexical hit returns only hits; with one, it returns the
+nearest rows whatever their similarity. Results at 0 come after every hit and keep a recall from coming back empty
+for a reason the caller cannot see; `minScore` above 0 leaves them out. Core blocks are the exception to
+"one scale": with `core: 'always'` a block that shares no word with the query still scores 0.5 and ranks above
+lexical hits below 0.5; use `core: 'matching'` to get only the blocks that share a content word. Until 0.6.0 the
+vector path returned −1 to 1, a procedure that matched nothing scored its success rate (up to 1), and working memory
+without an embedding provider ignored the query.
+
+#### `forget(id, layer, options?): Promise<boolean>`
+Delete a memory, addressed by the `id` and `layer` of a recall result, together with what consolidation linked to it.
+Returns `true` if the addressed memory was deleted, `false` if the layer holds no memory with that id (an id that
+is not a UUID counts as unknown, not as an error). Nothing in long-term memory is deleted on its own.
+
+The cascade (`cascade: true`, the default since 0.6.0) follows the edge `consolidate()` records:
+
+| Forgotten | Also deleted |
+|---|---|
+| an episode | the fact consolidated from it, and the working-memory copies of both |
+| a fact | every episode consolidated into it, and the working-memory copies of all of them |
+| a procedure or core block | its working-memory copy |
+| a working-memory result | nothing: the slot is a copy, and forgetting it does not reach into long-term memory |
+
+The edge is the episode's `consolidatedInto` mark, written by `consolidate()` since 0.4.8 and found in existing
+databases without a schema change. An episode promoted before 0.4.8 is linked only once a later `consolidate()`
+finds its verbatim fact (among the 100 most recent episodes); one an LLM distilled before 0.4.8 has no edge. A fact
+an LLM distilled since then is linked like any other — the cascade follows the recorded edge and does not search for
+memories that say something similar. `consolidate()` links a second episode with the same text to the fact the
+first one became instead of copying it again (also a fact stored with source `'consolidation'` and that exact text):
+forgetting one of those episodes keeps the other, forgetting the fact deletes both. A memory stored on its own and
+never linked keeps its long-term entry (`RecallResult.duplicates` names such copies). Working-memory copies are the
+slot `store()` created for each deleted memory in this process and, for episodes, facts and core blocks, any slot
+holding exactly their content; a procedure keeps only its first 200 characters, so only its own slot goes. On equal
+scores recall keeps and lists long-term memories before the working-memory copy (episodic, semantic, procedural,
+core, then working), so the result to forget is a long-term one; forgetting a working-memory slot deletes only the
+slot. `{ cascade: false }`
+deletes only the addressed memory (the behaviour before 0.6.0); an episode keeps its mark, so a later
+`consolidate()` does not promote it again. To correct a memory, forget it and store the corrected version.
+
+#### `forgetWithDerived(id, layer, options?): Promise<{ removed, alsoForgotten }>`
+`forget()`, and in addition `alsoForgotten: { id, layer }[]`, every other memory the cascade deleted. Linked
+memories are deleted before the addressed one, so a call repeated after a failure still deletes the remaining
+long-term memories; working-memory copies of what the failed call deleted may remain, and the repeated call does
+not list what the failed one deleted.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic

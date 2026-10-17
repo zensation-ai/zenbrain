@@ -55,7 +55,12 @@ export interface StoreOptions {
   type?: 'auto' | 'fact' | 'episode' | 'procedure' | 'core';
   /** Context domain (e.g., 'work', 'personal'). Episodes keep it; facts, procedures and core blocks do not. */
   context?: string;
-  /** Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing, above 0.5 makes the memory an episode. */
+  /**
+   * Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing,
+   * above 0.5 makes the memory an episode. Stored with episodes; for a fact, a weight given here
+   * multiplies its starting FSRS stability by `1 + weight` (7 at 0, 14 at 1; the first review
+   * comes after about 0.105 × stability days) and is not stored.
+   */
   emotionalWeight?: number;
   /** Confidence score (0-1), stored with facts. In auto routing, above 0.9 routes to core memory — unless steps, procedural wording or an emotional weight above 0.5 routed it first. */
   confidence?: number;
@@ -72,6 +77,13 @@ export interface StoreOptions {
 /** The layers `recall()` can search and `forget()` can delete from. */
 export type RecallLayer = 'working' | 'episodic' | 'semantic' | 'procedural' | 'core';
 
+/**
+ * Which of two equally scored results recall keeps and lists first: long-term memories before the
+ * working-memory copy (forgetting a copy deletes only the copy), in a fixed layer order, so the
+ * outcome does not depend on which layer's search finished first.
+ */
+const LAYER_ORDER: Record<RecallLayer, number> = { episodic: 0, semantic: 1, procedural: 2, core: 3, working: 4 };
+
 /** Matches the UUIDs the layers write; anything else cannot be a stored id. */
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -82,6 +94,13 @@ export interface RecallOptions {
   limit?: number;
   /** Minimum confidence threshold for results. Defaults to 0. */
   minConfidence?: number;
+  /**
+   * Leave out results that score below this value (0 to 1). Defaults to 0, which keeps
+   * everything: a layer in which the query matches nothing returns fallbacks at score 0
+   * (see `RecallResult.score`), and they come after every real hit. Any value above 0 drops
+   * them. Applied after deduplication, so fewer than `limit` results may come back.
+   */
+  minScore?: number;
   /**
    * Which core blocks a recall considers. `'always'` (default) adds every core block to the
    * candidates of every recall; the blocks then compete for `limit` like any other result
@@ -101,13 +120,16 @@ export interface RecallResult {
   /** Which layer this result came from; pass it with `id` to `forget()`. */
   layer: RecallLayer;
   /**
-   * Score from the result's layer, higher is better. The layers score differently, and
-   * `recall()` sorts all results by this one number: with an embedding provider, episodic,
-   * semantic and procedural results carry the cosine similarity (−1 to 1); without one,
-   * lexical relevance (0 to 1), and a recall that matches nothing returns recent episodes
-   * and facts at 0 but procedures at their success rate (up to 1). Core blocks score 0.8
-   * when a query word occurs in them, else 0.5. Working-memory results carry the slot's
-   * relevance, which without an embedding provider does not depend on the query.
+   * How well the result matches the query, from 0 to 1; `recall()` sorts by it. Episodic,
+   * semantic, procedural and working memory score alike: the cosine similarity with an
+   * embedding provider (a negative similarity counts as 0), lexical relevance without one.
+   * 0 means no match: with an embedding provider a similarity of 0 or below; without one,
+   * no content word of the query occurs in the layer's candidates, and the result is a
+   * fallback (recent episodes and facts, the most successful procedures, the most relevant
+   * working-memory slots) that keeps the recall from coming back empty. Core blocks score
+   * 0.8 when a query word longer than two characters occurs in their label or content (as a
+   * substring, case ignored), else 0.5 — so with `core: 'always'` a block outranks lexical
+   * hits below 0.5. How much to trust a result is `confidence`, not the score.
    */
   score: number;
   /** Confidence level, if available. */
@@ -116,6 +138,35 @@ export interface RecallResult {
   emotionalWeight?: number;
   /** Additional metadata from the source layer. */
   metadata?: Record<string, unknown>;
+  /**
+   * Results that deduplication left out because their content is (nearly) the same as this
+   * one's — for example the fact `consolidate()` made verbatim from this episode. Present only
+   * when there were any. When this result is a long-term memory, forgetting it (cascade on, the
+   * default) also deletes the duplicates consolidation linked to it (the fact made from this
+   * episode, or the episodes consolidated into this fact) and the working-memory copies of its
+   * content; any other duplicate was stored on its own and needs its own `forget()`. On equal
+   * scores the long-term memory is the one kept; when a working-memory slot scored higher and was
+   * kept, forgetting it deletes only the slot — forget a long-term duplicate instead.
+   */
+  duplicates?: Array<{ id: string; layer: RecallLayer }>;
+}
+
+export interface ForgetOptions {
+  /**
+   * Also delete what was derived from the memory, and what it was derived from (default
+   * `true`): forgetting an episode deletes the fact `consolidate()` made from it, forgetting
+   * a fact deletes the episodes it was made from, and in both cases the working-memory copies
+   * of that content. `false` deletes only the addressed memory; an episode keeps its
+   * `consolidatedInto` mark, so a later `consolidate()` does not promote it again.
+   */
+  cascade?: boolean;
+}
+
+export interface ForgetResult {
+  /** `true` if the addressed memory was deleted, `false` if its layer holds none with that id. */
+  removed: boolean;
+  /** Every other memory the cascade deleted, by id and layer (working-memory copies included). */
+  alsoForgotten: Array<{ id: string; layer: RecallLayer }>;
 }
 
 export interface ConsolidationResult {
@@ -193,6 +244,8 @@ export class MemoryCoordinator {
   private readonly embedding?: EmbeddingProvider;
   private readonly llm?: LLMProvider;
   private readonly log: Logger;
+  /** The working-memory slot each `store()` in this process created, by the stored memory's id. */
+  private readonly workingCopyOf = new Map<string, string>();
 
   constructor(config: CoordinatorConfig) {
     this.storage = config.storage;
@@ -318,7 +371,8 @@ export class MemoryCoordinator {
       default: {
         const confidence = options.confidence ?? 0.7;
         const source = options.source ?? 'user';
-        const fact = await this.semantic.storeFact(content, source, confidence);
+        // An explicit weight stretches the fact's first FSRS interval (E-6); a detected one does not.
+        const fact = await this.semantic.storeFact(content, source, confidence, options.emotionalWeight);
         storedId = fact.id;
         this.log.debug(`Stored as fact: ${storedId}`);
         break;
@@ -326,7 +380,13 @@ export class MemoryCoordinator {
     }
 
     // Also add to working memory (most recent seven; not part of the default recall)
-    await this.working.add(content, 'fact', 1.0);
+    const slot = await this.working.add(content, 'fact', 1.0);
+    this.workingCopyOf.set(storedId, slot.id);
+    // Keep only entries whose slot still exists: the map never outgrows working memory.
+    const live = new Set(this.working.getSlots().map(s => s.id));
+    for (const [memoryId, slotId] of this.workingCopyOf) {
+      if (!live.has(slotId)) this.workingCopyOf.delete(memoryId);
+    }
 
     return storedId;
   }
@@ -339,8 +399,8 @@ export class MemoryCoordinator {
    * Cross-layer recall: search across memory layers and return ranked results.
    *
    * Searches each requested layer, deduplicates by content similarity, and returns the
-   * top N results sorted by score. The scores of different layers are not on one scale
-   * (see `RecallResult.score`).
+   * top N results sorted by score (0 to 1 in every layer, see `RecallResult.score`).
+   * Results that match nothing score 0 and come after every real hit.
    *
    * @param query - The search query
    * @param options - Layer selection and limits
@@ -350,6 +410,10 @@ export class MemoryCoordinator {
     const layers = options.layers ?? ['episodic', 'semantic', 'procedural', 'core'];
     const limit = options.limit ?? 10;
     const minConfidence = options.minConfidence ?? 0;
+    const minScore = options.minScore ?? 0;
+    if (typeof minScore !== 'number' || !(minScore >= 0 && minScore <= 1)) {
+      throw new RangeError(`recall: options.minScore must be a number from 0 to 1, got ${minScore}`);
+    }
 
     const results: RecallResult[] = [];
 
@@ -379,11 +443,12 @@ export class MemoryCoordinator {
       ? results.filter(r => (r.confidence ?? 1.0) >= minConfidence)
       : results;
 
-    // Deduplicate by content similarity (threshold 0.9)
-    const deduped = this.deduplicateResults(filtered);
+    // Deduplicate by content similarity (threshold 0.9), then drop what scores below minScore
+    // (after dedup, so a kept result still names a low-scoring twin in `duplicates`)
+    const deduped = this.deduplicateResults(filtered).filter(r => r.score >= minScore);
 
-    // Sort by score descending and return top N
-    deduped.sort((a, b) => b.score - a.score);
+    // Sort by score descending (equal scores in a fixed layer order) and return top N
+    deduped.sort((a, b) => b.score - a.score || LAYER_ORDER[a.layer] - LAYER_ORDER[b.layer]);
     return deduped.slice(0, limit);
   }
 
@@ -392,47 +457,160 @@ export class MemoryCoordinator {
   // ===========================================
 
   /**
-   * Delete one memory, addressed by the `id` and `layer` of a recall result.
+   * Delete a memory, addressed by the `id` and `layer` of a recall result, together with
+   * what consolidation linked to it (the cascade, on by default).
    *
-   * Forgetting is explicit and final for this one memory: it is deleted from its layer and
-   * no later recall returns it. A fact that `consolidate()` derived from an episode is a
-   * memory of its own and stays; so does the working-memory copy (below). If the content
-   * has to go, recall again after forgetting and forget whatever still returns it.
-   * Nothing in long-term memory is deleted on its own; consolidation and decay never
-   * delete long-term memories. To correct a memory, forget it and store the corrected
-   * version.
+   * - `forget(id, 'episodic')` deletes the episode, the fact `consolidate()` made from it,
+   *   and the working-memory copies of both.
+   * - `forget(id, 'semantic')` deletes the fact, every episode consolidated into it, and the
+   *   working-memory copies of all of them.
+   * - `forget(id, 'procedural')` and `forget(id, 'core')` delete the memory and its
+   *   working-memory copy.
    *
-   * Working memory also keeps a copy of the most recent stores in this process (seven
-   * slots). It is not part of the default recall, and `decay()` / `consolidate()`
-   * remove its stale slots; forget the working-memory result as well if the copy has
-   * to go at once.
+   * Working-memory copies are the slot `store()` created for each deleted memory in this
+   * process and, for episodes, facts and core blocks, any slot holding exactly their content
+   * (a procedure keeps only the first 200 characters, so only its own slot goes).
+   * - `forget(id, 'working')` deletes only that working-memory slot: the slot is a copy,
+   *   and forgetting a copy does not reach into long-term memory.
+   *
+   * The edge between an episode and its fact is the episode's `consolidatedInto` mark, which
+   * `consolidate()` has written since 0.4.8; it is found in existing databases without a
+   * schema change. An episode promoted before 0.4.8 is linked only once a later
+   * `consolidate()` finds its verbatim fact (among the 100 most recent episodes); one an LLM
+   * distilled before 0.4.8 has no edge. A fact distilled by an LLM since then is linked like
+   * any other: the cascade follows the recorded edge, it does not search for memories that say
+   * something similar. `consolidate()` links a second episode with the same text to the fact
+   * the first one became instead of copying it again (also a fact stored with source
+   * `'consolidation'` and that exact text): forgetting one of those episodes keeps the other,
+   * forgetting the fact deletes both. A memory stored on its own and never linked keeps its
+   * long-term entry (`RecallResult.duplicates` names such twins); a working-memory slot with
+   * exactly the forgotten content goes, whichever store created it.
+   *
+   * With `{ cascade: false }` only the addressed memory is deleted (the behaviour before
+   * 0.6.0); an episode keeps its mark, so a later `consolidate()` does not promote it again.
+   * Consolidation and decay never delete long-term memories. To correct a memory, forget it
+   * and store the corrected version. Use `forgetWithDerived()` to learn what the cascade
+   * deleted.
    *
    * @param id - The `id` of a recall result.
    * @param layer - The `layer` of the same result.
-   * @returns `true` if a memory was deleted, `false` if the layer holds none with that id.
+   * @param options - `cascade` (default `true`).
+   * @returns `true` if the addressed memory was deleted, `false` if the layer holds none with that id.
    */
-  async forget(id: string, layer: RecallLayer): Promise<boolean> {
+  async forget(id: string, layer: RecallLayer, options: ForgetOptions = {}): Promise<boolean> {
+    return (await this.forgetWithDerived(id, layer, options)).removed;
+  }
+
+  /**
+   * `forget()`, and in addition the list of every other memory the cascade deleted.
+   *
+   * Linked memories are deleted before the addressed one, so if a deletion fails half-way,
+   * calling this again still deletes the remaining long-term memories; working-memory copies of
+   * what the failed call already deleted may remain, and the repeated call does not list what
+   * the failed one deleted.
+   *
+   * @returns `removed` for the addressed memory and `alsoForgotten` for the rest.
+   */
+  async forgetWithDerived(id: string, layer: RecallLayer, options: ForgetOptions = {}): Promise<ForgetResult> {
+    const cascade = options.cascade ?? true;
+    const alsoForgotten: ForgetResult['alsoForgotten'] = [];
     let removed: boolean;
+
     if (layer === 'working') {
       removed = this.working.remove(id);
+    } else if (!['episodic', 'semantic', 'procedural', 'core'].includes(layer)) {
+      throw new Error(`Unknown memory layer: ${String(layer)}`);
     } else if (!UUID_PATTERN.test(id)) {
       // Stored ids are UUIDs; anything else is unknown, not an error (PostgreSQL
       // would otherwise reject the query for its uuid column).
       removed = false;
-    } else if (layer === 'episodic') {
-      removed = await this.episodic.delete(id);
-    } else if (layer === 'semantic') {
-      removed = await this.semantic.delete(id);
-    } else if (layer === 'procedural') {
-      removed = await this.procedural.delete(id);
-    } else if (layer === 'core') {
-      const block = (await this.core.getBlocks()).find(b => b.id === id);
-      removed = block ? await this.core.deleteBlock(block.label) : false;
+    } else if (!cascade) {
+      removed = await this.deleteOne(id.toLowerCase(), layer);
     } else {
-      throw new Error(`Unknown memory layer: ${String(layer)}`);
+      // Both adapters write lower-case UUIDs; PostgreSQL compares uuids ignoring case and
+      // returns them in lower case, so the id is compared in lower case too.
+      removed = await this.deleteWithDerived(id.toLowerCase(), layer, alsoForgotten);
     }
-    this.log.debug(`Forget ${layer}/${id}: ${removed ? 'deleted' : 'not found'}`);
-    return removed;
+
+    this.log.debug(
+      `Forget ${layer}/${id}: ${removed ? 'deleted' : 'not found'}` +
+        (alsoForgotten.length > 0 ? `, also ${alsoForgotten.length} derived` : '')
+    );
+    return { removed, alsoForgotten };
+  }
+
+  /** Delete exactly one long-term memory. */
+  private async deleteOne(id: string, layer: Exclude<RecallLayer, 'working'>): Promise<boolean> {
+    switch (layer) {
+      case 'episodic':
+        return this.episodic.delete(id);
+      case 'semantic':
+        return this.semantic.delete(id);
+      case 'procedural':
+        return this.procedural.delete(id);
+      case 'core': {
+        const block = (await this.core.getBlocks()).find(b => b.id.toLowerCase() === id);
+        return block ? this.core.deleteBlock(block.label) : false;
+      }
+    }
+  }
+
+  /** The cascade of `forgetWithDerived()`: linked memories first, the addressed one last. */
+  private async deleteWithDerived(
+    id: string,
+    layer: Exclude<RecallLayer, 'working'>,
+    alsoForgotten: ForgetResult['alsoForgotten']
+  ): Promise<boolean> {
+    // Working-memory copies: the slot store() created for each deleted memory, and for
+    // episodes, facts and core blocks also any slot holding exactly their content.
+    const contents = new Set<string>();
+    const memoryIds = [id];
+
+    if (layer === 'episodic') {
+      const episode = await this.episodic.getById(id);
+      if (!episode) return false;
+      contents.add(episode.content);
+      // The fact consolidated from this episode. Another episode promoted into the same fact
+      // (consolidate() links a second episode with the same text to the existing fact) was
+      // stored on its own and stays; it keeps its mark, so it is not promoted again.
+      const factId = this.episodic.consolidatedInto(episode)?.toLowerCase();
+      if (factId && UUID_PATTERN.test(factId)) {
+        const fact = await this.semantic.getById(factId);
+        if (fact && (await this.semantic.delete(factId))) {
+          alsoForgotten.push({ id: factId, layer: 'semantic' });
+          contents.add(fact.content);
+          memoryIds.push(factId);
+        }
+      }
+    } else if (layer === 'semantic') {
+      const fact = await this.semantic.getById(id);
+      if (!fact) return false;
+      contents.add(fact.content);
+      for (const episode of await this.episodic.findConsolidatedInto(id)) {
+        if (await this.episodic.delete(episode.id)) {
+          alsoForgotten.push({ id: episode.id, layer: 'episodic' });
+          contents.add(episode.content);
+          memoryIds.push(episode.id);
+        }
+      }
+    } else if (layer === 'procedural') {
+      // Only the slot store() created: a procedure keeps the first 200 characters of its
+      // content, which can match other memories and can lose a split character.
+      if (!(await this.procedural.getById(id))) return false;
+    } else {
+      const block = (await this.core.getBlocks()).find(b => b.id.toLowerCase() === id);
+      if (!block) return false;
+      contents.add(block.content);
+    }
+
+    const slotIds = new Set(
+      memoryIds.map(m => this.workingCopyOf.get(m)).filter((s): s is string => s !== undefined)
+    );
+    for (const memoryId of memoryIds) this.workingCopyOf.delete(memoryId);
+    for (const slotId of this.working.removeWhere((content, slotId) => slotIds.has(slotId) || contents.has(content))) {
+      alsoForgotten.push({ id: slotId, layer: 'working' });
+    }
+    return this.deleteOne(id, layer);
   }
 
   // ===========================================
@@ -786,14 +964,14 @@ export class MemoryCoordinator {
   /** Recall from working memory and push results. */
   private async recallFromWorking(query: string, results: RecallResult[]): Promise<void> {
     try {
-      const slots = await this.working.findRelevant(query, 5);
+      const slots = await this.working.search(query, 5);
       for (const slot of slots) {
         results.push({
           id: slot.id,
           content: slot.content,
           layer: 'working',
-          score: slot.relevance,
-          metadata: { type: slot.type, addedAt: slot.addedAt },
+          score: slot.score,
+          metadata: { type: slot.type, addedAt: slot.addedAt, relevance: slot.relevance },
         });
       }
     } catch {
@@ -896,7 +1074,8 @@ export class MemoryCoordinator {
   /**
    * Deduplicate results by content similarity.
    * If two results have Jaccard similarity > 0.9 on their words and numbers
-   * (case and punctuation ignored), keep only the higher-scored one.
+   * (case and punctuation ignored), keep only the higher-scored one; the kept
+   * one names the others in `duplicates`.
    */
   private deduplicateResults(results: RecallResult[]): RecallResult[] {
     if (results.length <= 1) {
@@ -914,10 +1093,19 @@ export class MemoryCoordinator {
         if (!existing.content) continue;
         if (this.contentSimilarity(r.content, existing.content) > 0.9) {
           isDuplicate = true;
-          // Keep the higher-scored version
-          if (r.score > existing.score) {
-            deduped[i] = r;
-          }
+          // Keep the higher-scored version (on a tie, the earlier layer in LAYER_ORDER); it carries
+          // the other one (and what that one carried).
+          const rWins = r.score > existing.score ||
+            (r.score === existing.score && LAYER_ORDER[r.layer] < LAYER_ORDER[existing.layer]);
+          const [kept, dropped] = rWins ? [r, existing] : [existing, r];
+          deduped[i] = {
+            ...kept,
+            duplicates: [
+              ...(kept.duplicates ?? []),
+              { id: dropped.id, layer: dropped.layer },
+              ...(dropped.duplicates ?? []),
+            ],
+          };
           break;
         }
       }

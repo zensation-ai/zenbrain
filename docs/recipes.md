@@ -158,12 +158,16 @@ you have built a retrieval system and are using this one as a cache.
 
 ## 5. Domain-specific facts that must not fade
 
-An emotional weight can stretch a fact's FSRS schedule: `initFromDecayClass()` multiplies the base
-stability by its second argument (1.0 to 2.0). The automatic tagger reads language, so it cannot know
-that in your domain "allergy" outranks any word with an exclamation mark:
+An emotional weight given for a fact stretches its FSRS schedule: since 0.6.0,
+`store(content, { type: 'fact', emotionalWeight })` multiplies the fact's starting stability by
+`1 + emotionalWeight` — 7 at weight 0, 14 at weight 1 — so its first review comes later (after about
+0.105 × stability days: ≈ 0.7 and ≈ 1.5). The
+weight acts once, when the fact is created, through the FSRS state the fact keeps; it is not stored
+with the fact. The automatic tagger reads language, so it cannot know that in your domain "allergy"
+outranks any word with an exclamation mark:
 
-```ts prelude=content
-import { tagEmotion, computeEmotionalWeight, initFromDecayClass } from '@zensation/algorithms';
+```ts prelude=content,memory
+import { tagEmotion, computeEmotionalWeight } from '@zensation/algorithms';
 
 const CRITICAL = /\b(allergy|contraindicat|dosage|safety)\b/i;
 
@@ -173,18 +177,18 @@ function weightFor(content: string): number {
   return CRITICAL.test(content) ? Math.max(consolidationWeight, 0.9) : consolidationWeight;
 }
 
-// The fact's FSRS state, scheduled further out the more critical it is
-const state = initFromDecayClass('normal_decay', 1 + weightFor(content));
+// A fact, scheduled further out the more critical it is
+await memory.store(content, { type: 'fact', emotionalWeight: weightFor(content) });
 ```
 
-In 0.5.x the coordinator does not carry the weight into a fact: `store(content, { type: 'fact',
-emotionalWeight })` stores the fact with the default schedule, and with automatic routing a weight
-above 0.5 makes the content an episode instead. Where the schedule matters, keep the FSRS state
-yourself as above.
+Pass `type: 'fact'`: with automatic routing a weight above 0.5 makes the content an episode, and a
+weight the coordinator detects itself does not change a fact's schedule — only one you pass does.
+Without the coordinator, `initFromDecayClass('normal_decay', 1 + weight)` from
+`@zensation/algorithms` gives the same starting state.
 
-⚠️ **Use a floor, not a constant.** Writing `emotionalWeight: 1.0` for every domain hit flattens the
-ranking you were trying to sharpen: if everything is critical, the layer can no longer tell you what
-is *most* critical. `Math.max()` keeps the tagger's ordering inside the protected set.
+⚠️ **Use a floor, not a constant.** Writing `emotionalWeight: 1.0` for every domain hit gives every
+critical fact the same schedule: if everything is critical, the schedule can no longer tell the most
+critical facts from the rest. `Math.max()` keeps the tagger's ordering inside the protected set.
 
 **Do not use this to pin marketing copy.** The mechanism models why emotionally significant events
 consolidate faster; spending it on material that merely *should* be seen means the signal no longer

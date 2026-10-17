@@ -49,7 +49,7 @@ describe('tool definitions', () => {
   it('zenbrain_recall offers only parameters that change the result', async () => {
     const t = await tool('zenbrain_recall');
     expect(Object.keys(t.inputSchema.properties ?? {}).sort()).toEqual(
-      ['layers', 'limit', 'minConfidence', 'query'],
+      ['layers', 'limit', 'minConfidence', 'minScore', 'query'],
     );
   });
 

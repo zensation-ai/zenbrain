@@ -102,12 +102,48 @@ out('\n## Hopfield recall, N = 600 random unit vectors, d = 1536 (packages/algor
     const w = res.matches.find((m) => m.pattern.id === `p${q}`).weight;
     out(`${String(beta).padStart(2)} | ${w.toFixed(4)} | ${res.matches[0].pattern.id === `p${q}`} | ${cos(res.recoveredVector, patterns[q].vector).toFixed(3)}`);
   }
+
+  // The smallest beta (step 0.5) at which every one of Q queried patterns keeps a weight >= 0.99.
+  const Q = 20;
+  const minBeta = (P) => {
+    const worst = (beta) => {
+      let m = 1;
+      for (let i = 0; i < Q; i++) m = Math.min(m, hopfield.hopfieldRecall(P[i].vector, P, { beta }).matches.find((x) => x.pattern.id === `p${i}`).weight);
+      return m;
+    };
+    for (let b = 1; b <= 120; b += 0.5) if (worst(b) >= 0.99) return { beta: b, at16: worst(16) };
+    return { beta: null, at16: worst(16) };
+  };
+  out(`\nsmallest beta with weight >= 0.99 on each of ${Q} queried patterns (random unit vectors)`);
+  out('d | N | beta | ln(99(N-1)) | lowest weight at the default beta 16');
+  for (const dim of [384, 768, 1536]) {
+    for (const n of [100, 600, 2000]) {
+      seed = 1000 + dim + n;
+      const P = Array.from({ length: n }, (_, i) => ({ id: `p${i}`, vector: unit(dim) }));
+      const r = minBeta(P);
+      out(`${dim} | ${n} | ${r.beta} | ${Math.log(99 * (n - 1)).toFixed(1)} | ${r.at16.toFixed(4)}`);
+    }
+  }
+  out(`\ncorrelated patterns: d = 768, N = 600, pairwise cosine about c (a shared direction)`);
+  out('c | beta | ln(99(N-1))/(1-c) | lowest weight at beta 16');
+  for (const c of [0.3, 0.5, 0.7]) {
+    seed = 2000 + Math.round(c * 10);
+    const common = unit(768);
+    const P = Array.from({ length: 600 }, (_, i) => {
+      const r = unit(768).map((x, j) => Math.sqrt(1 - c) * x + Math.sqrt(c) * common[j]);
+      const n = Math.hypot(...r);
+      return { id: `p${i}`, vector: r.map((x) => x / n) };
+    });
+    const r = minBeta(P);
+    out(`${c} | ${r.beta} | ${(Math.log(99 * 599) / (1 - c)).toFixed(1)} | ${r.at16.toFixed(4)}`);
+  }
+
   for (let i = 0; i < 20; i++) hopfield.hopfieldRecall(patterns[i].vector, patterns);
   const R = 200;
   const t0 = process.hrtime.bigint();
   for (let i = 0; i < R; i++) hopfield.hopfieldRecall(patterns[i % N].vector, patterns);
   const ms = Number(process.hrtime.bigint() - t0) / 1e6 / R;
-  out(`time per recall (default beta, mean of ${R} after 20 warm-up calls): ${ms.toFixed(2)} ms`);
+  out(`\ntime per recall (N = 600, d = 1536, default beta, mean of ${R} after 20 warm-up calls): ${ms.toFixed(2)} ms`);
 }
 
 // ---------------------------------------------------------------------------

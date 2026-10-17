@@ -19,7 +19,7 @@ Most algorithm modules name the work they follow in their source (not yet `bayes
 
 ### Is ZenBrain production-ready?
 
-The algorithms and core layers were extracted from ZenAI, a production AI platform, where they ran against real users and real data. The repository's 902 tests pass in CI: 896 on each of Node 22, 24 and 26, and six more against a real PostgreSQL with pgvector.
+The algorithms and core layers were extracted from ZenAI, a production AI platform, where they ran against real users and real data. The repository's 945 tests pass in CI: 933 on each of Node 22, 24 and 26, and 12 more against a real PostgreSQL with pgvector.
 
 That said, ZenBrain is still pre-1.0 — expect API changes before v1.0. We follow semver, and the [CHANGELOG](../CHANGELOG.md) records what changed in each release.
 
@@ -86,7 +86,7 @@ Tree-shaking ensures you only bundle what you import.
 
 The coordinator creates all seven layers and works on five of them (working, episodic, semantic, procedural, core); short-term memory goes through its session methods, cross-context memory through a getter:
 - **Auto-routing**: `store()` routes content to a layer
-- **Cross-layer recall**: `recall()` searches several layers and sorts the results by score (each layer scores differently; see the API reference)
+- **Cross-layer recall**: `recall()` searches several layers and sorts the results by one score from 0 to 1 (see *How scores are computed, per layer* in the API reference)
 - **Consolidation**: `consolidate()` promotes emotional episodes to semantic facts when you call it
 - **Decay**: `decay()` and `consolidate()` decay working memory; long-term memory does not decay
 

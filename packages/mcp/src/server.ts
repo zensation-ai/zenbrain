@@ -90,8 +90,12 @@ export function createZenBrainServer(
         'zenbrain_store when they share something worth keeping (check with zenbrain_recall ' +
         'first, storing again adds a duplicate). When the user asks you to forget something, or ' +
         'a stored memory is wrong, call zenbrain_forget with the id and layer zenbrain_recall ' +
-        'returned, then recall again: a fact consolidated from it, or the working-memory copy, ' +
-        'is a separate memory, so forget those results too. To correct a memory, forget it and ' +
+        'returned: it also deletes what consolidation linked to that memory (the fact made from ' +
+        'an episode, or the episodes a fact was made from) and its working-memory copies, and ' +
+        'lists them in alsoForgotten. A recall result\'s duplicates name copies that recall hid; ' +
+        'forget a long-term result rather than a working-memory one (a working slot is only a ' +
+        'copy), and forget any duplicate that zenbrain_forget did not list, since it was stored ' +
+        'on its own. To correct a memory, forget it and ' +
         'store the corrected version. Run ' +
         'zenbrain_consolidate between sessions, not on every turn; zenbrain_health shows how ' +
         'much is stored.',
@@ -140,7 +144,8 @@ export function createZenBrainServer(
           .optional()
           .describe(
             'Emotional significance (0–1). Detected from the content when omitted. ' +
-              'Above 0.5 routes to episodic memory unless steps or procedural wording matched first.',
+              'Above 0.5 routes to episodic memory unless steps or procedural wording matched first. ' +
+              "With type 'fact' it is not stored, but lengthens the fact's first review interval (×(1 + weight)).",
           ),
         source: z
           .string()
@@ -184,12 +189,13 @@ export function createZenBrainServer(
       description:
         'Search long-term memory for anything relevant to a query. By default it searches ' +
         `the ${listed(DEFAULT_RECALL_LAYERS)} layers; working memory (the most recent stores, ` +
-        'held only while the server runs, returned whatever the query) is searched only when ' +
+        'held only while the server runs, up to five results) is searched only when ' +
         'named in `layers`. Returns results sorted by score, each with its id and the layer it ' +
-        'came from; zenbrain_forget takes both. Scores are per layer: lexical relevance from 0 ' +
-        'to 1 for a match; when nothing matches, recent episodes and facts come back at 0 but ' +
-        'procedures at their success rate, and core blocks always come at 0.5 or 0.8 — so not ' +
-        'every top result is a hit. Use this before answering when the user refers to something from an earlier ' +
+        'came from; zenbrain_forget takes both. The score runs from 0 to 1 and says how well a ' +
+        'result matches the query; a layer in which nothing matches returns recent memories (or ' +
+        'its most successful procedures) at 0, behind every hit, and minScore above 0 leaves ' +
+        'them out. Every core block scores 0.5 or 0.8, so a block can rank above a weak hit. ' +
+        'Use this before answering when the user refers to something from an earlier ' +
         'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
       annotations: { readOnlyHint: true, openWorldHint: false },
@@ -200,7 +206,7 @@ export function createZenBrainServer(
           .optional()
           .describe(
             `Restrict the search to these layers. Defaults to ${listed(DEFAULT_RECALL_LAYERS)}; ` +
-              "add 'working' to include the most recent stores held in memory (returned whatever the query).",
+              "add 'working' to include the most recent stores held in memory (up to five, ranked by the query).",
           ),
         limit: z
           .number()
@@ -220,6 +226,15 @@ export function createZenBrainServer(
               'confidence, procedures their success rate; core blocks, episodes and working-memory ' +
               'items count as 1 and are kept.',
           ),
+        minScore: z
+          .number()
+          .min(0)
+          .max(1)
+          .optional()
+          .describe(
+            'Leave out results scoring below this value (default 0 keeps all). Any value above 0 ' +
+              'drops the score-0 fallbacks that a layer returns when nothing in it matches.',
+          ),
       },
       outputSchema: {
         count: z.number().describe('How many memories were returned.'),
@@ -232,9 +247,16 @@ export function createZenBrainServer(
               score: z.number(),
               confidence: z.number().optional(),
               emotionalWeight: z.number().optional(),
+              duplicates: z
+                .array(z.object({ id: z.string(), layer: z.string() }))
+                .optional()
+                .describe(
+                  'Memories with (nearly) the same content that recall left out in favour of this one, ' +
+                    'e.g. the fact consolidated from this episode. Present only when there are any.',
+                ),
             }),
           )
-          .describe('Memories sorted by score, highest first; scores are per layer (see the tool description).'),
+          .describe('Memories sorted by score (0 to 1), highest first; 0 means nothing in that layer matched.'),
         skipped: z
           .number()
           .describe(
@@ -249,6 +271,7 @@ export function createZenBrainServer(
       };
       if (rest.limit !== undefined) opts.limit = rest.limit;
       if (rest.minConfidence !== undefined) opts.minConfidence = rest.minConfidence;
+      if (rest.minScore !== undefined) opts.minScore = rest.minScore;
 
       const found: RecallResult[] = await coordinator.recall(query, opts);
 
@@ -264,6 +287,7 @@ export function createZenBrainServer(
         score: typeof r.score === 'number' ? r.score : 0,
         ...(typeof r.confidence === 'number' ? { confidence: r.confidence } : {}),
         ...(typeof r.emotionalWeight === 'number' ? { emotionalWeight: r.emotionalWeight } : {}),
+        ...(r.duplicates && r.duplicates.length > 0 ? { duplicates: r.duplicates } : {}),
       }));
 
       const payload = { count: results.length, results, skipped: found.length - usable.length };
@@ -277,11 +301,14 @@ export function createZenBrainServer(
     {
       title: 'Forget a memory',
       description:
-        'Permanently delete one memory, addressed by the id and layer that zenbrain_recall ' +
-        'returned for it. Only this memory is deleted, and that cannot be undone: a fact that ' +
-        'zenbrain_consolidate made from an episode, and the working-memory copy of a recent ' +
-        'store, are memories of their own — recall again and forget what still returns the ' +
-        'content. Use it when the ' +
+        'Permanently delete a memory, addressed by the id and layer that zenbrain_recall ' +
+        'returned for it, together with what consolidation linked to it; this cannot be undone. ' +
+        'Forgetting an episode also deletes the fact zenbrain_consolidate made from it; ' +
+        'forgetting such a fact also deletes every episode consolidated into it; both also ' +
+        'delete the working-memory copies of that content. Forgetting a working-memory result ' +
+        'deletes only that copy. alsoForgotten lists everything deleted besides the memory ' +
+        'itself. A memory stored on its own and never consolidated keeps its long-term entry. ' +
+        'Use it when the ' +
         'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
         'forget it and store the corrected version with zenbrain_store. An id the layer does ' +
         'not hold is reported as not forgotten, not as an error.',
@@ -298,11 +325,14 @@ export function createZenBrainServer(
           .describe('True if the memory was deleted, false if the layer held none with that id.'),
         id: z.string(),
         layer: z.string(),
+        alsoForgotten: z
+          .array(z.object({ id: z.string(), layer: z.string() }))
+          .describe('Memories deleted with it: what consolidation linked to it (derived from it, or it from), and working-memory copies.'),
       },
     },
     async ({ id, layer }) => {
-      const forgotten = await coordinator.forget(id, layer);
-      const payload = { forgotten, id, layer };
+      const { removed: forgotten, alsoForgotten } = await coordinator.forgetWithDerived(id, layer);
+      const payload = { forgotten, id, layer, alsoForgotten };
       return { content: text(payload), structuredContent: payload };
     },
   );

@@ -105,7 +105,8 @@ configuration they were measured in, are reported in the paper; the reproduction
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
+to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
+provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

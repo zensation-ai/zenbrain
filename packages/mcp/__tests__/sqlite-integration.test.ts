@@ -222,6 +222,53 @@ open('forgetting over MCP on SQLite', () => {
     expect(after.results.some((r) => r.content === MEMORY)).toBe(false);
   });
 
+  it('forgetting an episode also forgets the fact consolidated from it, and says so', async () => {
+    // Before 0.6.0 recall showed one hit, forget deleted the episode, and the same recall then
+    // returned the text from semantic memory (measured 2026-10-16 on 0.5.1).
+    const c = await connect();
+    const MOMENT = 'The car slid on the ice and I was terrified.';
+    await c.callTool({ name: 'zenbrain_store', arguments: { content: MOMENT, type: 'episode', emotionalWeight: 0.9 } });
+    await c.callTool({ name: 'zenbrain_consolidate', arguments: {} });
+
+    type Hit = { id: string; content: string; layer: string; duplicates?: { id: string; layer: string }[] };
+    const before = (await c.callTool({ name: 'zenbrain_recall', arguments: { query: MOMENT } }))
+      .structuredContent as { results: Hit[] };
+    const hits = before.results.filter((r) => r.content === MOMENT);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].duplicates).toHaveLength(1);
+
+    const out = (await c.callTool({ name: 'zenbrain_forget', arguments: { id: hits[0].id, layer: hits[0].layer } }))
+      .structuredContent as { forgotten: boolean; alsoForgotten: { id: string; layer: string }[] };
+    expect(out.forgotten).toBe(true);
+    expect(out.alsoForgotten).toContainEqual(hits[0].duplicates![0]);
+
+    const after = (await c.callTool({ name: 'zenbrain_recall', arguments: { query: MOMENT, layers: ['working', 'episodic', 'semantic'] } }))
+      .structuredContent as { results: Hit[] };
+    expect(after.results.some((r) => r.content === MOMENT)).toBe(false);
+  });
+
+  it('minScore leaves out what a layer returns when nothing in it matches', async () => {
+    // Over MCP on 0.5.1, "Which city is the capital?" put "How to bake bread" first at 1.000.
+    // This suite runs with an embedding provider; the default server has none, so do the same.
+    const sqliteAdapter = new sqlite!.SqliteAdapter({ filename: ':memory:' });
+    coordinator = new MemoryCoordinator({ storage: sqliteAdapter });
+    const server = createZenBrainServer(coordinator);
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    client = new Client({ name: 'sqlite-test-client', version: '1.0.0' });
+    await Promise.all([client.connect(clientSide), server.connect(serverSide)]);
+    await client.callTool({ name: 'zenbrain_store', arguments: { content: 'How to bake bread: knead, rest, bake.', type: 'procedure' } });
+    await client.callTool({ name: 'zenbrain_store', arguments: { content: 'Kiel is the capital of Schleswig-Holstein.', type: 'fact' } });
+
+    type Out = { results: { layer: string; score: number }[] };
+    const all = (await client.callTool({ name: 'zenbrain_recall', arguments: { query: 'Which city is the capital?' } }))
+      .structuredContent as Out;
+    const hits = (await client.callTool({ name: 'zenbrain_recall', arguments: { query: 'Which city is the capital?', minScore: 0.01 } }))
+      .structuredContent as Out;
+
+    expect(all.results.map((r) => [r.layer, r.score > 0])).toEqual([['semantic', true], ['procedural', false]]);
+    expect(hits.results.map((r) => r.layer)).toEqual(['semantic']);
+  });
+
   it('reports an id the layer does not hold as not forgotten', async () => {
     const c = await connect();
     const out = await c.callTool({

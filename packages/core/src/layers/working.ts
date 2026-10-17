@@ -5,7 +5,8 @@
  * Maintains 7±2 slots with relevance-based eviction.
  * Pure in-memory — no storage adapter needed.
  */
-import { cosineSimilarity, type WorkingMemorySlot, type Logger, noopLogger } from '../types';
+import { cosineSimilarity, toUnitScore, type WorkingMemorySlot, type Logger, noopLogger } from '../types';
+import { rankByLexicalRelevance } from '../lexical';
 import type { EmbeddingProvider } from '../interfaces/embedding';
 import type { CacheProvider } from '../interfaces/cache';
 import { randomId } from '../id';
@@ -121,6 +122,32 @@ export class WorkingMemory {
   }
 
   /**
+   * Search the slots for a query, scored like the other layers: cosine similarity (clamped to
+   * [0, 1]) with an embedding provider, lexical relevance without one. When nothing matches,
+   * the most relevant slots come back at score 0, newest first among equals. A slot's own
+   * `relevance` (its age-decayed weight) is not the score.
+   */
+  async search(query: string, topK = 5): Promise<(WorkingMemorySlot & { score: number })[]> {
+    const byRelevance = this.slots
+      .map((slot, order) => ({ slot, order }))
+      .sort((a, b) => b.slot.relevance - a.slot.relevance || b.order - a.order)
+      .map(s => s.slot);
+    if (this.slots.length === 0) return [];
+
+    if (this.embedding) {
+      const queryEmb = await this.embedding.embed(query);
+      return byRelevance
+        .map(slot => ({ ...slot, score: slot.embedding ? toUnitScore(cosineSimilarity(queryEmb, slot.embedding)) : 0 }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
+    }
+
+    const ranked = rankByLexicalRelevance(query, byRelevance, s => s.content, topK);
+    if (ranked.length > 0) return ranked.map(({ item, score }) => ({ ...item, score }));
+    return byRelevance.slice(0, topK).map(slot => ({ ...slot, score: 0 }));
+  }
+
+  /**
    * Apply time-based relevance decay to all slots: each slot is multiplied by
    * e^(-decayRate * minutes) for the minutes since it was last decayed, or since
    * it was added. Calling this twice at the same moment decays nothing the second
@@ -161,6 +188,13 @@ export class WorkingMemory {
     this.slots = this.slots.filter(s => s.id !== slotId);
     this.lastDecayAt.delete(slotId);
     return this.slots.length < before;
+  }
+
+  /** Remove every slot that passes `match` (its content and id). Returns the ids of the removed slots. */
+  removeWhere(match: (content: string, slotId: string) => boolean): string[] {
+    const removed = this.slots.filter(s => match(s.content, s.id)).map(s => s.id);
+    for (const id of removed) this.remove(id);
+    return removed;
   }
 
   /** Clear all slots. */

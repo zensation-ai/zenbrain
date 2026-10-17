@@ -32,10 +32,10 @@ const memory = new MemoryCoordinator({ storage: new SqliteAdapter({ filename: '.
 // Auto-routes to the right layer (semantic, episodic, procedural, or core)
 await memory.store('User prefers TypeScript', { type: 'auto' });
 
-// Cross-layer search: deduplicated results, sorted by each layer's score
+// Cross-layer search: deduplicated results, sorted by score (0 to 1; 0 = nothing matched)
 const results = await memory.recall('programming preferences');
 
-// Forget one memory by the id and layer of a recall result (a fact consolidated from it stays)
+// Forget a memory by the id and layer of a recall result (a fact consolidated from it goes too)
 await memory.forget(results[0].id, results[0].layer);
 
 // Consolidate: emotionally weighted episodes among the 100 most recent become facts, once each;
@@ -94,7 +94,8 @@ configuration they were measured in, are reported in the paper; the reproduction
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. The paper's measurements used `nomic-embed-text` as the embedding provider.
+to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
+provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

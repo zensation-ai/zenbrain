@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">ZenBrain</h1>
   <p align="center"><strong>The neuroscience-inspired memory system for AI agents.</strong></p>
-  <p align="center">7 memory layers and a library of 20 neuroscience-inspired algorithm modules: FSRS, Hebbian learning, sleep replay, emotional tagging, plus 10 advanced research modules (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, IB budget, Hopfield STM, ...).<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 902 tests. Extracted from a production AI platform.</p>
+  <p align="center">7 memory layers and a library of 20 neuroscience-inspired algorithm modules: FSRS, Hebbian learning, sleep replay, emotional tagging, plus 10 advanced research modules (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, IB budget, Hopfield STM, ...).<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 945 tests. Extracted from a production AI platform.</p>
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 
 <p align="center">
   <sub><strong>Status:</strong> pre-1.0, semver — the public API can still change before <code>1.0</code>.<br/>
-  902 tests green in CI: 896 on each of Node 22, 24 and 26, and 6 more against PostgreSQL with pgvector · the current version of every package published to npm with build provenance ·
+  945 tests green in CI: 933 on each of Node 22, 24 and 26, and 12 more against PostgreSQL with pgvector · the current version of every package published to npm with build provenance ·
   every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests are answered; replications and counter-results are especially welcome.</sub>
 </p>
 
@@ -195,9 +195,9 @@ alone; you wire them into your own system where you want them.
 |---|---|---|
 | Layers | Seven layer classes. `recall()` searches episodic, semantic, procedural and core memory, working memory on request; the cross-context layer is not part of recall. | — |
 | Routing | `store()` picks the layer: step-by-step content becomes a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core block, anything else a fact. | — |
-| Emotional tagging | At `store()` with automatic routing — not with an explicit `type`, and not when steps or procedural wording already made it a procedure. The weight decides episode or fact, and which episodes consolidation promotes. | `tagEmotion`, `computeEmotionalWeight` |
+| Emotional tagging | At `store()` with automatic routing — not with an explicit `type`, and not when steps or procedural wording already made it a procedure. The weight decides episode or fact, and which episodes consolidation promotes; a weight you pass for a fact stretches its starting FSRS stability by `1 + weight`. | `tagEmotion`, `computeEmotionalWeight` |
 | Spaced repetition (FSRS) | Every fact gets an FSRS schedule. `getReviewQueue()` lists the due facts; a review your application reports with `recordReview()` updates the schedule. Recall does not rank by retrievability. | FSRS, prediction-error-coupled FSRS |
-| Forgetting | Nothing in long-term memory decays or is deleted on its own. `forget(id, layer)` deletes that one memory on request; a fact that `consolidate()` derived from an episode is a memory of its own and stays until you forget it too. Working memory decays exponentially with the minutes since its last decay. | Ebbinghaus retention, personal decay profiles |
+| Forgetting | Nothing in long-term memory decays or is deleted on its own. `forget(id, layer)` deletes a memory on request together with what consolidation linked to it (episode ⇄ fact) and its working-memory copies; `{ cascade: false }` deletes only the one memory. Working memory decays exponentially with the minutes since its last decay. | Ebbinghaus retention, personal decay profiles |
 | Consolidation | `consolidate()` turns each emotionally weighted episode among the 100 most recent into a fact, once. | Sleep replay (`selectForReplay`, `simulateReplay`, `pruneWeakConnections`), simulation-selection loop |
 | Hebbian learning | Not used: core keeps no knowledge graph. | Classic and two-factor Hebbian |
 | Bayesian confidence | Not used. | `propagateForRelation` and the rest of the module |
@@ -365,7 +365,7 @@ await memory.store('User prefers TypeScript', { type: 'auto' });
 // Cross-layer search with ranked, deduplicated results
 const results = await memory.recall('programming preferences');
 
-// Forget one memory by the id and layer of a recall result (a fact consolidated from it stays)
+// Forget a memory by the id and layer of a recall result (a fact consolidated from it goes too)
 await memory.forget(results[0].id, results[0].layer);
 
 // Consolidate: emotionally weighted episodes among the 100 most recent become facts, once each;
@@ -478,9 +478,9 @@ function updateConfidenceGraph(relations: Relation[]) {
 
 These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), the AI platform they ran in production. Everything claimed here is verifiable in this repository:
 
-- **902 tests** (534 algorithms · 165 core · 63 adapter-sqlite · 59 adapter-postgres, 6 of them against a real PostgreSQL · 59 mcp · 22 ai-sdk), all passing
+- **945 tests** (539 algorithms · 164 core · 88 adapter-sqlite · 65 adapter-postgres, 12 of them against a real PostgreSQL · 61 mcp · 28 ai-sdk), all passing
 - **Zero runtime dependencies** in `@zensation/algorithms` and `@zensation/core` (core depends only on algorithms) — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
-- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.5.2` tarball published on npm
+- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.6.0` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
 
 ## Contributing

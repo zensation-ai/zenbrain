@@ -128,9 +128,10 @@ export function scoreCandidates(query: string, candidates: LexicalCandidate[]): 
  * Items that match nothing are dropped rather than returned with score 0 — returning the
  * whole store for an unrelated query is the behaviour this module exists to end. When
  * NOTHING matches, the caller decides what to do; this function simply returns an empty
- * array. The episodic and semantic layers then fall back to the most recent items (score
- * 0), the procedural layer to the highest success rate (score = success rate), so a
- * recall is never empty for a reason the user cannot see.
+ * array. The layers then fall back at score 0: episodic and semantic memory to the most
+ * recent items, procedural memory to the highest success rate, working memory to the most
+ * relevant slots — so a recall is never empty for a reason the user cannot see, and the
+ * score says the query did not land.
  */
 export function rankByLexicalRelevance<T>(
   query: string,

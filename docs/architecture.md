@@ -89,7 +89,7 @@ Memory decays exponentially: `R = e^(-t/S)`. Personalized decay profiles adapt t
 
 ### Emotional Tagging
 
-The amygdala modulates memory consolidation. About 170 weighted keywords (English and German) in four lists give sentiment, arousal and significance. `computeEmotionalWeight()` turns them into a consolidation weight and a decay multiplier from 1 to 3 for your application to apply; the coordinator uses the weight to route a memory (above 0.5: an episode).
+The amygdala modulates memory consolidation. About 170 weighted keywords (English and German) in four lists give sentiment, arousal and significance. `computeEmotionalWeight()` turns them into a consolidation weight and a decay multiplier from 1 to 3 for your application to apply; the coordinator uses the weight to route a memory (above 0.5: an episode), and a weight passed for a fact multiplies its starting FSRS stability by 1 + weight.
 
 ### Bayesian Confidence Propagation
 

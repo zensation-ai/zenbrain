@@ -81,9 +81,38 @@ describe('ProceduralMemory', () => {
 
     const results = await procedural.recall('deploy', 3);
     expect(results).toHaveLength(1);
-    expect(results[0].score).toBe(0.9); // success_rate used as score
+    // The score is how well the procedure matches the query; the success rate stays its own field.
+    // Until 0.6.0 it was relevance × success rate (0.9 here).
+    expect(results[0].score).toBeGreaterThan(0);
+    expect(results[0].score).toBeLessThanOrEqual(1);
+    expect(results[0].successRate).toBe(0.9);
     const sql = storage.query.mock.calls[0][0] as string;
     expect(sql).toContain('ORDER BY success_rate DESC');
+  });
+
+  it('a recall that matches no procedure returns the most successful ones at score 0', async () => {
+    // Until 0.6.0 the fallback scored its success rate, up to 1, and an unrelated procedure
+    // outranked real hits of the other layers (measured over MCP: "How to bake bread" at
+    // 1.000 for "Which city is the capital?").
+    storage.query.mockResolvedValueOnce({ rows: [createProcedureRow()] });
+
+    const results = await procedural.recall('capital city of France', 3);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].score).toBe(0);
+    expect(results[0].successRate).toBe(0.9);
+  });
+
+  it('clamps a negative cosine similarity to 0', async () => {
+    const embeddingProvider = {
+      embed: vi.fn(async () => [0.1, 0.2, 0.3]),
+      embedBatch: vi.fn(async () => []),
+      dimensions: () => 3,
+    };
+    const proceduralWithEmb = new ProceduralMemory({ storage, embedding: embeddingProvider });
+    storage.query.mockResolvedValueOnce({ rows: [{ ...createProcedureRow(), score: -1 }] });
+
+    expect((await proceduralWithEmb.recall('deploy', 3))[0].score).toBe(0);
   });
 
   it('recall uses pgvector with embedding provider', async () => {

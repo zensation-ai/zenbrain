@@ -7,7 +7,7 @@
  */
 import type { StorageAdapter } from '../interfaces/storage';
 import type { EmbeddingProvider } from '../interfaces/embedding';
-import { type Episode, type Logger, noopLogger, formatForPgVector, cosineSimilarity } from '../types';
+import { type Episode, type Logger, noopLogger, formatForPgVector, toUnitScore } from '../types';
 import { rankByLexicalRelevance, LEXICAL_CANDIDATE_WINDOW } from '../lexical';
 import { assertSqlIdentifier } from '../sql-identifier';
 
@@ -107,6 +107,50 @@ export class EpisodicMemory {
     ]);
   }
 
+  /** The fact a consolidation pass promoted this episode into, if it was promoted (see `markConsolidated`). */
+  consolidatedInto(episode: Episode): string | undefined {
+    const factId = readMetadata(episode.metadata).consolidatedInto;
+    return typeof factId === 'string' ? factId : undefined;
+  }
+
+  /** One episode by id, with its metadata, or null. */
+  async getById(id: string): Promise<Episode | null> {
+    const result = await this.storage.query<Episode>(
+      `SELECT id, content, context, created_at as "timestamp", emotional_weight as "emotionalWeight", metadata
+       FROM ${this.table} WHERE id = $1`,
+      [id]
+    );
+    // Checked again here, so a storage that does not evaluate WHERE cannot return another episode
+    // (case ignored: PostgreSQL compares uuids that way and returns them in lower case).
+    return result.rows.find(r => String(r.id).toLowerCase() === id.toLowerCase()) ?? null;
+  }
+
+  /**
+   * The episodes a consolidation pass promoted into this fact: those whose metadata says
+   * `consolidatedInto: <factId>`. Works on databases written before 0.6.0 — the mark is the
+   * one record of the edge, and both adapters have stored it since 0.4.8.
+   *
+   * The database narrows the rows by text (`metadata::text LIKE`, which the SQLite adapter
+   * reads as `metadata LIKE`); every row is then checked on its parsed metadata, so a fact id
+   * that only occurs somewhere else in the JSON never counts. A storage that rejects the
+   * narrowing query gets a scan of every episode with metadata instead.
+   */
+  async findConsolidatedInto(factId: string): Promise<Episode[]> {
+    const columns = `id, content, context, created_at as "timestamp", emotional_weight as "emotionalWeight", metadata`;
+    let rows: Episode[];
+    try {
+      rows = (await this.storage.query<Episode>(
+        `SELECT ${columns} FROM ${this.table} WHERE metadata::text LIKE $1`,
+        [`%${factId}%`]
+      )).rows;
+    } catch {
+      rows = (await this.storage.query<Episode>(
+        `SELECT ${columns} FROM ${this.table} WHERE metadata IS NOT NULL`
+      )).rows;
+    }
+    return rows.filter(r => this.consolidatedInto(r)?.toLowerCase() === factId.toLowerCase());
+  }
+
   /** Search episodes: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
   async search(query: string, limit = 5): Promise<(Episode & { score: number })[]> {
     if (!this.embedding) {
@@ -135,7 +179,7 @@ export class EpisodicMemory {
       [embStr, limit]
     );
 
-    return result.rows;
+    return result.rows.map(r => ({ ...r, score: toUnitScore(r.score) }));
   }
 
   /** Get episodes within a time range. */
