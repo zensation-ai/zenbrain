@@ -262,6 +262,53 @@ describe('hopfieldRecall — capacity sanity', () => {
 });
 
 // ===========================================================================
+// Default β at the documented sizes (0.6.0)
+// ===========================================================================
+
+describe('hopfieldRecall — default β at the documented sizes', () => {
+  // mulberry32 + Box-Muller, as in scripts/measure-docs-numbers.mjs: the same patterns everywhere.
+  function randomUnitPatterns(n: number, d: number, seed: number): HopfieldPattern<number>[] {
+    let s = seed;
+    const rnd = () => {
+      s |= 0; s = (s + 0x6d2b79f5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    return Array.from({ length: n }, (_, i) => {
+      const v: number[] = [];
+      for (let j = 0; j < d; j += 2) {
+        const m = Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12)));
+        const a = 2 * Math.PI * rnd();
+        v.push(m * Math.cos(a), m * Math.sin(a));
+      }
+      return makePattern(unitNorm(v.slice(0, d)), i);
+    });
+  }
+
+  // Until 0.6.0 the default β was 1: the weight on the queried pattern was 0.005 at N = 600,
+  // and the recovered state sat near the average of all patterns (cosine 0.10 to the pattern).
+  for (const d of [384, 768, 1536]) {
+    it(`puts a weight of at least 0.99 on the queried pattern, N = 600, d = ${d}`, () => {
+      const patterns = randomUnitPatterns(600, d, 42 + d);
+      for (const q of [0, 17, 299, 599]) {
+        const r = hopfieldRecall(patterns[q].vector, patterns);
+        expect(r.matches[0].pattern.payload).toBe(q);
+        expect(r.matches[0].weight).toBeGreaterThanOrEqual(0.99);
+        let cos = 0;
+        for (let j = 0; j < d; j++) cos += r.recoveredVector[j] * patterns[q].vector[j];
+        expect(cos).toBeGreaterThan(0.99);
+      }
+    });
+  }
+
+  it('an explicit β still applies (β = 1 averages, as before)', () => {
+    const patterns = randomUnitPatterns(600, 384, 7);
+    expect(hopfieldRecall(patterns[0].vector, patterns, { beta: 1 }).matches[0].weight).toBeLessThan(0.05);
+  });
+});
+
+// ===========================================================================
 // topKHopfieldMatches
 // ===========================================================================
 

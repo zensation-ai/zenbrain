@@ -310,7 +310,12 @@ Estimate query difficulty and route retrieval accordingly (reward-modulated).
 ### Hopfield Short-Term Memory — `./hopfield-stm`
 
 #### `hopfieldRecall(query, patterns, options?): HopfieldRecallResult`
-Modern (continuous) Hopfield associative recall over stored patterns.
+Modern (continuous) Hopfield associative recall over stored patterns: `ξ_new = X · softmax(β · Xᵀ · ξ)`, O(N · d)
+per step. The ranking in `matches` does not depend on β; the weights and `recoveredVector` do. The default β is 16
+(1 until 0.6.0): measured on random unit vectors, it puts a weight of at least 0.999 on the queried pattern up to
+N = 2000 at d = 384, 768 and 1536. The β needed for 0.99 grows with the number of patterns, about ln(99 · (N − 1)),
+not with d; for patterns with a typical pairwise cosine c, divide by (1 − c) — 23 at N = 600 and c = 0.5. All
+numbers come from `scripts/measure-docs-numbers.mjs`.
 
 #### `hopfieldEnergy(state, patterns, beta): number`
 Energy of a state given the stored patterns.

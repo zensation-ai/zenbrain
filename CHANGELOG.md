@@ -53,6 +53,18 @@ itself does not change a fact's schedule, so facts stored without the option sta
 `SemanticMemory.storeFact()` takes the weight as a fourth argument and throws a `RangeError` outside 0–1. Tested
 on SQLite and PostgreSQL (0.1 ⇒ 7.7 days, 0.95 ⇒ 13.65); the recipe uses the coordinator now.
 
+### Changed — `hopfieldRecall` defaults to β = 16
+
+With the default β = 1, a recall over 600 random unit patterns put a weight of 0.005 on the queried pattern and
+returned a state near the average of all patterns (cosine 0.10 to the pattern), while the module described sharp
+pattern completion. Measured with `scripts/measure-docs-numbers.mjs` (new table): the β at which every queried
+pattern keeps a weight of at least 0.99 is 9.5 for N = 100, 11.5 for N = 600 and 12.5 for N = 2000 — the same at
+d = 384, 768 and 1536, so the rule depends on N, about ln(99 · (N − 1)), not on d. The default is now 16, which
+gives at least 0.999 up to N = 2000 at those dimensions; a test holds it at N = 600 for all three. Patterns that
+resemble each other need more: about ln(99 · (N − 1)) / (1 − c) for a typical pairwise cosine c (measured 16.5, 23
+and 38.5 for c = 0.3, 0.5 and 0.7 at N = 600). The ranking in `matches` is unchanged at any β. Pass `beta: 1` for
+the old soft averaging.
+
 ### Breaking — `forget()` deletes what consolidation derived from a memory
 
 Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a

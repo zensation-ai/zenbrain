@@ -36,10 +36,16 @@
  *
  * For separated, unit-norm patterns and a large enough β, one step
  * lands on the nearest attractor. How large is large enough depends on
- * N and d: with N = 600 random unit vectors of d = 1536 (measured,
- * scripts/measure-docs-numbers.mjs) the weight on the queried pattern is
- * 0.005 at β = 1, 0.08 at β = 4, 0.83 at β = 8 and above 0.99 from β = 16.
- * The ranking (`matches[0]`) was the queried pattern at every β. The MHN energy:
+ * the number of patterns N and on how similar they are, hardly on d.
+ * Measured (scripts/measure-docs-numbers.mjs, random unit vectors, the
+ * minimum over the queried patterns): the weight on the queried pattern
+ * reaches 0.99 at β = 9.5 for N = 100, 11.5 for N = 600 and 12.5 for
+ * N = 2000, the same at d = 384, 768 and 1536. That is about
+ * ln(99 · (N − 1)); patterns with a typical pairwise cosine c need about
+ * ln(99 · (N − 1)) / (1 − c) (N = 600, d = 768: 16.5 at c = 0.3, 23 at
+ * c = 0.5, 38.5 at c = 0.7). The default β = 16 covers uncorrelated
+ * patterns up to N = 2000 with weight ≥ 0.999. The ranking (`matches[0]`)
+ * is the queried pattern at every β: softmax keeps the order. The MHN energy:
  *
  *     E(ξ) = -1/β · log(Σ_i exp(β · ξ^T · X_i)) + 1/2 · ξ^T · ξ
  *
@@ -56,10 +62,11 @@
  *   Node 22, Apple M1 Pro (scripts/measure-docs-numbers.mjs).
  * - Space: O(N · d) for the pattern matrix. The caller owns the
  *   storage (we do not copy patterns into a private buffer).
- * - β=∞ would give a pure argmax (one-hot softmax). The default β = 1
- *   ranks correctly but returns a state close to the average of the
- *   patterns; pass a larger β (see the measurement above) when you use
- *   `recoveredVector`.
+ * - β=∞ would give a pure argmax (one-hot softmax). The default was 1
+ *   until 0.6.0: it ranked correctly but returned a state close to the
+ *   average of the patterns (weight 0.005 on the queried pattern at
+ *   N = 600). The default is 16 since; pass a larger β for correlated
+ *   patterns (see the measurement above), a smaller one for soft averaging.
  *
  * @module algorithms/hopfield-stm
  */
@@ -83,9 +90,11 @@ export interface HopfieldPattern<T = unknown> {
 
 export interface HopfieldOptions {
   /** Inverse temperature. Higher → sharper attractor, more like argmax;
-   *  lower → smoother averaging across patterns. Default 1.0. The
-   *  ranking does not depend on β; the recovered state does — at
-   *  N = 600, d = 1536 it needs β ≈ 16 to sit on the stored pattern. */
+   *  lower → smoother averaging across patterns. Default 16 (1 until
+   *  0.6.0). The ranking does not depend on β; the recovered state does:
+   *  for weight ≥ 0.99 on the queried pattern, β ≈ ln(99 · (N − 1)) for
+   *  uncorrelated patterns (11.5 at N = 600), divided by (1 − c) for a
+   *  typical pairwise cosine c (measured; see the module header). */
   beta?: number;
   /** Maximum recall iterations. Default 1. One step suffices for
    *  separated patterns at a large enough β; set it higher when the
@@ -120,7 +129,8 @@ export interface HopfieldRecallResult<T> {
 // Defaults
 // ===========================================================================
 
-const DEFAULT_BETA = 1.0;
+/** Measured: weight ≥ 0.99 on the queried pattern for uncorrelated unit patterns up to N = 2000, d 384–1536. */
+const DEFAULT_BETA = 16;
 const DEFAULT_MAX_ITERATIONS = 1;
 const DEFAULT_CONVERGENCE_TOL = 1e-4;
 
