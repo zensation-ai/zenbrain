@@ -166,6 +166,14 @@ export class ProceduralMemory {
     return parseInt(result.rows[0]?.count ?? '0', 10);
   }
 
+  /** One procedure by id, or null. */
+  async getById(id: string): Promise<Procedure | null> {
+    const result = await this.storage.query<ProcedureRow>(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
+    // Checked again here, so a storage that does not evaluate WHERE cannot return another procedure.
+    const row = result.rows.find(r => r.id === id);
+    return row ? rowToProcedure(row) : null;
+  }
+
   /** Delete a procedure. */
   async delete(id: string): Promise<boolean> {
     const result = await this.storage.query(

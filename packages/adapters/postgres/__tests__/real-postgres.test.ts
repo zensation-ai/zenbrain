@@ -109,6 +109,55 @@ open('PostgreSQL with pgvector, through the coordinator', () => {
     expect(Number(marked.n)).toBe(1);
   });
 
+  // forget() follows the consolidation edge (0.6.0). The edge is the episode's JSONB mark, so
+  // these run on PostgreSQL itself: the in-memory double ignores WHERE and would pass vacuously.
+  async function consolidated(content: string) {
+    const c = coordinator();
+    const episodeId = await c.store(content, { type: 'episode', emotionalWeight: 0.9 });
+    expect((await c.consolidate()).promoted).toBeGreaterThanOrEqual(1);
+    const fact = await row<{ id: string }>(
+      "SELECT id FROM learned_facts WHERE content = $1 AND source = 'consolidation'", [content]);
+    return { c, episodeId, factId: fact.id };
+  }
+  const left = async (table: string, content: string) =>
+    Number((await row<{ n: string }>(`SELECT count(*) AS n FROM ${table} WHERE content = $1`, [content])).n);
+
+  it('forgetting an episode deletes the fact consolidated from it: zero rows left', async () => {
+    const content = 'The ferry turned back in the storm and I was frightened.';
+    const { c, episodeId, factId } = await consolidated(content);
+
+    const result = await c.forgetWithDerived(episodeId, 'episodic');
+
+    expect(result.removed).toBe(true);
+    expect(result.alsoForgotten).toContainEqual({ id: factId, layer: 'semantic' });
+    expect(await left('episodic_memories', content)).toBe(0);
+    expect(await left('learned_facts', content)).toBe(0);
+  });
+
+  it('forgetting a fact deletes its episode; a fact id elsewhere in metadata does not count', async () => {
+    const content = 'The roof leaked on my birthday and I was furious.';
+    const { c, episodeId, factId } = await consolidated(content);
+    await c.getEpisodicMemory().store('An unrelated note about gutters.', undefined, 0.2, { source: factId });
+
+    const result = await c.forgetWithDerived(factId, 'semantic');
+
+    expect(result.alsoForgotten.filter((f) => f.layer !== 'working')).toEqual([{ id: episodeId, layer: 'episodic' }]);
+    expect(await left('episodic_memories', content)).toBe(0);
+    expect(await left('learned_facts', content)).toBe(0);
+    expect(await left('episodic_memories', 'An unrelated note about gutters.')).toBe(1);
+  });
+
+  it('cascade: false keeps the episode and its mark, and consolidation does not promote it again', async () => {
+    const content = 'The bridge was closed and I was stuck for hours, exhausted.';
+    const { c, factId } = await consolidated(content);
+
+    expect(await c.forget(factId, 'semantic', { cascade: false })).toBe(true);
+    expect(await left('learned_facts', content)).toBe(0);
+    expect(await left('episodic_memories', content)).toBe(1);
+    await c.consolidate();
+    expect(await left('learned_facts', content)).toBe(0);
+  });
+
   it('writes the FSRS state back on recordReview', async () => {
     const c = coordinator();
     await c.store('The accountant is reachable by phone only.', { type: 'fact' });

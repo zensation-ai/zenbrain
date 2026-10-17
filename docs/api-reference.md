@@ -387,7 +387,8 @@ confidence, procedures their success rate, core blocks count as 1, results witho
 `core: 'matching'` returns only the core blocks that share a content word with the query (stopwords do not
 count); the default `'always'` adds every core block to the candidates, where the blocks compete for `limit`
 like any result (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). Every result carries the `id` of
-the memory in its layer, next to `layer`.
+the memory in its layer, next to `layer`; a result that deduplication kept over others names them in
+`duplicates` (`{ id, layer }[]`, present only when there were any).
 
 Scores are per layer and not on one scale, yet the merged list is sorted by them: with an embedding provider,
 episodic, semantic and procedural results carry the cosine similarity (−1 to 1); without one, lexical relevance
@@ -395,14 +396,30 @@ episodic, semantic and procedural results carry the cosine similarity (−1 to 1
 (up to 1). Core blocks score 0.8 when a query word occurs in them, else 0.5. Working-memory results carry the
 slot's relevance, which without an embedding provider does not depend on the query.
 
-#### `forget(id, layer): Promise<boolean>`
-Delete one memory, addressed by the `id` and `layer` of a recall result. Returns `true` if it was deleted,
-`false` if the layer holds no memory with that id (an id that is not a UUID counts as unknown, not as an error).
-Forgetting is explicit and final for that one memory; nothing in long-term memory is deleted on its own. A fact that
-`consolidate()` derived from an episode is a memory of its own and stays when the episode is forgotten: if the
-content has to go, recall again and forget whatever still returns it. To correct a memory, forget it and store the
-corrected version. Working memory keeps a copy of the most recent seven stores in the same process; it is not part
-of the default recall, and its result can be forgotten with `layer: 'working'`.
+#### `forget(id, layer, options?): Promise<boolean>`
+Delete a memory, addressed by the `id` and `layer` of a recall result, together with what was derived from it.
+Returns `true` if the addressed memory was deleted, `false` if the layer holds no memory with that id (an id that
+is not a UUID counts as unknown, not as an error). Nothing in long-term memory is deleted on its own.
+
+The cascade (`cascade: true`, the default since 0.6.0) follows the edge `consolidate()` records:
+
+| Forgotten | Also deleted |
+|---|---|
+| an episode | the fact consolidated from it, any other episode promoted into that same fact, and the working-memory copies of their content |
+| a fact | the episodes it was consolidated from, and the working-memory copies of their content |
+| a procedure or core block | its working-memory copy |
+| a working-memory result | nothing: the slot is a copy, and forgetting it does not reach into long-term memory |
+
+The edge is the episode's `consolidatedInto` mark, written since 0.4.8; it is found in databases written by earlier
+versions, without a schema change. A fact an LLM distilled into other words is linked the same way — the cascade
+follows the recorded edge and does not search for memories that say something similar. A memory stored on its own
+with the same wording is not derived and stays; `RecallResult.duplicates` names such copies. `{ cascade: false }`
+deletes only the addressed memory (the behaviour before 0.6.0); an episode keeps its mark, so a later
+`consolidate()` does not promote it again. To correct a memory, forget it and store the corrected version.
+
+#### `forgetWithDerived(id, layer, options?): Promise<{ removed, alsoForgotten }>`
+`forget()`, and in addition `alsoForgotten: { id, layer }[]`, every other memory the cascade deleted. Derived
+memories are deleted before the addressed one, which holds the edge, so a call that fails half-way can be repeated.
 
 #### `consolidate(): Promise<ConsolidationResult>`
 Promote emotionally significant episodes (weight above 0.5, among the 100 most recent) to semantic

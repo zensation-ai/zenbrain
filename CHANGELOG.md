@@ -4,6 +4,30 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Breaking — `forget()` deletes what consolidation derived from a memory
+
+Measured on 0.5.1 with a real SQLite file: an episode with emotional weight 0.9, `consolidate()` (one fact, a
+verbatim copy), a recall showing one hit because deduplication hid the semantic twin, `forget(id, 'episodic')` =
+`true` — and the same recall then returned the text from semantic memory. "Forget this" left the content stored,
+and an MCP agent could not see the twin before it forgot.
+
+`forget(id, layer, options?)` now follows the edge `consolidate()` records, in both directions: forgetting an
+episode deletes the fact consolidated from it (and any other episode promoted into that same fact), forgetting a
+fact deletes the episodes it was made from, and every layer's forget deletes the working-memory copies of that
+content. Forgetting a working-memory result deletes only that copy. `{ cascade: false }` restores the old
+behaviour of deleting only the addressed memory; an episode then keeps its `consolidatedInto` mark, so the next
+`consolidate()` does not promote it again. The return value is unchanged (`boolean`); the new
+`forgetWithDerived()` also returns `alsoForgotten: { id, layer }[]`, and the MCP tool `zenbrain_forget` reports
+that list. A fact an LLM distilled into other words is linked the same way: the cascade follows the recorded edge,
+it does not search for memories with a similar meaning. A memory stored on its own with the same wording is not
+derived and stays — `RecallResult.duplicates` (new, also in `zenbrain_recall`) names the copies deduplication hid.
+
+The edge is the episode's `consolidatedInto` mark, written since 0.4.8, so the cascade works on existing
+databases without a schema change: checked with a file written by the published 0.5.2, where forgetting the fact
+now also deleted its episode (zero rows left in both tables; 0.5.2 itself left the fact). The tests read the
+tables directly, on SQLite and on PostgreSQL. **Migration:** pass `{ cascade: false }` where you relied on a
+consolidated fact outliving its episode.
+
 ## [0.5.2] — 2026-10-16
 
 **Fixes and corrected texts, all six packages.** A review of 414 claims the packages and their docs make, 67 of

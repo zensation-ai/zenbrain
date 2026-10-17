@@ -197,7 +197,7 @@ alone; you wire them into your own system where you want them.
 | Routing | `store()` picks the layer: step-by-step content becomes a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core block, anything else a fact. | — |
 | Emotional tagging | At `store()` with automatic routing — not with an explicit `type`, and not when steps or procedural wording already made it a procedure. The weight decides episode or fact, and which episodes consolidation promotes. | `tagEmotion`, `computeEmotionalWeight` |
 | Spaced repetition (FSRS) | Every fact gets an FSRS schedule. `getReviewQueue()` lists the due facts; a review your application reports with `recordReview()` updates the schedule. Recall does not rank by retrievability. | FSRS, prediction-error-coupled FSRS |
-| Forgetting | Nothing in long-term memory decays or is deleted on its own. `forget(id, layer)` deletes that one memory on request; a fact that `consolidate()` derived from an episode is a memory of its own and stays until you forget it too. Working memory decays exponentially with the minutes since its last decay. | Ebbinghaus retention, personal decay profiles |
+| Forgetting | Nothing in long-term memory decays or is deleted on its own. `forget(id, layer)` deletes a memory on request together with what consolidation derived from it (episode ⇄ fact) and its working-memory copies; `{ cascade: false }` deletes only the one memory. Working memory decays exponentially with the minutes since its last decay. | Ebbinghaus retention, personal decay profiles |
 | Consolidation | `consolidate()` turns each emotionally weighted episode among the 100 most recent into a fact, once. | Sleep replay (`selectForReplay`, `simulateReplay`, `pruneWeakConnections`), simulation-selection loop |
 | Hebbian learning | Not used: core keeps no knowledge graph. | Classic and two-factor Hebbian |
 | Bayesian confidence | Not used. | `propagateForRelation` and the rest of the module |
@@ -365,7 +365,7 @@ await memory.store('User prefers TypeScript', { type: 'auto' });
 // Cross-layer search with ranked, deduplicated results
 const results = await memory.recall('programming preferences');
 
-// Forget one memory by the id and layer of a recall result (a fact consolidated from it stays)
+// Forget a memory by the id and layer of a recall result (a fact consolidated from it goes too)
 await memory.forget(results[0].id, results[0].layer);
 
 // Consolidate: emotionally weighted episodes among the 100 most recent become facts, once each;

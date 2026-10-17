@@ -104,6 +104,14 @@ export class SemanticMemory {
     return row ? rowToFact(row) : null;
   }
 
+  /** One fact by id, or null. */
+  async getById(id: string): Promise<MemoryFact | null> {
+    const result = await this.storage.query<FactRow>(`SELECT * FROM ${this.table} WHERE id = $1`, [id]);
+    // Checked again here, so a storage that does not evaluate WHERE cannot return another fact.
+    const row = result.rows.find(r => r.id === id);
+    return row ? rowToFact(row) : null;
+  }
+
   /** Retrieve facts: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
   async search(query: string, limit = 5): Promise<(MemoryFact & { score: number })[]> {
     if (!this.embedding) {

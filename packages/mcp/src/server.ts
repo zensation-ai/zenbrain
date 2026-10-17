@@ -90,8 +90,10 @@ export function createZenBrainServer(
         'zenbrain_store when they share something worth keeping (check with zenbrain_recall ' +
         'first, storing again adds a duplicate). When the user asks you to forget something, or ' +
         'a stored memory is wrong, call zenbrain_forget with the id and layer zenbrain_recall ' +
-        'returned, then recall again: a fact consolidated from it, or the working-memory copy, ' +
-        'is a separate memory, so forget those results too. To correct a memory, forget it and ' +
+        'returned: it also deletes what consolidation derived from that memory and its ' +
+        'working-memory copies, and lists them in alsoForgotten. A recall result\'s duplicates ' +
+        'name copies that recall hid; a copy that zenbrain_forget did not list was stored on its ' +
+        'own, so forget it too. To correct a memory, forget it and ' +
         'store the corrected version. Run ' +
         'zenbrain_consolidate between sessions, not on every turn; zenbrain_health shows how ' +
         'much is stored.',
@@ -232,6 +234,13 @@ export function createZenBrainServer(
               score: z.number(),
               confidence: z.number().optional(),
               emotionalWeight: z.number().optional(),
+              duplicates: z
+                .array(z.object({ id: z.string(), layer: z.string() }))
+                .optional()
+                .describe(
+                  'Memories with (nearly) the same content that recall left out in favour of this one, ' +
+                    'e.g. the fact consolidated from this episode. Present only when there are any.',
+                ),
             }),
           )
           .describe('Memories sorted by score, highest first; scores are per layer (see the tool description).'),
@@ -264,6 +273,7 @@ export function createZenBrainServer(
         score: typeof r.score === 'number' ? r.score : 0,
         ...(typeof r.confidence === 'number' ? { confidence: r.confidence } : {}),
         ...(typeof r.emotionalWeight === 'number' ? { emotionalWeight: r.emotionalWeight } : {}),
+        ...(r.duplicates && r.duplicates.length > 0 ? { duplicates: r.duplicates } : {}),
       }));
 
       const payload = { count: results.length, results, skipped: found.length - usable.length };
@@ -277,11 +287,14 @@ export function createZenBrainServer(
     {
       title: 'Forget a memory',
       description:
-        'Permanently delete one memory, addressed by the id and layer that zenbrain_recall ' +
-        'returned for it. Only this memory is deleted, and that cannot be undone: a fact that ' +
-        'zenbrain_consolidate made from an episode, and the working-memory copy of a recent ' +
-        'store, are memories of their own — recall again and forget what still returns the ' +
-        'content. Use it when the ' +
+        'Permanently delete a memory, addressed by the id and layer that zenbrain_recall ' +
+        'returned for it, together with what was derived from it; this cannot be undone. ' +
+        'Forgetting an episode also deletes the fact zenbrain_consolidate made from it; ' +
+        'forgetting such a fact also deletes the episodes it was made from; every layer also ' +
+        'loses the working-memory copies of that content. Forgetting a working-memory result ' +
+        'deletes only that copy. alsoForgotten lists everything deleted besides the memory ' +
+        'itself. A memory stored separately with the same wording is not derived and stays. ' +
+        'Use it when the ' +
         'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
         'forget it and store the corrected version with zenbrain_store. An id the layer does ' +
         'not hold is reported as not forgotten, not as an error.',
@@ -298,11 +311,14 @@ export function createZenBrainServer(
           .describe('True if the memory was deleted, false if the layer held none with that id.'),
         id: z.string(),
         layer: z.string(),
+        alsoForgotten: z
+          .array(z.object({ id: z.string(), layer: z.string() }))
+          .describe('Memories deleted with it: what consolidation derived from it or it from, and working-memory copies.'),
       },
     },
     async ({ id, layer }) => {
-      const forgotten = await coordinator.forget(id, layer);
-      const payload = { forgotten, id, layer };
+      const { removed: forgotten, alsoForgotten } = await coordinator.forgetWithDerived(id, layer);
+      const payload = { forgotten, id, layer, alsoForgotten };
       return { content: text(payload), structuredContent: payload };
     },
   );

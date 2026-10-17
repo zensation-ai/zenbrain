@@ -35,7 +35,7 @@ await memory.store('User prefers TypeScript', { type: 'auto' });
 // Cross-layer search: deduplicated results, sorted by each layer's score
 const results = await memory.recall('programming preferences');
 
-// Forget one memory by the id and layer of a recall result (a fact consolidated from it stays)
+// Forget a memory by the id and layer of a recall result (a fact consolidated from it goes too)
 await memory.forget(results[0].id, results[0].layer);
 
 // Consolidate: emotionally weighted episodes among the 100 most recent become facts, once each;

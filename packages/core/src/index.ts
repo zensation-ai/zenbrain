@@ -36,6 +36,8 @@ export {
   type RecallLayer,
   type RecallOptions,
   type RecallResult,
+  type ForgetOptions,
+  type ForgetResult,
   type ConsolidationResult,
   type MemoryHealth,
 } from './coordinator';

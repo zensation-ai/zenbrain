@@ -186,3 +186,35 @@ describe('EpisodicMemory', () => {
     expect(params[2]).toBeNull(); // embedding should be null on failure
   });
 });
+
+describe('EpisodicMemory.findConsolidatedInto', () => {
+  const FACT = '11111111-1111-4111-8111-111111111111';
+  const rows = [
+    { id: 'a', content: 'promoted', metadata: JSON.stringify({ consolidatedInto: FACT }) },
+    { id: 'b', content: 'mentions the id elsewhere', metadata: { source: FACT } },
+    { id: 'c', content: 'promoted elsewhere', metadata: { consolidatedInto: '22222222-2222-4222-8222-222222222222' } },
+  ];
+
+  it('narrows by text in the database and keeps only rows whose mark is the fact', async () => {
+    const query = vi.fn(async () => ({ rows, rowCount: rows.length }));
+    const episodic = new EpisodicMemory({ storage: { query, transaction: vi.fn() } as unknown as StorageAdapter });
+
+    const found = await episodic.findConsolidatedInto(FACT);
+
+    expect(found.map((e) => e.id)).toEqual(['a']);
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0][0]).toMatch(/metadata::text LIKE \$1/);
+    expect(query.mock.calls[0][1]).toEqual([`%${FACT}%`]);
+  });
+
+  it('falls back to scanning episodes with metadata when the storage rejects the narrowing query', async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes('LIKE')) throw new Error('no LIKE here');
+      return { rows, rowCount: rows.length };
+    });
+    const episodic = new EpisodicMemory({ storage: { query, transaction: vi.fn() } as unknown as StorageAdapter });
+
+    expect((await episodic.findConsolidatedInto(FACT)).map((e) => e.id)).toEqual(['a']);
+    expect(query.mock.calls[1][0]).toMatch(/metadata IS NOT NULL/);
+  });
+});

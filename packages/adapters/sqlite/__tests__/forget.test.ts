@@ -62,17 +62,37 @@ describe('forget by id', () => {
     await c.close();
   });
 
-  it('removes the working-memory copy only when that result is forgotten too', async () => {
+  it('removes the working-memory copy with the memory, and keeps it with cascade: false', async () => {
+    // Until 0.6.0 the copy stayed until it was forgotten on its own.
+    for (const m of LONG_TERM) {
+      const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+      await c.store(m.content, { type: m.type });
+      const found = await hit(c, m.layer, m.content);
+      expect(await hit(c, 'working', m.content), `${m.layer}: copy before`).toBeDefined();
+
+      expect(await c.forget(found!.id, m.layer)).toBe(true);
+      expect(await hit(c, 'working', m.content), `${m.layer}: copy after`).toBeUndefined();
+      await c.close();
+    }
+
     const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
     await c.store('The user lives in Hamburg.', { type: 'fact' });
-
     const fact = await hit(c, 'semantic', 'The user lives in Hamburg.');
-    await c.forget(fact!.id, 'semantic');
+    expect(await c.forget(fact!.id, 'semantic', { cascade: false })).toBe(true);
     const copy = await hit(c, 'working', 'The user lives in Hamburg.');
     expect(copy).toBeDefined();
-
     expect(await c.forget(copy!.id, 'working')).toBe(true);
     expect(await hit(c, 'working', 'The user lives in Hamburg.')).toBeUndefined();
+    await c.close();
+  });
+
+  it('forgets only the slot when a working-memory result is forgotten', async () => {
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    await c.store('The user lives in Hamburg.', { type: 'fact' });
+    const copy = await hit(c, 'working', 'The user lives in Hamburg.');
+
+    expect(await c.forgetWithDerived(copy!.id, 'working')).toEqual({ removed: true, alsoForgotten: [] });
+    expect(await hit(c, 'semantic', 'The user lives in Hamburg.')).toBeDefined();
     await c.close();
   });
 });
