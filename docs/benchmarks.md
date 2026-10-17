@@ -35,8 +35,10 @@ system. The advantage is most pronounced in the judge-graded comparisons and on 
 reasoning.
 
 **Ablations.** Under moderate load, fourteen of the fifteen mechanism ablations look costless.
-Raising decay to 0.25/day over 60 days, with no change to the mechanisms, makes nine of the
-fifteen individually critical (Delta-Q up to -93.7%; Wilcoxon, 10 seeds). Mild-load ablation
+With decay raised to 0.25/day over 60 days and no change to the mechanisms, ten of the fifteen
+reach the criterion printed in the paper, a Wilcoxon test over ten seeds with the same
+p = 5.062 × 10⁻³ for all ten: removing nine lowers quality (Delta-Q down to -93.7%), removing
+PriorityMap raises it (correction notice of 18 September 2026). Mild-load ablation
 systematically underestimates architectural contributions — the paper calls this cooperative
 masking.
 
