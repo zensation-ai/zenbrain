@@ -4,8 +4,10 @@
  * Complements the basic Hebbian dynamics of `./hebbian` (it does not call
  * them) with a two-factor (weight, variance) consolidation model.
  *
- * Based on: Zenke et al. (PNAS 2025) — "Two-factor synaptic consolidation
- * reconciles robustness with plasticity"
+ * The (weight, variance) form is our own construction. Related neuroscience
+ * work: Iatropoulos, Gerstner & Brea (PNAS 2025, doi:10.1073/pnas.2422602122),
+ * "Two-factor synaptic consolidation reconciles robustness with pruning and
+ * homeostatic scaling".
  *
  * Each edge carries (weight, variance). Variance decreases with activation
  * frequency (maturation), and mature edges decay more slowly

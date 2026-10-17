@@ -184,7 +184,7 @@ import {
 ```
 
 #### `getRetrievabilityWithCI(retrievability, reviewCount): ConfidenceInterval`
-Get retrievability with 95% confidence interval. More reviews = narrower interval.
+Get retrievability with a heuristic Wald-type band (nominally 95 %, z = 1.96; not a calibrated confidence interval). More reviews = narrower band.
 
 #### `propagateWithCI(base, source, weight, factor): ConfidenceInterval`
 Propagate confidence with uncertainty bounds.
