@@ -4,15 +4,17 @@
  * The same module ships as @zensation/algorithms/hebbian-two-factor; this copy stays so
  * the ablation runs unchanged.
  * Extends the basic Hebbian dynamics from @zensation/algorithms/hebbian
- * with a novel two-factor (weight, variance) consolidation model.
+ * with a two-factor (weight, variance) consolidation model.
  *
- * Based on: Zenke et al. (PNAS 2025) — "Two-factor synaptic consolidation
- * reconciles robustness with plasticity"
+ * The (weight, variance) form is our own construction. Related neuroscience
+ * work: Iatropoulos, Gerstner & Brea (PNAS 2025, doi:10.1073/pnas.2422602122),
+ * "Two-factor synaptic consolidation reconciles robustness with pruning and
+ * homeostatic scaling".
  *
  * Each edge carries (weight, variance). Variance decreases with activation
  * frequency (maturation), making mature edges robust against overwriting.
- * This is mathematically equivalent to Elastic Weight Consolidation (EWC)
- * where edge maturity (1/variance) serves as the Fisher Information proxy.
+ * `computeEWCPenalty` gives an EWC-style penalty, (λ/2) · (1/variance) · Δw²,
+ * with 1/variance standing in for the Fisher information.
  *
  * Note: The basic Hebbian module in @zensation/algorithms provides simple
  * weight-based operations (strengthening, decay, normalization). This file

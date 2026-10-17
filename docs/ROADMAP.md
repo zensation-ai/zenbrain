@@ -24,7 +24,8 @@ external deadlines; the items below are directions, not dated commitments.
 - `@zensation/core@0.2.x` — `MemoryCoordinator` orchestrating all seven layers
   (auto-routing `store()`, cross-layer `recall()`, `consolidate()`, `decay()`,
   FSRS review queue).
-- Sleep Consolidation, 95% confidence intervals, and retention-curve
+- Sleep Consolidation, heuristic uncertainty bands (Wald-type, not calibrated
+  confidence intervals), and retention-curve
   visualization added to `@zensation/algorithms`.
 - Reliable dual ESM/CJS builds (migrated to `tsup`); packaging fixes.
 

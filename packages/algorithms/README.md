@@ -36,7 +36,7 @@ Each is a separate sub-path import. Grounded in recent neuroscience and ML liter
 | Algorithm | Sub-path | Inspired by |
 |-----------|----------|-------------|
 | **Prediction-Error coupled FSRS** | `./fsrs-vmPFC` | own construction (an earlier attribution to Zou et al. 2025 is withdrawn in the correction notice) |
-| **Two-Factor Synaptic Hebbian** | `./hebbian-two-factor` | Zenke et al. 2025, two-factor consolidation |
+| **Two-Factor Synaptic Hebbian** | `./hebbian-two-factor` | own construction; related: Iatropoulos, Gerstner & Brea 2025, two-factor consolidation |
 | **Simulation-Selection Sleep Loop** | `./sleep-simulation-selection` | Frontiers Comp. Neurosci. 2025, RL replay |
 | **Spectral KG Health (Fiedler value)** | `./spectral-health` | Algebraic graph theory |
 | **Information-Bottleneck Budget** | `./ib-budget` | MemFly 2026, IB-based retention |
