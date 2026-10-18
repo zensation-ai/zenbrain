@@ -70,13 +70,15 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 On LongMemEval-500, **three of nine head-to-head comparisons hold** against
 Letta, Mem0 and A-Mem — all three against A-Mem, the remaining six are ties, none lost. Three
-competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched. It
-reaches **91.3% of a full-context oracle's binary-judge accuracy at 1/109.6 of the per-query
-token cost** (47.7% vs. 52.2%).
+competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched. The measured ZenBrain arm (per the
+correction notice a Python port of a test-harness class, not the seven-layer system) reaches
+**91.3% of the binary-judge accuracy of a full-context comparison arm (whose answer model reads the whole history) with 1/109.6 of its input tokens in the answer step**
+(47.7% vs. 52.2%); building the memory is not counted.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. With `nomic-embed-text` as the embedding provider you get the
-configuration those figures were measured in.
+to install. `nomic-embed-text` can be added as the embedding provider; it was the embedder of the
+measured run. The figures above were not measured with this package: per the correction notice,
+the measured arm is a Python port of a test-harness class, not an import of the packages.
 
 The paper prints where ZenBrain loses as well: on LoCoMo, substring-based aggregate F1 favours
 lexical retrieval (BM25) by metric design, and we do not contest that. The advantage is most
@@ -114,7 +116,7 @@ the paper archive; each description was measured against the version named after
   [10.5281/zenodo.22161977](https://doi.org/10.5281/zenodo.22161977) (described here: v1).
   Per-(system, judge, seed) judged outputs, the flag manifests as recorded at run time, a
   `SHA256SUMS.txt` covering every file in the package, and the analysis scripts. Three of those
-  scripts are stdlib-only and self-checking — the oracle comparison behind the 91.3% figure, the
+  scripts are stdlib-only and self-checking — the full-context comparison behind the 91.3% figure, the
   judge-agreement figures, and the real-pipeline flag-ablation table: each prints every re-derived
   value next to the reference it has to match, and exits non-zero on mismatch. The significance
   tests behind the nine head-to-head comparisons against Letta, Mem0 and A-Mem sit in a separate

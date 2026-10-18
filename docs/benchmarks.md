@@ -17,8 +17,8 @@ competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and versi
 |---|---|
 | Head-to-head comparisons against Letta, Mem0 and A-Mem, three LLM judges each | 3 hold (all against A-Mem), 6 ties, 0 lost |
 | Significance | Bonferroni-corrected, alpha = 0.05/18, version-matched judges |
-| Share of full-context oracle binary-judge accuracy | 91.3% (47.7% vs. 52.2%) |
-| Per-query token cost against that oracle | 1/109.6 |
+| Share of the binary-judge accuracy of a full-context comparison arm (answer model reads the whole history); measured arm: a Python port of a test-harness class (correction notice) | 91.3% (47.7% vs. 52.2%) |
+| Input tokens in the answer step against that arm (building the memory not counted) | 1/109.6 |
 | Multi-layer routing vs. flat single-layer baseline (LoCoMo) | +20.7% F1 |
 | Cost of principled forgetting (NoDecay ablation) | Delta-P@5 = 0.002 |
 
