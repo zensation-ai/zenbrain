@@ -4,6 +4,16 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Documentation
+
+- README and `docs/benchmarks.md`: the LongMemEval-500 comparison arm was called a "full-context oracle" and the
+  ratio a "per-query token cost". Both were imprecise. In LongMemEval, "oracle" names the condition in which the model sees
+  only the evidence sessions; the comparison arm reads the whole history, and only the input tokens in the answer step are
+  counted, not the building of the memory. The figures also name what was measured: per the correction notice
+  ([10.5281/zenodo.22831087](https://doi.org/10.5281/zenodo.22831087), class E) a Python port of a test-harness class, not
+  an import of these packages; the README sentence that `nomic-embed-text` gives "the configuration those figures were
+  measured in" now says so. No package README carries these figures, so no release is needed.
+
 ## [0.6.0] — 2026-10-17
 
 **Behaviour changes, decided after the 0.5.2 audit.** `forget()` now deletes what consolidation linked to a
