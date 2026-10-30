@@ -16,6 +16,10 @@ All notable changes to ZenBrain are documented in this file. The format is based
 - The plugin carries the ZenSation spark logo as its listing icon (`plugins/zenbrain/.claude-plugin/icon.png`, 1024 × 1024,
   rendered from the canonical `spark-logo.svg` on a white square), as Anthropic's plugin directory asks for one.
 
+- Plugin 0.1.1 runs `@zensation/mcp@0.3.0` instead of the unpinned package. Anthropic's plugin directory blocks a plugin whose `npx`
+  launcher is not pinned to an exact version ("Unpinned npx launcher"). Each later `@zensation/mcp` release now needs the pin and
+  the plugin version raised together.
+
 ### Documentation
 
 - README and `docs/benchmarks.md`: the LongMemEval-500 comparison arm was called a "full-context oracle" and the

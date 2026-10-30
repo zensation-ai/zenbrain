@@ -1,7 +1,7 @@
 # ZenBrain plugin for Claude Code
 
 Memory that lasts across sessions, as a Claude Code plugin. The plugin starts the
-[ZenBrain MCP server](../../packages/mcp) (`@zensation/mcp`): five tools, one local SQLite
+[ZenBrain MCP server](https://github.com/zensation-ai/zenbrain/tree/main/packages/mcp) (`@zensation/mcp`): five tools, one local SQLite
 file, no account and no network call of its own.
 
 ## Install
@@ -16,13 +16,14 @@ Inside a session the same works as `/plugin install zenbrain --marketplace zensa
 older versions add the marketplace first: `claude plugin marketplace add zensation-ai/zenbrain`, then
 `claude plugin install zenbrain@zensation-ai`.
 
-The server needs **Node.js 22 or newer** on your `PATH`; `npx` fetches `@zensation/mcp` the first
-time it starts.
+The server needs **Node.js 22 or newer** on your `PATH`. The plugin runs `@zensation/mcp` at an exact version (0.3.0)
+through `npx`, which downloads that version from the npm registry the first time it starts; after that the server makes no
+network call of its own. A new server release reaches the plugin with a new plugin version.
 
 ## Where the memory lives
 
 By default in `~/.zenbrain/memory.db`, the same file the `claude mcp add` line in the
-[ZenBrain README](../../README.md) uses, so both setups share one memory. To use another file:
+[ZenBrain README](https://github.com/zensation-ai/zenbrain#readme) uses, so both setups share one memory. To use another file:
 
 ```bash
 claude plugin install zenbrain@zensation-ai --config db_path=~/notes/zenbrain.db
@@ -42,4 +43,4 @@ uninstall the plugin; delete it yourself if you want the memory gone.
 | `zenbrain_health` | How full each layer is |
 
 The full description of each tool, and what this release does not do, is in the
-[MCP server README](../../packages/mcp/README.md).
+[MCP server README](https://github.com/zensation-ai/zenbrain/blob/main/packages/mcp/README.md).
