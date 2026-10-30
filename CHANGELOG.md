@@ -13,6 +13,8 @@ All notable changes to ZenBrain are documented in this file. The format is based
   Claude Code 2.1.308 in an empty home directory: `claude plugin validate --strict` passes for the plugin and the
   marketplace, the server connects, a stored memory comes back on recall, `--config db_path=…` moves the file, and
   uninstalling the plugin leaves the memory file in place. No package changes, so no release is needed.
+- The plugin carries the ZenSation spark logo as its listing icon (`plugins/zenbrain/.claude-plugin/icon.png`, 1024 × 1024,
+  rendered from the canonical `spark-logo.svg` on a white square), as Anthropic's plugin directory asks for one.
 
 ### Documentation
 
