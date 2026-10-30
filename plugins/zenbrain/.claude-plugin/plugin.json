@@ -1,7 +1,7 @@
 {
   "name": "zenbrain",
   "displayName": "ZenBrain Memory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Memory for Claude Code that lasts across sessions: the ZenBrain MCP server with five tools (store, recall, forget, consolidate, health) over one local SQLite file. No account, no network call of its own.",
   "author": {
     "name": "Zensation AI",
