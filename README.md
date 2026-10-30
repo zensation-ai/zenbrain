@@ -80,7 +80,7 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 On LongMemEval-500, **three of nine head-to-head comparisons hold** against
 Letta, Mem0 and A-Mem — all three against A-Mem, the remaining six are ties, none lost. Three
 competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched. The measured ZenBrain arm (per the
-correction notice a Python port of a test-harness class, not the seven-layer system) reaches
+[correction notice](https://doi.org/10.5281/zenodo.22831086) a Python port of a test-harness class, not the seven-layer system) reaches
 **91.3% of the binary-judge accuracy of a full-context comparison arm (whose answer model reads the whole history) with 1/109.6 of its input tokens in the answer step**
 (47.7% vs. 52.2%); building the memory is not counted.
 
