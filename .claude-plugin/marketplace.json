@@ -1,0 +1,17 @@
+{
+  "name": "zensation-ai",
+  "owner": {
+    "name": "Zensation AI",
+    "url": "https://zensation.ai"
+  },
+  "metadata": {
+    "description": "Claude Code plugins from the ZenBrain repository"
+  },
+  "plugins": [
+    {
+      "name": "zenbrain",
+      "source": "./plugins/zenbrain",
+      "description": "Memory for Claude Code that lasts across sessions: the ZenBrain MCP server, one local SQLite file, no account"
+    }
+  ]
+}
