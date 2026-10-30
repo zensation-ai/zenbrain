@@ -6,13 +6,13 @@ file, no account and no network call of its own.
 
 ## Install
 
-From your shell (Claude Code 2.1.275 or newer):
+From your shell (Claude Code 2.1.292 or newer):
 
 ```bash
 claude plugin install zenbrain --marketplace zensation-ai/zenbrain
 ```
 
-Inside a session the same works as `/plugin install zenbrain --marketplace zensation-ai/zenbrain`. On
+Inside a session the same works as `/plugin install zenbrain --marketplace zensation-ai/zenbrain` (2.1.275 or newer). On
 older versions add the marketplace first: `claude plugin marketplace add zensation-ai/zenbrain`, then
 `claude plugin install zenbrain@zensation-ai`.
 
