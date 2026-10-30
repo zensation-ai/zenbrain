@@ -19,7 +19,7 @@ claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx
 ```
 
 <p align="center">
-  <sub>The same MCP server runs in Claude Desktop and Cursor (<a href="./packages/mcp">configuration</a>) · Vercel AI SDK middleware: <a href="./packages/ai-sdk"><code>@zensation/ai-sdk</code></a></sub>
+  <sub>The same MCP server runs in Claude Desktop and Cursor (<a href="./packages/mcp">configuration</a>) and comes as a <a href="./plugins/zenbrain">Claude Code plugin</a> · Vercel AI SDK middleware: <a href="./packages/ai-sdk"><code>@zensation/ai-sdk</code></a></sub>
 </p>
 
 <p align="center">

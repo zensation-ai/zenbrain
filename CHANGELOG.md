@@ -4,6 +4,16 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Added
+
+- Claude Code plugin in `plugins/zenbrain`, listed in a marketplace file at the repository root
+  (`.claude-plugin/marketplace.json`, marketplace `zensation-ai`). It starts `@zensation/mcp` through `npx` with the
+  memory in `~/.zenbrain/memory.db`, the same file as the README's `claude mcp add` line, and lets the user choose
+  another file (`db_path`). Install: `claude plugin install zenbrain --marketplace zensation-ai/zenbrain`. Checked with
+  Claude Code 2.1.308 in an empty home directory: `claude plugin validate --strict` passes for the plugin and the
+  marketplace, the server connects, a stored memory comes back on recall, `--config db_path=…` moves the file, and
+  uninstalling the plugin leaves the memory file in place. No package changes, so no release is needed.
+
 ### Documentation
 
 - README and `docs/benchmarks.md`: the LongMemEval-500 comparison arm was called a "full-context oracle" and the

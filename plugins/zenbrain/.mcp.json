@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zenbrain": {
+      "command": "npx",
+      "args": ["-y", "@zensation/mcp"],
+      "env": {
+        "ZENBRAIN_DB": "${user_config.db_path}"
+      }
+    }
+  }
+}
