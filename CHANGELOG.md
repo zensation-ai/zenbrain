@@ -13,6 +13,12 @@ All notable changes to ZenBrain are documented in this file. The format is based
   ([10.5281/zenodo.22831087](https://doi.org/10.5281/zenodo.22831087), class E) a Python port of a test-harness class, not
   an import of these packages; the README sentence that `nomic-embed-text` gives "the configuration those figures were
   measured in" now says so. No package README carries these figures, so no release is needed.
+- README head: the second line listed ten research-module names (vmPFC-FSRS, Fiedler-value KG health, …) before
+  saying what the library does, the first install command sat in line 218 and the MCP server for Claude Code was first
+  named in line 389. The line now says what ZenBrain is, and an install block follows the badges: `npm install` for the
+  library and a `claude mcp add` one-liner for the MCP server (checked against `@zensation/mcp` 0.3.0 on Node 22: the
+  server creates `~/.zenbrain` itself, a stored memory comes back on recall). The benchmark block now links the
+  correction notice it cites (concept DOI [10.5281/zenodo.22831086](https://doi.org/10.5281/zenodo.22831086)).
 
 ## [0.6.0] — 2026-10-17
 
