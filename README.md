@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">ZenBrain</h1>
   <p align="center"><strong>The neuroscience-inspired memory system for AI agents.</strong></p>
-  <p align="center">7 memory layers and a library of 20 neuroscience-inspired algorithm modules: FSRS, Hebbian learning, sleep replay, emotional tagging, plus 10 advanced research modules (vmPFC-FSRS, two-factor Hebbian, simulation-selection sleep, Fiedler-value KG health, IB budget, Hopfield STM, ...).<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 945 tests. Extracted from a production AI platform.</p>
+  <p align="center">Memory for agents that lasts across sessions: seven layers, from working memory to long-term facts and procedures, and 20 tested algorithm modules for what memory research describes, such as spaced repetition, Hebbian strengthening, sleep replay and emotional tagging.<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 945 tests. Extracted from a production AI platform.</p>
 </p>
 
 <p align="center">
@@ -11,6 +11,15 @@
   <a href="https://github.com/zensation-ai/zenbrain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7+-blue.svg" alt="TypeScript"></a>
   <img src="https://img.shields.io/badge/third--party%20dependencies-0-brightgreen.svg" alt="No third-party dependencies (algorithms and core)">
+</p>
+
+```bash
+npm install @zensation/algorithms     # the library, Node 22 or newer
+claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx -y @zensation/mcp   # memory for Claude Code
+```
+
+<p align="center">
+  <sub>The same MCP server runs in Claude Desktop and Cursor (<a href="./packages/mcp">configuration</a>) · Vercel AI SDK middleware: <a href="./packages/ai-sdk"><code>@zensation/ai-sdk</code></a></sub>
 </p>
 
 <p align="center">
