@@ -68,7 +68,7 @@ for (const file of ['README.md', 'PRIVACY.md']) {
 }
 
 // 4. The pinned version is on npm, and the lock holds the tarball npm serves.
-const res = await fetch(`${REGISTRY}${PKG.replace('/', '%2f')}`, { headers: { accept: 'application/json' } });
+const res = await fetch(`${REGISTRY}${PKG.replaceAll('/', '%2f')}`, { headers: { accept: 'application/json' } });
 if (!res.ok) {
   problems.push(`registry answered ${res.status} for ${PKG}`);
 } else {
