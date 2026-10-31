@@ -120,7 +120,7 @@ export function createZenBrainServer(
         'Returns the id of the stored memory. ' +
         'If it may already be stored, check with zenbrain_recall first: storing it again adds ' +
         'a duplicate.',
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: 'Store a memory', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       inputSchema: {
         content: z.string().min(1).describe('The memory to store, in plain language.'),
         type: z
@@ -198,7 +198,7 @@ export function createZenBrainServer(
         'Use this before answering when the user refers to something from an earlier ' +
         'session. To see how much is stored rather than what, use zenbrain_health; ' +
         'to save something, use zenbrain_store.',
-      annotations: { readOnlyHint: true, openWorldHint: false },
+      annotations: { title: 'Recall memories', readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         query: z.string().min(1).describe('What to look for, in plain language.'),
         layers: z
@@ -312,7 +312,7 @@ export function createZenBrainServer(
         'user asks to forget something or a stored memory is wrong; to correct a memory, ' +
         'forget it and store the corrected version with zenbrain_store. An id the layer does ' +
         'not hold is reported as not forgotten, not as an error.',
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+      annotations: { title: 'Forget a memory', readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       inputSchema: {
         id: z.string().min(1).describe('The id of one result from zenbrain_recall.'),
         layer: z
@@ -350,7 +350,7 @@ export function createZenBrainServer(
         'long-term memory is deleted. Run it between sessions or after a batch of ' +
         'zenbrain_store calls, not on every turn; compare zenbrain_health before and after ' +
         'to see the effect.',
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: 'Consolidate memory', readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
       inputSchema: {},
       outputSchema: {
         promoted: z.number().describe('Episodes promoted to semantic facts in this pass.'),
@@ -375,7 +375,7 @@ export function createZenBrainServer(
         'episodes, facts and how many are due for review, procedures, core blocks. Read-only ' +
         'and cheap, safe to call at any time. It returns counts only; to read the memories ' +
         'themselves, use zenbrain_recall.',
-      annotations: { readOnlyHint: true, openWorldHint: false },
+      annotations: { title: 'Inspect memory state', readOnlyHint: true, openWorldHint: false },
       inputSchema: {},
       outputSchema: {
         working: z

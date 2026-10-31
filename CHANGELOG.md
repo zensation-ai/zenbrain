@@ -2,7 +2,14 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.1] — 2026-10-31
+
+Only `@zensation/mcp` changes version; the other packages stay at the versions 0.6.0 published, and the publish job
+skips them. The Claude Code plugin and the documentation changes below reach users through the repository.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/mcp` | 0.3.0 | 0.3.1 | `annotations.title` on every tool; an unfilled `${…}` in `ZENBRAIN_DB` no longer becomes a file name |
 
 ### Added
 
@@ -25,6 +32,27 @@ All notable changes to ZenBrain are documented in this file. The format is based
   example prompts, a troubleshooting section (Node.js 22) and the support and security contacts. Checked on
   31 October 2026 with Claude Code 2.1.308 in empty home directories, and with the server's network access blocked:
   all five tools work. Claude Code itself does not read the new `plugin.json` fields, so nothing changes at runtime.
+
+### Changed — `@zensation/mcp` 0.3.1: tool titles in the annotations, an unfilled store path no longer becomes a file name
+
+- Every tool now carries its title in its annotations as well (`annotations.title`: "Store a memory", "Recall memories",
+  "Forget a memory", "Consolidate memory", "Inspect memory state"). Clients that show annotations rather than the tool's
+  own title, and Anthropic's software directory, which asks for a title in the annotations, now see a readable name. The
+  read-only and destructive hints were already set and stay as they were. A new test checks that each tool has the same
+  title in both places, that `readOnlyHint` is set on all five and that none claims to reach outside the local file; it
+  fails when one title is removed.
+- The plugin sets `ZENBRAIN_DB` to `${user_config.db_path}`, which Claude Code fills in. Anthropic's directory portal
+  warns that such `${user_config…}` values are not supported on every platform; a host that does not fill it would pass
+  the bare text on, and the server would have taken it as a relative file name and created a file of that name in
+  whatever directory it was started in, or failed where nothing can be written. A value that is only such a `${…}`
+  placeholder now counts as `~/.zenbrain/memory.db`, the plugin's default, and the server says so on stderr. A path
+  that merely contains `${` is left alone. Tests cover the placeholder with and without surrounding spaces and the path that contains one; the first
+  fails without the change.
+- The package README says which tools are read-only and which are marked destructive, gives the Claude Code one-liner and
+  the plugin install, documents the placeholder rule, and calls the schedule of the semantic layer FSRS-style.
+- The test counts in the README and the FAQ now say which release they describe ("948 tests as of v0.6.1"), and
+  `scripts/verify-test-counts.mjs` fails when that release is not the newest one in this file, so a count and its stand
+  move together.
 
 ### Documentation
 
