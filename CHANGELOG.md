@@ -39,7 +39,8 @@ skips them. The Claude Code plugin and the documentation changes below reach use
   as Anthropic's plugin directory asks for its Verified badge ("Launcher lock missing"). The new CI step
   `scripts/verify-plugin-pin.mjs` fails when the launcher, the lock, `package.json`, the README and `PRIVACY.md` name
   different versions, when the launcher carries any npx option besides `-y`, when the pinned version is not on npm, or
-  when the lock's hash differs from the tarball npm serves.
+  when the lock's hash differs from the tarball npm serves. `PRIVACY.md` writes the company name in running text as
+  "ZenSation AI"; the structured `author.name` and `owner.name` fields keep "Zensation AI".
 
 ### Changed — `@zensation/mcp` 0.3.1: tool titles in the annotations, an unfilled store path no longer becomes a file name
 
