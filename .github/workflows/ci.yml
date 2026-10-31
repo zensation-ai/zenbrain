@@ -100,6 +100,11 @@ jobs:
       - name: Test counts in the docs match the suites
         run: node scripts/verify-test-counts.mjs
 
+      # The plugin pins one @zensation/mcp version in five places, and a pin to a version that is
+      # not on npm yet breaks every install. Check that they agree and that npm serves the pin.
+      - name: Plugin pin, lock and docs agree, and npm serves the pin
+        run: node scripts/verify-plugin-pin.mjs
+
       # The paper prints a reproduction procedure and an abstract sentence that says the
       # ablation tables reproduce in under a minute. Run it, and compare the numbers it
       # produces against the ones the published tables were generated from — otherwise

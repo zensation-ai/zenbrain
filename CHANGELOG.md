@@ -34,7 +34,12 @@ skips them. The Claude Code plugin and the documentation changes below reach use
   all five tools work. Claude Code itself does not read the new `plugin.json` fields, so nothing changes at runtime.
 - Plugin 0.1.3 runs `@zensation/mcp@0.3.1`, whose tools carry their titles in the annotations and which falls back to
   `~/.zenbrain/memory.db` when `${user_config.db_path}` reaches it unfilled. `plugin.json` gains `termsOfServiceUrl`,
-  pointing at the Apache-2.0 licence that governs the use of the plugin and the server.
+  pointing at the Apache-2.0 licence that governs the use of the plugin and the server. The plugin folder now carries a
+  `package.json` and `package-lock.json` for `@zensation/mcp@0.3.1`, every package with its npm source and sha512 hash,
+  as Anthropic's plugin directory asks for its Verified badge ("Launcher lock missing"). The new CI step
+  `scripts/verify-plugin-pin.mjs` fails when the launcher, the lock, `package.json`, the README and `PRIVACY.md` name
+  different versions, when the launcher carries any npx option besides `-y`, when the pinned version is not on npm, or
+  when the lock's hash differs from the tarball npm serves.
 
 ### Changed — `@zensation/mcp` 0.3.1: tool titles in the annotations, an unfilled store path no longer becomes a file name
 

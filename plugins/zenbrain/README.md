@@ -20,7 +20,10 @@ The server needs **Node.js 22 or newer** on your `PATH`. The plugin runs `@zensa
 through `npx`, which downloads that version from the npm registry the first time it starts; after that the server makes no
 network call of its own. A new server release reaches the plugin with a new plugin version. (The `claude mcp add`
 line in the [ZenBrain README](https://github.com/zensation-ai/zenbrain#readme) is not pinned and starts the newest release; Anthropic's
-plugin directory asks plugins to pin the packages they launch.)
+plugin directory asks plugins to pin the packages they launch.) Next to the launcher, the plugin folder carries a
+`package.json` and `package-lock.json` for that version: the exact version, npm source and sha512 hash of every package
+the server installs. CI checks on every push that the lock, the launcher and this page name the same version and that npm
+serves it.
 
 ## Where the memory lives
 
