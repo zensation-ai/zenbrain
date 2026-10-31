@@ -1,6 +1,6 @@
 # Privacy: ZenBrain plugin for Claude Code
 
-Last updated: 3 November 2026. This covers the plugin and the MCP server it starts, `@zensation/mcp` 0.3.1.
+Last updated: 31 October 2026. This covers the plugin and the MCP server it starts, `@zensation/mcp` 0.3.1.
 
 ## What is stored
 
