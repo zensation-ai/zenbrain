@@ -23,7 +23,9 @@ line in the [ZenBrain README](https://github.com/zensation-ai/zenbrain#readme) i
 plugin directory asks plugins to pin the packages they launch.) Next to the launcher, the plugin folder carries a
 `package.json` and `package-lock.json` for that version: the exact version, npm source and sha512 hash of every package
 the server installs. CI checks on every push that the lock, the launcher and this page name the same version and that npm
-serves it.
+serves it. The `package.json` and `package-lock.json` at the root of this repository belong to the ZenBrain libraries, not
+to the plugin: the plugin's dependencies come only from the lock in this folder, and every package in it is fetched from
+the public npm registry (`registry.npmjs.org`).
 
 ## Where the memory lives
 
