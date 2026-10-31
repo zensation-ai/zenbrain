@@ -46,3 +46,32 @@ uninstall the plugin; delete it yourself if you want the memory gone.
 
 The full description of each tool, and what this release does not do, is in the
 [MCP server README](https://github.com/zensation-ai/zenbrain/blob/main/packages/mcp/README.md).
+
+## Examples
+
+Claude decides when to call a tool; these prompts show the tool each one usually leads to.
+
+1. *"Remember that this project uses pnpm and Node 22, and that we never commit directly to main."*
+   Claude stores the note with `zenbrain_store`.
+2. In a new session: *"What do you remember about how we work in this repository?"*
+   Claude searches with `zenbrain_recall` and finds the note from the earlier session.
+3. *"Forget what you stored about committing to main."*
+   Claude finds the entry with `zenbrain_recall` and deletes it with `zenbrain_forget`; a later recall no longer returns it.
+
+*"How full is your memory?"* leads to `zenbrain_health`.
+
+## Troubleshooting
+
+- **`/mcp` or `claude mcp list` shows the server as failed.** Check `node -v`. The server needs Node.js 22 or newer;
+  started with an older version it exits with *"zenbrain-mcp needs Node 22 or newer"*. Install Node 22 or newer, make
+  sure it comes first on your `PATH`, and restart Claude Code.
+- **The first start takes a few seconds.** `npx` downloads `@zensation/mcp` 0.3.0 once; later starts use the cached copy.
+- **You want a fresh memory.** Delete the memory file (by default `~/.zenbrain/memory.db`), or point `db_path` at a new
+  file as shown above.
+
+## Privacy and support
+
+The plugin keeps everything in the local memory file and sends nothing to us or anyone else; the details are in
+[PRIVACY.md](PRIVACY.md). Questions and bug reports go to
+[GitHub issues](https://github.com/zensation-ai/zenbrain/issues); security reports go to security@zensation.ai, as
+described in [SECURITY.md](https://github.com/zensation-ai/zenbrain/blob/main/SECURITY.md).
