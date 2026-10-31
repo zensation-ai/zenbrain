@@ -16,7 +16,7 @@ Inside a session the same works as `/plugin install zenbrain --marketplace zensa
 older versions add the marketplace first: `claude plugin marketplace add zensation-ai/zenbrain`, then
 `claude plugin install zenbrain@zensation-ai`.
 
-The server needs **Node.js 22 or newer** on your `PATH`. The plugin runs `@zensation/mcp` at an exact version (0.3.0)
+The server needs **Node.js 22 or newer** on your `PATH`. The plugin runs `@zensation/mcp` at an exact version (0.3.1)
 through `npx`, which downloads that version from the npm registry the first time it starts; after that the server makes no
 network call of its own. A new server release reaches the plugin with a new plugin version. (The `claude mcp add`
 line in the [ZenBrain README](https://github.com/zensation-ai/zenbrain#readme) is not pinned and starts the newest release; Anthropic's
@@ -65,7 +65,7 @@ Claude decides when to call a tool; these prompts show the tool each one usually
 - **`/mcp` or `claude mcp list` shows the server as failed.** Check `node -v`. The server needs Node.js 22 or newer;
   started with an older version it exits with *"zenbrain-mcp needs Node 22 or newer"*. Install Node 22 or newer, make
   sure it comes first on your `PATH`, and restart Claude Code.
-- **The first start takes a few seconds.** `npx` downloads `@zensation/mcp` 0.3.0 once; later starts use the cached copy.
+- **The first start takes a few seconds.** `npx` downloads `@zensation/mcp` 0.3.1 once; later starts use the cached copy.
 - **You want a fresh memory.** Delete the memory file (by default `~/.zenbrain/memory.db`), or point `db_path` at a new
   file as shown above.
 
