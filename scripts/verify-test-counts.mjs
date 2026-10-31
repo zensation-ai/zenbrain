@@ -58,20 +58,26 @@ const total = perNode + count.pg;
 const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
 const n = (s) => (s in WORDS ? WORDS[s] : Number(s));
 
+// A count and its "as of" move together: a total stated "as of vX" must name the newest release in CHANGELOG.md, so a
+// release that forgets to move the stand fails here (on 2026-10-31 the website said "945 … (as of v0.6.0)" while the
+// release that makes it 948 was being prepared). Between releases the stand stays; this check cannot tell whether a
+// count changed since, only that the stand is the newest release.
+const released = /^## \[(\d+\.\d+\.\d+)\]/m.exec(readFileSync(join(ROOT, 'CHANGELOG.md'), 'utf-8'))?.[1];
+
 // [file, pattern, (groups) => list of [what, stated, expected]]
 const CLAIMS = [
-  ['README.md', /in algorithms and core\. (\d+) tests\./,
-    (g) => [['total', g[1], total]]],
-  ['README.md', /(\d+) tests green in CI: (\d+) on each of Node 22, 24 and 26, and (\d+) more against PostgreSQL/,
-    (g) => [['total', g[1], total], ['per Node version', g[2], perNode], ['PostgreSQL', g[3], count.pg]]],
-  ['README.md', /\*\*(\d+) tests\*\* \((\d+) algorithms · (\d+) core · (\d+) adapter-sqlite · (\d+) adapter-postgres, (\w+) of them against a real PostgreSQL · (\d+) mcp · (\d+) ai-sdk\)/,
-    (g) => [['total', g[1], total], ['algorithms', g[2], count.algorithms], ['core', g[3], count.core],
-      ['adapter-sqlite', g[4], count.sqlite], ['adapter-postgres', g[5], count.postgres + count.pg],
-      ['PostgreSQL', g[6], count.pg], ['mcp', g[7], count.mcp], ['ai-sdk', g[8], count.aiSdk]]],
+  ['README.md', /in algorithms and core\. (\d+) tests as of v(\d+\.\d+\.\d+)\./,
+    (g) => [['total', g[1], total], ['as of', g[2], released]]],
+  ['README.md', /(\d+) tests green in CI as of v(\d+\.\d+\.\d+): (\d+) on each of Node 22, 24 and 26, and (\d+) more against PostgreSQL/,
+    (g) => [['total', g[1], total], ['as of', g[2], released], ['per Node version', g[3], perNode], ['PostgreSQL', g[4], count.pg]]],
+  ['README.md', /\*\*(\d+) tests\*\* as of v(\d+\.\d+\.\d+) \((\d+) algorithms · (\d+) core · (\d+) adapter-sqlite · (\d+) adapter-postgres, (\w+) of them against a real PostgreSQL · (\d+) mcp · (\d+) ai-sdk\)/,
+    (g) => [['total', g[1], total], ['as of', g[2], released], ['algorithms', g[3], count.algorithms], ['core', g[4], count.core],
+      ['adapter-sqlite', g[5], count.sqlite], ['adapter-postgres', g[6], count.postgres + count.pg],
+      ['PostgreSQL', g[7], count.pg], ['mcp', g[8], count.mcp], ['ai-sdk', g[9], count.aiSdk]]],
   ['README.md', /Four experiment suites \((\d+) tests\)/,
     (g) => [['backend experiments', g[1], count.backend]]],
-  ['docs/FAQ.md', /repository's (\d+) tests pass in CI: (\d+) on each of Node 22, 24 and 26, and (\w+) more against a real PostgreSQL/,
-    (g) => [['total', g[1], total], ['per Node version', g[2], perNode], ['PostgreSQL', g[3], count.pg]]],
+  ['docs/FAQ.md', /As of v(\d+\.\d+\.\d+), the repository's (\d+) tests pass in CI: (\d+) on each of Node 22, 24 and 26, and (\w+) more against a real PostgreSQL/,
+    (g) => [['as of', g[1], released], ['total', g[2], total], ['per Node version', g[3], perNode], ['PostgreSQL', g[4], count.pg]]],
   ['packages/algorithms/README.md', /tree-shakeable subpath exports, (\d+) tests/,
     (g) => [['algorithms', g[1], count.algorithms]]],
 ];
@@ -89,8 +95,10 @@ for (const [file, re, check] of CLAIMS) {
   }
   const line = text.slice(0, all[0].index).split('\n').length;
   for (const [what, stated, expected] of check(all[0])) {
-    if (n(stated) !== expected) {
-      console.log(`  ${file}:${line}: says ${stated} (${what}), vitest collects ${expected}`);
+    if (typeof expected === 'string' ? stated !== expected : n(stated) !== expected) {
+      console.log(typeof expected === 'string'
+        ? `  ${file}:${line}: says ${what} v${stated}, the newest release in CHANGELOG.md is ${expected}`
+        : `  ${file}:${line}: says ${stated} (${what}), vitest collects ${expected}`);
       bad++;
     }
   }

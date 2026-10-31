@@ -2,7 +2,14 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.1] — 2026-11-03
+
+Only `@zensation/mcp` changes version; the other packages stay at the versions 0.6.0 published, and the publish job
+skips them. The Claude Code plugin and the documentation changes below reach users through the repository.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/mcp` | 0.3.0 | 0.3.1 | `annotations.title` on every tool; an unfilled `${…}` in `ZENBRAIN_DB` no longer becomes a file name |
 
 ### Added
 
@@ -43,6 +50,9 @@ All notable changes to ZenBrain are documented in this file. The format is based
   fails without the change.
 - The package README says which tools are read-only and which are marked destructive, gives the Claude Code one-liner and
   the plugin install, documents the placeholder rule, and calls the schedule of the semantic layer FSRS-style.
+- The test counts in the README and the FAQ now say which release they describe ("948 tests as of v0.6.1"), and
+  `scripts/verify-test-counts.mjs` fails when that release is not the newest one in this file, so a count and its stand
+  move together.
 
 ### Documentation
 
