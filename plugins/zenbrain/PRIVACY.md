@@ -1,6 +1,6 @@
 # Privacy: ZenBrain plugin for Claude Code
 
-Last updated: 31 October 2026. This covers the plugin and the MCP server it starts, `@zensation/mcp` 0.3.0.
+Last updated: 31 October 2026. This covers the plugin and the MCP server it starts, `@zensation/mcp` 0.3.1.
 
 ## What is stored
 
@@ -16,8 +16,8 @@ plugin's `db_path` setting.
 ## What leaves your computer
 
 Nothing that the plugin stores. The server makes no network call of its own: no account, no telemetry, no analytics.
-The only network access is `npx` downloading `@zensation/mcp` 0.3.0 and its dependencies from the npm registry the first
-time the server starts; npm's own terms and privacy policy apply to that download. Zensation AI receives no data from
+The only network access is `npx` downloading `@zensation/mcp` 0.3.1 and its dependencies from the npm registry the first
+time the server starts; npm's own terms and privacy policy apply to that download. ZenSation AI receives no data from
 the plugin.
 
 What you write to Claude, including what Claude then passes to the tools, is part of your Claude conversation and is

@@ -1,0 +1,9 @@
+{
+  "name": "zenbrain-claude-plugin",
+  "private": true,
+  "description": "Lock for the MCP server this plugin starts with npx -y @zensation/mcp@<version> (.mcp.json). Not a package of its own.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@zensation/mcp": "0.3.1"
+  }
+}

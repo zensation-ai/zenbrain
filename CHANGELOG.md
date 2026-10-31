@@ -2,6 +2,20 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Plugin 0.1.3 runs `@zensation/mcp@0.3.1`, whose tools carry their titles in the annotations and which falls back to
+  `~/.zenbrain/memory.db` when `${user_config.db_path}` reaches it unfilled. `plugin.json` gains `termsOfServiceUrl`,
+  pointing at the Apache-2.0 licence that governs the use of the plugin and the server. The plugin folder now carries a
+  `package.json` and `package-lock.json` for `@zensation/mcp@0.3.1`, every package with its npm source and sha512 hash,
+  as Anthropic's plugin directory asks for its Verified badge ("Launcher lock missing"). The new CI step
+  `scripts/verify-plugin-pin.mjs` fails when the launcher, the lock, `package.json`, the README and `PRIVACY.md` name
+  different versions, when the launcher carries any npx option besides `-y`, when the pinned version is not on npm, or
+  when the lock's hash differs from the tarball npm serves. `PRIVACY.md` writes the company name in running text as
+  "ZenSation AI"; the structured `author.name` and `owner.name` fields keep "Zensation AI".
+
 ## [0.6.1] — 2026-10-31
 
 Only `@zensation/mcp` changes version; the other packages stay at the versions 0.6.0 published, and the publish job
