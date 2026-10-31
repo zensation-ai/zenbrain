@@ -2,7 +2,7 @@
 
 All notable changes to ZenBrain are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.1] — 2026-11-03
+## [0.6.1] — 2026-10-31
 
 Only `@zensation/mcp` changes version; the other packages stay at the versions 0.6.0 published, and the publish job
 skips them. The Claude Code plugin and the documentation changes below reach users through the repository.
