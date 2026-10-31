@@ -1,7 +1,7 @@
 {
   "name": "zenbrain",
   "displayName": "ZenBrain Memory",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Memory for Claude Code that lasts across sessions: the ZenBrain MCP server with five tools (store, recall, forget, consolidate, health) over one local SQLite file. No account, no network call of its own.",
   "author": {
     "name": "Zensation AI",
@@ -11,6 +11,10 @@
   "repository": "https://github.com/zensation-ai/zenbrain",
   "license": "Apache-2.0",
   "keywords": ["memory", "agent-memory", "mcp", "sqlite", "spaced-repetition"],
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/zensation-ai/zenbrain/tree/main/plugins/zenbrain#readme",
+  "supportUrl": "https://github.com/zensation-ai/zenbrain/issues",
+  "privacyPolicyUrl": "https://github.com/zensation-ai/zenbrain/blob/main/plugins/zenbrain/PRIVACY.md",
   "userConfig": {
     "db_path": {
       "type": "string",

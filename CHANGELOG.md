@@ -19,6 +19,12 @@ All notable changes to ZenBrain are documented in this file. The format is based
 - Plugin 0.1.1 runs `@zensation/mcp@0.3.0` instead of the unpinned package. Anthropic's plugin directory blocks a plugin whose `npx`
   launcher is not pinned to an exact version ("Unpinned npx launcher"). Each later `@zensation/mcp` release now needs the pin and
   the plugin version raised together.
+- Plugin 0.1.2 adds what Anthropic's plugin directory reads for a listing: `icon`, `documentationUrl`, `supportUrl`
+  and `privacyPolicyUrl` in `plugin.json`, and a `PRIVACY.md` in the plugin folder (what the memory file holds, that
+  nothing leaves the computer apart from the one `npx` download, how to delete it). The plugin README gains three
+  example prompts, a troubleshooting section (Node.js 22) and the support and security contacts. Checked on
+  31 October 2026 with Claude Code 2.1.308 in empty home directories, and with the server's network access blocked:
+  all five tools work. Claude Code itself does not read the new `plugin.json` fields, so nothing changes at runtime.
 
 ### Documentation
 
