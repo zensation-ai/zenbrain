@@ -17,8 +17,9 @@ older versions add the marketplace first: `claude plugin marketplace add zensati
 `claude plugin install zenbrain@zensation-ai`.
 
 The server needs **Node.js 22 or newer** on your `PATH`. The plugin runs `@zensation/mcp` at an exact version (0.3.1)
-through `npx`, which downloads that version from the npm registry the first time it starts; after that the server makes no
-network call of its own. A new server release reaches the plugin with a new plugin version. (The `claude mcp add`
+through `npx`. Both downloads come from the public npm registry: when you install or update the plugin, Claude Code
+installs the packages its lockfile lists, and the first time the server starts, `npx` fetches the same version unless
+npm's cache already holds it. After that the server makes no network call of its own. A new server release reaches the plugin with a new plugin version. (The `claude mcp add`
 line in the [ZenBrain README](https://github.com/zensation-ai/zenbrain#readme) is not pinned and starts the newest release; Anthropic's
 plugin directory asks plugins to pin the packages they launch.) Next to the launcher, the plugin folder carries a
 `package.json` and `package-lock.json` for that version: the exact version, npm source and sha512 hash of every package
@@ -71,6 +72,9 @@ Claude decides when to call a tool; these prompts show the tool each one usually
   started with an older version it exits with *"zenbrain-mcp needs Node 22 or newer"*. Install Node 22 or newer, make
   sure it comes first on your `PATH`, and restart Claude Code.
 - **The first start takes a few seconds.** `npx` downloads `@zensation/mcp` 0.3.1 once; later starts use the cached copy.
+- **`/plugin` says the packages the plugin lists are not installed.** Claude Code's install from the lockfile did not
+  finish, for example because it ran past its 60-second limit. In Claude Code 2.1.308 the server still starts through
+  `npx`; `claude plugin update zenbrain@zensation-ai` retries the install.
 - **You want a fresh memory.** Delete the memory file (by default `~/.zenbrain/memory.db`), or point `db_path` at a new
   file as shown above.
 

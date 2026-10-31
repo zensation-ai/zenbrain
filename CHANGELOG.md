@@ -6,6 +6,11 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ### Added
 
+- Plugin 0.1.4: `PRIVACY.md` and the plugin README name both downloads from the npm registry, Claude Code's install of
+  the plugin's lockfile and `npx`'s fetch on first start; until now they named only the second, which the lockfile of
+  0.1.3 made incomplete. The README's troubleshooting says what to do when `/plugin` reports that the packages the
+  plugin lists are not installed (measured with Claude Code 2.1.308: the server still starts through `npx`). No
+  change to what the plugin runs.
 - Plugin 0.1.3 runs `@zensation/mcp@0.3.1`, whose tools carry their titles in the annotations and which falls back to
   `~/.zenbrain/memory.db` when `${user_config.db_path}` reaches it unfilled. `plugin.json` gains `termsOfServiceUrl`,
   pointing at the Apache-2.0 licence that governs the use of the plugin and the server. The plugin folder now carries a
