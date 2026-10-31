@@ -53,6 +53,20 @@ describe('tool definitions', () => {
     );
   });
 
+  // Anthropic's Software Directory Policy (5E) names readOnlyHint, destructiveHint and title as
+  // the annotations a tool should carry. The display title lives top-level since MCP 2025-06-18;
+  // the annotation repeats it for clients that read only annotations.
+  it('every tool carries its title in the annotations as well, and both agree', async () => {
+    const { tools } = await client.listTools();
+    expect(tools).toHaveLength(5);
+    for (const t of tools) {
+      expect(t.title, t.name).toBeTruthy();
+      expect(t.annotations?.title, t.name).toBe(t.title);
+      expect(typeof t.annotations?.readOnlyHint, t.name).toBe('boolean');
+      expect(t.annotations?.openWorldHint, t.name).toBe(false);
+    }
+  });
+
   it('zenbrain_recall leaves "read-only" to the annotation', async () => {
     const t = await tool('zenbrain_recall');
     expect(t.description).not.toMatch(/read-only/i);

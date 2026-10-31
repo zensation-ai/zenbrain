@@ -80,9 +80,21 @@ const DEFAULT_STORE = './zenbrain.db';
  * real home directory.
  */
 export function resolveStorePath(value: string | undefined, home: string = homedir()): string {
+  // `"ZENBRAIN_DB": "${user_config.db_path}"` in the Claude Code plugin is filled in by
+  // Claude Code, but Anthropic's directory warns that user-config values are not supported
+  // on every platform. A host that does not fill it would hand over the literal
+  // `${user_config.db_path}`, and the store would land in a file of that name in the
+  // working directory. A value that is nothing but such a placeholder therefore means
+  // the plugin's documented default, the file the README's `claude mcp add` line uses.
+  if (value !== undefined && isUnresolvedPlaceholder(value)) return join(home, '.zenbrain', 'memory.db');
   const raw = value === undefined || value.trim() === '' ? DEFAULT_STORE : value;
   if (raw.startsWith('~/') || raw.startsWith('~\\')) return join(home, raw.slice(2));
   return raw;
+}
+
+/** True for a value that is only an unfilled `${...}` placeholder, such as `${user_config.db_path}`. */
+export function isUnresolvedPlaceholder(value: string): boolean {
+  return /^\$\{[^}]*\}$/.test(value.trim());
 }
 
 /**
@@ -114,6 +126,12 @@ async function main(): Promise<void> {
   const { SqliteAdapter } = await import('@zensation/adapter-sqlite');
 
   const filename = resolveStorePath(process.env.ZENBRAIN_DB);
+  if (process.env.ZENBRAIN_DB !== undefined && isUnresolvedPlaceholder(process.env.ZENBRAIN_DB)) {
+    process.stderr.write(
+      `zenbrain-mcp: ZENBRAIN_DB arrived as the unfilled placeholder ${process.env.ZENBRAIN_DB.trim()}; ` +
+        `using ${filename} instead.\n`,
+    );
+  }
   const contexts = process.env.ZENBRAIN_CONTEXTS?.split(',')
     .map((c) => c.trim())
     .filter(Boolean);

@@ -27,6 +27,17 @@ describe('the store path', () => {
     expect(resolveStorePath('   ', HOME)).toBe('./zenbrain.db');
   });
 
+  // A host without user-config support hands the plugin's placeholder over as text.
+  it('reads an unfilled ${...} placeholder as the plugin default, not as a file name', () => {
+    for (const v of ['${user_config.db_path}', '  ${user_config.db_path}  ', '${ZENBRAIN_DB}']) {
+      expect(resolveStorePath(v, HOME), v).toBe(join(HOME, '.zenbrain', 'memory.db'));
+    }
+  });
+
+  it('leaves a path that merely contains ${ alone', () => {
+    expect(resolveStorePath('/data/${x}/memory.db', HOME)).toBe('/data/${x}/memory.db');
+  });
+
   it('passes everything else through unchanged', () => {
     for (const v of [':memory:', '/var/data/zenbrain.db', './zenbrain.db', 'data/memory.db', 'a~/b.db', '~user/x.db']) {
       expect(resolveStorePath(v, HOME), v).toBe(v);

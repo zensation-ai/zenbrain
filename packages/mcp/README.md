@@ -18,6 +18,11 @@ Five tools, one local SQLite file, no account and no network call.
 | `zenbrain_consolidate` | One maintenance pass: among the 100 most recent episodes, each with an emotional weight above 0.5 becomes a semantic fact, only once; working-memory slots decay, and those at a relevance of 0.01 or below are removed. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
+Each tool also tells the client what it does to the store, through the MCP tool annotations: `zenbrain_recall` and
+`zenbrain_health` are read-only; `zenbrain_store` only adds; `zenbrain_forget` and `zenbrain_consolidate` are marked
+destructive (consolidation removes decayed working-memory slots), so a client that asks before destructive calls asks
+before these two. No tool reaches anything outside the local file.
+
 ## Install
 
 Requires **Node.js 22 or newer**.
@@ -44,11 +49,24 @@ npm install -g @zensation/mcp
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ZENBRAIN_DB` | `./zenbrain.db` | Path to the SQLite file. A leading `~/` means your home directory. A relative path is relative to the directory your client starts the server in — some clients, Claude Desktop among them, may start it in `/`, where nothing can be written — so give an absolute or `~/` path. `:memory:` gives a store that is discarded when the process exits. |
+| `ZENBRAIN_DB` | `./zenbrain.db` | Path to the SQLite file. A leading `~/` means your home directory. A relative path is relative to the directory your client starts the server in — some clients, Claude Desktop among them, may start it in `/`, where nothing can be written — so give an absolute or `~/` path. `:memory:` gives a store that is discarded when the process exits. A value that is only an unfilled placeholder such as `${user_config.db_path}`, which a host may pass on when it does not fill in plugin settings, counts as `~/.zenbrain/memory.db`; the server says so on stderr. |
 | `ZENBRAIN_CONTEXTS` | `personal,work,learning,creative` | Comma-separated context domains, passed to the cross-context layer. None of the five tools uses that layer yet, so the value currently has no effect. |
 
 The server speaks MCP over stdio. Stdout carries protocol traffic only; diagnostics go
 to stderr.
+
+In Claude Code, one line does the same with the memory in `~/.zenbrain/memory.db`:
+
+```bash
+claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx -y @zensation/mcp
+```
+
+or install the [Claude Code plugin](https://github.com/zensation-ai/zenbrain/tree/main/plugins/zenbrain), which runs
+this server at a pinned version, keeps the memory in the same file and lets you choose another (`db_path`):
+
+```bash
+claude plugin install zenbrain --marketplace zensation-ai/zenbrain
+```
 
 ## The seven layers
 
@@ -62,13 +80,13 @@ cross-context memory is not wired to any tool.
 | 7 | Cross-Context Memory | Links between entities of different domains (experimental; no tool uses it) |
 | 6 | Core Memory | Pinned facts |
 | 5 | Procedural Memory | "How to do X" — skills and workflows |
-| 4 | Long-Term Semantic | Facts, with FSRS scheduling |
+| 4 | Long-Term Semantic | Facts, with FSRS-style scheduling |
 | 3 | Episodic Memory | Concrete experiences and events |
 | 2 | Short-Term / Session | Current conversation context |
 | 1 | Working Memory | Active task focus, 7±2 items |
 
 Nothing in long-term memory decays or is deleted on its own; only working memory decays.
-Every fact gets an FSRS review schedule, but no tool reports a review, so through this
+Every fact gets an FSRS-style review schedule, but no tool reports a review, so through this
 server the schedule is not advanced. Emotional weight decides routing (above 0.5: an
 episode) and which episodes consolidation turns into facts. The algorithms are in
 [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) and can be
