@@ -60,7 +60,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@zensation/adapter-sqlite": "^0.2.8",
     "@zensation/core": "^0.6.0",
     "zod": "^4.6.5"
