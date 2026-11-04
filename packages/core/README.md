@@ -10,7 +10,7 @@
 
 The orchestration layer that turns [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) into a complete memory system:
 
-- **MemoryCoordinator** — one API over the layers: auto-routing `store()`, cross-layer `recall()`, `forget()`, `consolidate()`, `decay()`, FSRS review queue
+- **MemoryCoordinator** — one API over the layers: auto-routing `store()`, cross-layer `recall()`, `forget()`, `consolidate()`, `decay()`, FSRS-style review queue
 - **7 Memory Layers** — Working, Short-Term, Episodic, Semantic, Procedural, Core, Cross-Context (experimental: not wired into the coordinator)
 - **Consolidation** — `consolidate()` turns emotionally weighted episodes into semantic facts, once each. The sleep-replay functions live in `@zensation/algorithms` and are not called by the coordinator
 - **Pluggable Adapters** — bring your own storage (`@zensation/adapter-postgres`, `@zensation/adapter-sqlite`)
@@ -42,7 +42,7 @@ await memory.forget(results[0].id, results[0].layer);
 // working memory decays
 await memory.consolidate();
 
-// Facts whose FSRS review is due; report each review with recordReview()
+// Facts whose FSRS-style review is due; report each review with recordReview()
 const dueItems = await memory.getReviewQueue();
 ```
 
@@ -74,7 +74,7 @@ This package is part of the [ZenBrain](https://github.com/zensation-ai/zenbrain)
 
 | Package | Description |
 |---------|-------------|
-| `@zensation/algorithms` | Pure algorithms (FSRS, Hebbian, emotional, Bayesian) |
+| `@zensation/algorithms` | Pure algorithms (FSRS-style scheduling, Hebbian, emotional, Bayesian) |
 | **@zensation/core** | Memory layers + coordinator (this package) |
 | `@zensation/adapter-postgres` | PostgreSQL + pgvector storage |
 | `@zensation/adapter-sqlite` | SQLite storage (better-sqlite3) |

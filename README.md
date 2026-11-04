@@ -32,6 +32,14 @@ claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx
   <sub><strong>Self-hosted:</strong> the library makes no network calls of its own. Memory lives in SQLite or PostgreSQL that you operate; an embedding model or an LLM is optional and your choice.</sub>
 </p>
 
+**Versions at a glance** (checked 4 November 2026)
+
+| | |
+|---|---|
+| **Repository release** | [v0.6.1](https://github.com/zensation-ai/zenbrain/releases/tag/v0.6.1), 31 October 2026. The Claude Code plugin moved to 0.1.3 and 0.1.4 on `main` after that tag. |
+| **Packages** | `@zensation/algorithms` 0.6.0 · `@zensation/core` 0.6.0 · `@zensation/mcp` 0.3.1 · Claude Code plugin 0.1.4 ([manifest](./plugins/zenbrain/.claude-plugin/plugin.json)) |
+| **Research records** | Software: Zenodo [10.5281/zenodo.23436438](https://doi.org/10.5281/zenodo.23436438) (v0.6.0; all versions under [10.5281/zenodo.22260018](https://doi.org/10.5281/zenodo.22260018)) · Paper: version 9, Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288) and [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4) |
+
 ---
 
 <p align="center">
@@ -42,6 +50,16 @@ claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx
   <strong><a href="https://zensation.ai/en/playground?utm_source=github&utm_medium=readme&utm_campaign=evergreen">▶ Try the live playground in your browser</a></strong> — runs this published code, no install required.
 </p>
 
+**Three ways in**
+
+- **In the browser:** the playground above runs this published code; nothing to install.
+- **Across Claude Code sessions:** the [Claude Code plugin](./plugins/zenbrain) starts `@zensation/mcp` 0.3.1. A note stored in one
+  session comes back in the next when the question shares words with it, as the top `semantic` result with a score above 0;
+  recall is lexical until you add an embedding provider. Checked on 4 November 2026 at the protocol level: two server
+  processes, one memory file, Node 22.23.3.
+- **Re-running the numbers:** first [what was measured](#benchmark-longmemeval-500), then the
+  [reproduction packages](#reproduction-packages) with the raw material and the scripts that check it.
+
 <details>
 <summary><strong>📄 Paper & Citation</strong> — ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems</summary>
 
@@ -49,6 +67,7 @@ claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx
 
 - **arXiv preprint** (cs.AI): [arxiv.org/abs/2604.23878](https://arxiv.org/abs/2604.23878)
 - **Open-access archive** (Zenodo / CERN): [doi.org/10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
+- **Current version:** version 9 (31 October 2026), Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288); [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)
 - **ORCID**: [0009-0001-1793-012X](https://orcid.org/0009-0001-1793-012X)
 - **License**: CC BY 4.0 (paper) · Apache-2.0 (code)
 
@@ -77,12 +96,15 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 ## Benchmark: LongMemEval-500
 
-On LongMemEval-500, **three of nine head-to-head comparisons hold** against
-Letta, Mem0 and A-Mem — all three against A-Mem, the remaining six are ties, none lost. Three
-competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched. The measured ZenBrain arm (per the
-[correction notice](https://doi.org/10.5281/zenodo.22831086) a Python port of a test-harness class, not the seven-layer system) reaches
-**91.3% of the binary-judge accuracy of a full-context comparison arm (whose answer model reads the whole history) with 1/109.6 of its input tokens in the answer step**
-(47.7% vs. 52.2%); building the memory is not counted.
+**What was measured.** On LongMemEval-500 (500 questions), the measured ZenBrain arm is a Python port of a scoring
+class from our test harness, not the seven-layer system and not an import of these packages. Input tokens are
+counted in the answer step only; building the memory is not counted. Source: paper version 9, Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288) (31 October 2026) and [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4).
+
+In that setup, **three of nine head-to-head comparisons hold** against
+Letta, Mem0 and A-Mem — all three against A-Mem; the remaining six, against Letta and Mem0, show no significant difference. Three
+competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched. That arm reaches
+**91.3% of the binary-judge accuracy of a full-context comparison arm (whose answer model reads the whole history) with 1/109.7 of its input tokens in the answer step**
+(47.7% vs. 52.2%).
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
 to install. `nomic-embed-text` can be added as the embedding provider; it was the embedder of the
@@ -149,7 +171,7 @@ date.
 
 | Mechanism | ZenBrain | Mem0 | Letta | Zep |
 |---|:--:|:--:|:--:|:--:|
-| FSRS spaced repetition | yes | — | — | — |
+| FSRS-style spaced repetition | yes | — | — | — |
 | Hebbian learning | yes | — | — | — |
 | Ebbinghaus forgetting curves | yes | — | — | — |
 | Sleep consolidation | yes | — | — | — |
@@ -206,8 +228,8 @@ alone; you wire them into your own system where you want them.
 |---|---|---|
 | Layers | Seven layer classes. `recall()` searches episodic, semantic, procedural and core memory, working memory on request; the cross-context layer is not part of recall. | — |
 | Routing | `store()` picks the layer: step-by-step content becomes a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core block, anything else a fact. | — |
-| Emotional tagging | At `store()` with automatic routing — not with an explicit `type`, and not when steps or procedural wording already made it a procedure. The weight decides episode or fact, and which episodes consolidation promotes; a weight you pass for a fact stretches its starting FSRS stability by `1 + weight`. | `tagEmotion`, `computeEmotionalWeight` |
-| Spaced repetition (FSRS) | Every fact gets an FSRS schedule. `getReviewQueue()` lists the due facts; a review your application reports with `recordReview()` updates the schedule. Recall does not rank by retrievability. | FSRS, prediction-error-coupled FSRS |
+| Emotional tagging | At `store()` with automatic routing — not with an explicit `type`, and not when steps or procedural wording already made it a procedure. The weight decides episode or fact, and which episodes consolidation promotes; a weight you pass for a fact stretches its starting FSRS-style stability by `1 + weight`. | `tagEmotion`, `computeEmotionalWeight` |
+| Spaced repetition (FSRS-style) | Every fact gets an FSRS-style schedule. `getReviewQueue()` lists the due facts; a review your application reports with `recordReview()` updates the schedule. Recall does not rank by retrievability. | FSRS-style scheduling, prediction-error-coupled FSRS |
 | Forgetting | Nothing in long-term memory decays or is deleted on its own. `forget(id, layer)` deletes a memory on request together with what consolidation linked to it (episode ⇄ fact) and its working-memory copies; `{ cascade: false }` deletes only the one memory. Working memory decays exponentially with the minutes since its last decay. | Ebbinghaus retention, personal decay profiles |
 | Consolidation | `consolidate()` turns each emotionally weighted episode among the 100 most recent into a fact, once. | Sleep replay (`selectForReplay`, `simulateReplay`, `pruneWeakConnections`), simulation-selection loop |
 | Hebbian learning | Not used: core keeps no knowledge graph. | Classic and two-factor Hebbian |
@@ -238,7 +260,7 @@ import {
   propagateForRelation,
 } from '@zensation/algorithms';
 
-// 1. Schedule a memory with FSRS
+// 1. Schedule a memory with the FSRS-style scheduler
 const memory = initFromDecayClass('normal_decay');
 
 // 2. A week later, check recall probability (Ebbinghaus curve)
@@ -274,7 +296,7 @@ import {
   computeAdaptiveFSRSInterval,
 } from '@zensation/algorithms/fsrs-vmPFC';
 
-// Couple FSRS scheduling with the prediction-error signal from your
+// Couple FSRS-style scheduling with the prediction-error signal from your
 // knowledge graph: when the embedding has shifted a lot since the last
 // review (high cosine distance), shrink the next interval; otherwise push
 // it out. Both arrays must have the same length.
@@ -315,7 +337,7 @@ The integration examples additionally need their respective SDK installed; [`exa
 Layer 7: Cross-Context Memory    ← Entity links across domains (experimental)
 Layer 6: Core Memory             ← Pinned facts (Letta-style)
 Layer 5: Procedural Memory       ← "How to do X" (skills & workflows)
-Layer 4: Long-Term Semantic      ← Facts with FSRS scheduling
+Layer 4: Long-Term Semantic      ← Facts with FSRS-style scheduling
 Layer 3: Episodic Memory         ← Concrete experiences & events
 Layer 2: Short-Term / Session    ← Current conversation context
 Layer 1: Working Memory          ← Active task focus (7±2 items)
@@ -323,9 +345,9 @@ Layer 1: Working Memory          ← Active task focus (7±2 items)
 
 Each layer holds a different kind of memory and is stored and searched in its own way.
 
-### FSRS Spaced Repetition
+### FSRS-style Spaced Repetition
 
-[FSRS](https://github.com/open-spaced-repetition/fsrs4anki) (Free Spaced Repetition Scheduler) is the open scheduler Anki offers as an alternative to its legacy SM-2 algorithm; its authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 for the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). It uses the **desirable difficulty** principle: reviewing when retention is low gives a bigger stability boost. In `@zensation/core` every fact gets an FSRS schedule; your application reports each review with `recordReview()`, and FSRS sets the next one.
+[FSRS](https://github.com/open-spaced-repetition/fsrs4anki) (Free Spaced Repetition Scheduler) is the open scheduler Anki offers as an alternative to its legacy SM-2 algorithm; its authors report that, in simulations, users need 20–30% fewer reviews than with SM-2 for the same retention ([ABC of FSRS](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS)). It uses the **desirable difficulty** principle: reviewing when retention is low gives a bigger stability boost. `@zensation/algorithms` follows FSRS in the form of its updates; its constants are not fitted and its forgetting curve is exponential ([details](./docs/benchmarks.md#fsrs-and-sm-2)). In `@zensation/core` every fact gets an FSRS-style schedule; your application reports each review with `recordReview()`, and the scheduler sets the next one.
 
 ### Emotional Memory
 
@@ -337,7 +359,7 @@ The amygdala modulates memory consolidation — emotional events are remembered 
 
 ### Ebbinghaus Forgetting Curves
 
-Ebbinghaus (1885) showed that memory decays exponentially: `R = e^(-t/S)`. The library implements personalized decay profiles that adapt to individual learning patterns, with SM-2-compatible call signatures for existing spaced repetition code (the stability update itself is FSRS's). In the coordinator, only working memory decays.
+Ebbinghaus (1885) showed that memory decays exponentially: `R = e^(-t/S)`. The library implements personalized decay profiles that adapt to individual learning patterns, with SM-2-compatible call signatures for existing spaced repetition code (the stability update itself takes the form of FSRS's). In the coordinator, only working memory decays.
 
 ### Context-Dependent Retrieval
 
@@ -383,7 +405,7 @@ await memory.forget(results[0].id, results[0].layer);
 // working memory decays
 await memory.consolidate();
 
-// Facts whose FSRS review is due; report each review with recordReview()
+// Facts whose FSRS-style review is due; report each review with recordReview()
 const dueItems = await memory.getReviewQueue();
 ```
 
@@ -391,7 +413,7 @@ const dueItems = await memory.getReviewQueue();
 
 | Package | Description | Status |
 |---------|-------------|--------|
-| [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [source](./packages/algorithms) | 20 algorithm modules — 10 core (FSRS, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, intervals, visualization) + 10 advanced (vmPFC-FSRS, two-factor Hebbian, IB budget, Hopfield STM, …) | :white_check_mark: Published |
+| [`@zensation/algorithms`](https://www.npmjs.com/package/@zensation/algorithms) · [source](./packages/algorithms) | 20 algorithm modules — 10 core (FSRS-style scheduling, Hebbian, Ebbinghaus, emotional, Bayesian, sleep consolidation, intervals, visualization) + 10 advanced (vmPFC-FSRS, two-factor Hebbian, IB budget, Hopfield STM, …) | :white_check_mark: Published |
 | [`@zensation/core`](https://www.npmjs.com/package/@zensation/core) · [source](./packages/core) | Memory layers, coordinator, adapter interfaces | :white_check_mark: Published |
 | [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres) · [source](./packages/adapters/postgres) | PostgreSQL + pgvector storage adapter | :white_check_mark: Published |
 | [`@zensation/adapter-sqlite`](https://www.npmjs.com/package/@zensation/adapter-sqlite) · [source](./packages/adapters/sqlite) | SQLite storage adapter (zero-config) | :white_check_mark: Published |
@@ -522,6 +544,7 @@ ZenBrain's architecture and algorithms are documented in an open-access technica
 
 - **arXiv preprint** (cs.AI): [arxiv.org/abs/2604.23878](https://arxiv.org/abs/2604.23878)
 - **Open-access archive:** [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://doi.org/10.5281/zenodo.19353663) (Zenodo, DOI: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663) — resolves to the latest version)
+- **Current version:** version 9 (31 October 2026), Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288); [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)
 - **TDCommons:** [Technical Disclosure](https://www.tdcommons.org/dpubs_series/9683) (CC BY 4.0)
 - **HuggingFace:** [Model Card & Benchmarks](https://huggingface.co/zensation-ai/zenbrain)
 
@@ -555,7 +578,7 @@ Each work with the sentence that cites ZenBrain: [zensation.ai/en/publikationen]
 Projects that build the library into their code:
 
 - [ACMS](https://github.com/newtogi/ACMS-Agentic-Cognitive-Memory-System) reads and writes the ZenBrain SQLite database directly.
-- [neurograph-runtime](https://github.com/cwang-95/neurograph-runtime) uses the FSRS implementation of `@zensation/algorithms` as the ranking and feedback layer of a knowledge base on radiotherapy literature.
+- [neurograph-runtime](https://github.com/cwang-95/neurograph-runtime) uses the FSRS-style implementation of `@zensation/algorithms` as the ranking and feedback layer of a knowledge base on radiotherapy literature.
 
 Citing ZenBrain or building on it? Open an issue and we will add you here.
 
