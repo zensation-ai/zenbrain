@@ -26,7 +26,7 @@
 | **Similarity** | NLP heuristics | Negation detection (EN/DE), Jaccard similarity, text analysis |
 | **Sleep Consolidation** | Stickgold & Walker (2013) | Replay simulation — strengthens emotional/recent memories, prunes weak edges |
 | **Intervals** | Statistics | Heuristic uncertainty bands on retrievability and propagation (not calibrated intervals) |
-| **Visualization** | — | Retention curves (illustrative) and FSRS schedules for charting |
+| **Visualization** | — | Retention curves (illustrative) and FSRS-style schedules for charting |
 | (plus shared `types`) | — | Logger interface, common typedefs |
 
 ### Advanced algorithms (10 algorithms — new in v0.3.0)
@@ -54,7 +54,7 @@ npm install @zensation/algorithms
 
 ```typescript
 import {
-  // FSRS Spaced Repetition
+  // FSRS-style spaced repetition
   initFromDecayClass,
   getRetrievability,
   updateAfterRecall,
@@ -72,7 +72,7 @@ import {
   propagateForRelation,
 } from '@zensation/algorithms';
 
-// 1. Create a memory with FSRS scheduling
+// 1. Create a memory with FSRS-style scheduling
 const memory = initFromDecayClass('normal_decay');
 console.log(memory);
 // { difficulty: 5, stability: 7, nextReview: Date }
@@ -116,7 +116,7 @@ const newConfidence = propagateForRelation(
 Import only what you need:
 
 ```typescript
-// Just FSRS
+// Just the FSRS-style scheduler
 import { updateAfterRecall, getRetrievability } from '@zensation/algorithms/fsrs';
 
 // Just emotional tagging
@@ -146,17 +146,17 @@ Tulving showed that memory recall improves when the retrieval context matches th
 
 ## API Reference
 
-### FSRS (`@zensation/algorithms/fsrs`)
+### FSRS-style scheduler (`@zensation/algorithms/fsrs`)
 
 | Function | Description |
 |----------|-------------|
 | `initFromDecayClass(class, emotionalWeight?)` | Create initial state from decay class |
-| `initFromSM2(stability)` | Convert SM-2 stability to FSRS state |
+| `initFromSM2(stability)` | Convert SM-2 stability to FSRS-style state |
 | `getRetrievability(state, now?)` | Calculate current recall probability |
 | `scheduleNextReview(state, targetRetention?, now?)` | Schedule the next review for when R reaches the target retention |
 | `updateAfterRecall(state, grade, retrievability, now?)` | Update after successful recall (grade 1-5) |
 | `updateAfterForgot(state, retrievability, now?)` | Update after failed recall |
-| `updateStabilityCompat(stability, success, multiplier?)` | SM-2 call shape, FSRS update |
+| `updateStabilityCompat(stability, success, multiplier?)` | SM-2 call shape, FSRS-style update |
 | `getRetentionProbabilityCompat(lastAccess, stability, multiplier?)` | Drop-in Ebbinghaus replacement |
 
 ### Ebbinghaus (`@zensation/algorithms/ebbinghaus`)
@@ -164,7 +164,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 | Function | Description |
 |----------|-------------|
 | `calculateRetention(lastAccess, stability, emotionalMultiplier?)` | Full retention analysis |
-| `updateStability(stability, success)` | Stability update after a retrieval (SM-2 call shape; computes the FSRS update) |
+| `updateStability(stability, success)` | Stability update after a retrieval (SM-2 call shape; computes the FSRS-style update) |
 | `getRepetitionCandidates(facts, threshold?)` | Find facts due for review |
 | `calculateOptimalInterval(stability, targetRetention?)` | Days until R falls to a target (default 0.85) |
 | `batchCalculateRetention(facts)` | `calculateRetention` for many facts, against one timestamp |
@@ -216,7 +216,7 @@ Tulving showed that memory recall improves when the retrieval context matches th
 
 ## Logging
 
-The functions that log take an optional `Logger` as their last parameter: the FSRS updates (`updateAfterRecall`, `updateAfterForgot`), `tagEmotion`, the Hebbian functions (strengthening, decay, normalization), `propagateForRelation`, `applyDamping`, `captureEncodingContext`, ebbinghaus `updateStability`, the three sleep-consolidation functions and `safeJsonParse`. Pass `console`, your favorite logger, or nothing (silent by default):
+The functions that log take an optional `Logger` as their last parameter: the FSRS-style updates (`updateAfterRecall`, `updateAfterForgot`), `tagEmotion`, the Hebbian functions (strengthening, decay, normalization), `propagateForRelation`, `applyDamping`, `captureEncodingContext`, ebbinghaus `updateStability`, the three sleep-consolidation functions and `safeJsonParse`. Pass `console`, your favorite logger, or nothing (silent by default):
 
 ```typescript prelude=fsrs-state
 import { updateAfterRecall } from '@zensation/algorithms';
