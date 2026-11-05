@@ -109,7 +109,7 @@ state.nextReview = scheduleNextReview(state, 0.8);
 and it is genuinely a trade: pushing toward 0.99 produces a review queue nobody works through, which
 is worse than 0.9 honestly maintained.
 
-Reviews go through the coordinator, so you rarely touch FSRS state by hand:
+Reviews go through the coordinator, so you rarely touch FSRS-style state by hand:
 
 ```ts prelude=memory,ask-user
 const due = await memory.getReviewQueue(10);
@@ -158,11 +158,11 @@ you have built a retrieval system and are using this one as a cache.
 
 ## 5. Domain-specific facts that must not fade
 
-An emotional weight given for a fact stretches its FSRS schedule: since 0.6.0,
+An emotional weight given for a fact stretches its FSRS-style schedule: since 0.6.0,
 `store(content, { type: 'fact', emotionalWeight })` multiplies the fact's starting stability by
 `1 + emotionalWeight` — 7 at weight 0, 14 at weight 1 — so its first review comes later (after about
 0.105 × stability days: ≈ 0.7 and ≈ 1.5). The
-weight acts once, when the fact is created, through the FSRS state the fact keeps; it is not stored
+weight acts once, when the fact is created, through the FSRS-style state the fact keeps; it is not stored
 with the fact. The automatic tagger reads language, so it cannot know that in your domain "allergy"
 outranks any word with an exclamation mark:
 

@@ -8,7 +8,7 @@ ZenBrain is a neuroscience-inspired memory system for AI agents. It provides 7 d
 
 ### How is ZenBrain different from Mem0, Letta, or Zep?
 
-ZenBrain splits memory into seven layers and ships mechanisms from memory research — FSRS spaced
+ZenBrain splits memory into seven layers and ships mechanisms from memory research — FSRS-style spaced
 repetition, Hebbian learning, Ebbinghaus forgetting curves, sleep consolidation, emotional tagging — as
 library functions; `@zensation/algorithms` and `@zensation/core` have no third-party dependencies; it runs
 self-hosted. The README compares the five mechanisms with the public source of Mem0, Letta and Zep at
@@ -70,7 +70,7 @@ These aren't arbitrary — each holds a different kind of memory and is stored a
 No. Use only what you need:
 
 ```typescript
-// Minimal: just FSRS scheduling
+// Minimal: just FSRS-style scheduling
 import { updateAfterRecall } from '@zensation/algorithms/fsrs';
 
 // Simple: working + short-term memory

@@ -20,7 +20,7 @@ The [CHANGELOG](../CHANGELOG.md) has every release in detail; this is the outlin
   `recall(query, { minScore })`.
 - `@zensation/ai-sdk` injects only memories scoring above 0, and a stream aborted through `abortSignal` keeps the
   user's turn but not the partial reply.
-- An emotional weight given for a fact stretches its starting FSRS stability; `hopfieldRecall` defaults to
+- An emotional weight given for a fact stretches its starting FSRS-style stability; `hopfieldRecall` defaults to
   β = 16, after a measurement.
 
 ### v0.5 — Forgetting by id, the package audit (October 2026)
@@ -39,7 +39,7 @@ The [CHANGELOG](../CHANGELOG.md) has every release in detail; this is the outlin
   middleware, published the same day.
 - `0.4.8`: recall without an embedding provider ranks by the query (lexically) instead of returning the same
   rows; consolidation promotes each episode once; core memory writes work on SQLite.
-- `0.4.9`: FSRS functions reject invalid input; `InMemoryStorage` is no longer exported.
+- `0.4.9`: FSRS-style functions reject invalid input; `InMemoryStorage` is no longer exported.
 
 ### v0.3 — Advanced algorithms (May 2026)
 
@@ -55,7 +55,7 @@ The [CHANGELOG](../CHANGELOG.md) has every release in detail; this is the outlin
 
 - `@zensation/core@0.2.x` — `MemoryCoordinator` orchestrating all seven layers
   (auto-routing `store()`, cross-layer `recall()`, `consolidate()`, `decay()`,
-  FSRS review queue).
+  FSRS-style review queue).
 - Sleep Consolidation, heuristic uncertainty bands (Wald-type, not calibrated
   confidence intervals), and retention-curve
   visualization added to `@zensation/algorithms`.
@@ -83,7 +83,7 @@ may change or be dropped based on evidence and contributor interest.
 
 **Algorithms & scale**
 - Graph-aware retrieval that combines Hebbian edges with semantic search.
-- Batch FSRS scheduling for large fact sets.
+- Batch FSRS-style scheduling for large fact sets.
 - Episodic memory compression (summarize older episodes).
 - Event-driven consolidation (trigger sleep cycles on inactivity).
 - A power forgetting curve as an option (`curve: 'power'`, the form FSRS has used since v4) next to today's

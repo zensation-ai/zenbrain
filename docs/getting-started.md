@@ -35,7 +35,7 @@ import {
   propagateForRelation,
 } from '@zensation/algorithms';
 
-// Schedule a memory with FSRS
+// Schedule a memory with FSRS-style scheduling
 const memory = initFromDecayClass('normal_decay');
 const retention = getRetrievability(memory);
 console.log(`Recall probability: ${(retention * 100).toFixed(1)}%`);

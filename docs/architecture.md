@@ -8,7 +8,7 @@ ZenBrain's architecture mirrors the human brain's memory systems. Each layer has
 Layer 7: Cross-Context Memory    ← Entity links across domains (experimental)
 Layer 6: Core Memory             ← Pinned facts (always available)
 Layer 5: Procedural Memory       ← "How to do X" (skills & workflows)
-Layer 4: Long-Term Semantic      ← Facts with FSRS scheduling
+Layer 4: Long-Term Semantic      ← Facts with FSRS-style scheduling
 Layer 3: Episodic Memory         ← Concrete experiences & events
 Layer 2: Short-Term / Session    ← Current conversation context
 Layer 1: Working Memory          ← Active task focus (7±2 items)
@@ -43,10 +43,10 @@ Stores concrete experiences — "last Tuesday, the user asked about TypeScript g
 ### Layer 4: Long-Term Semantic Memory
 
 **Retention:** Until forgotten — nothing deletes facts on its own
-**Scheduling:** FSRS spaced repetition
-**Key feature:** A confidence per fact, and an FSRS review schedule
+**Scheduling:** FSRS-style spaced repetition
+**Key feature:** A confidence per fact, and an FSRS-style review schedule
 
-Facts with retrieval scheduling. FSRS determines when each fact is due; your application reports reviews with `recordReview()`. `@zensation/algorithms` offers Bayesian-style confidence propagation between related facts as a function; the coordinator keeps no knowledge graph and does not call it.
+Facts with retrieval scheduling. The FSRS-style scheduler determines when each fact is due; your application reports reviews with `recordReview()`. `@zensation/algorithms` offers Bayesian-style confidence propagation between related facts as a function; the coordinator keeps no knowledge graph and does not call it.
 
 ### Layer 5: Procedural Memory
 
@@ -89,7 +89,7 @@ Memory decays exponentially: `R = e^(-t/S)`. Personalized decay profiles adapt t
 
 ### Emotional Tagging
 
-The amygdala modulates memory consolidation. About 170 weighted keywords (English and German) in four lists give sentiment, arousal and significance. `computeEmotionalWeight()` turns them into a consolidation weight and a decay multiplier from 1 to 3 for your application to apply; the coordinator uses the weight to route a memory (above 0.5: an episode), and a weight passed for a fact multiplies its starting FSRS stability by 1 + weight.
+The amygdala modulates memory consolidation. About 170 weighted keywords (English and German) in four lists give sentiment, arousal and significance. `computeEmotionalWeight()` turns them into a consolidation weight and a decay multiplier from 1 to 3 for your application to apply; the coordinator uses the weight to route a memory (above 0.5: an episode), and a weight passed for a fact multiplies its starting FSRS-style stability by 1 + weight.
 
 ### Bayesian Confidence Propagation
 
