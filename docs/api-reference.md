@@ -4,7 +4,7 @@
 
 Pure TypeScript, zero dependencies. All functions are stateless and side-effect free.
 
-### FSRS (Spaced Repetition)
+### FSRS-style spaced repetition
 
 ```typescript
 import {
@@ -24,16 +24,16 @@ Calculate current recall probability (0-1) using R = e^(-t/S).
 Compute optimal next review date for target retention (default: 0.9).
 
 #### `updateAfterRecall(state, grade, retrievability, now?, logger?): FSRSState`
-Update FSRS state after successful recall. Grade: 1-5 (1=hard, 5=perfect).
+Update FSRS-style state after successful recall. Grade: 1-5 (1=hard, 5=perfect).
 
 #### `updateAfterForgot(state, retrievability, now?, logger?): FSRSState`
-Update FSRS state after failed recall.
+Update FSRS-style state after failed recall.
 
 #### `initFromDecayClass(class, emotionalWeight?): FSRSState`
-Create initial FSRS state from preset: `'permanent'` | `'slow_decay'` | `'normal_decay'` | `'fast_decay'`.
+Create initial FSRS-style state from preset: `'permanent'` | `'slow_decay'` | `'normal_decay'` | `'fast_decay'`.
 
 #### `initFromSM2(sm2Stability): FSRSState`
-Convert SM-2 stability value to FSRS state.
+Convert SM-2 stability value to FSRS-style state.
 
 #### `FSRSState`
 ```typescript
@@ -202,10 +202,10 @@ import {
 
 #### `generateRetentionCurve(stability, days?, reviews?, emotionalMultiplier?): CurvePoint[]`
 Generate forgetting-curve data points for charting. Illustrative: after a review it multiplies stability by a fixed
-factor per grade instead of running the FSRS update, so the curve does not match `updateAfterRecall`.
+factor per grade instead of running the FSRS-style update, so the curve does not match `updateAfterRecall`.
 
 #### `generateScheduleTimeline(initialDifficulty?, grades?): SchedulePoint[]`
-Generate FSRS scheduling timeline from a simulated grade sequence.
+Generate FSRS-style scheduling timeline from a simulated grade sequence.
 
 ---
 
@@ -249,7 +249,7 @@ Cosine-distance prediction error between a memory's embedding at its last review
 Map a prediction error to a re-encoding factor.
 
 #### `computeAdaptiveFSRSInterval(baseInterval, kgPredictionError, config?): number`
-Shrink the next FSRS interval when prediction error is high, extend it when low.
+Shrink the next FSRS-style interval when prediction error is high, extend it when low.
 
 ### Two-Factor Synaptic Hebbian — `./hebbian-two-factor`
 
@@ -382,7 +382,7 @@ const memory = new MemoryCoordinator({
 Route content to a memory layer and return the id of the stored memory. With `type: 'auto'` (the default) the order
 is: `steps` or procedural wording ("How to …", "Steps:", "workflow:" …) → procedure; an emotional weight above 0.5
 (given or detected) → episode; `confidence` above 0.9 → core block; otherwise a fact. Only episodes keep `context`.
-An `emotionalWeight` you pass for a fact is not stored with it; it multiplies the fact's starting FSRS stability by
+An `emotionalWeight` you pass for a fact is not stored with it; it multiplies the fact's starting FSRS-style stability by
 `1 + emotionalWeight` (7 at 0, 14 at 1); the first review comes after about 0.105 × stability days (≈ 0.7 and
 ≈ 1.5). A detected weight does not.
 Every store also adds the content to working memory.
@@ -468,10 +468,10 @@ Apply exponential decay to working-memory slots for the minutes since each was l
 to a relevance of 0.01 or below and were removed. Long-term memory is not touched.
 
 #### `getReviewQueue(limit?): Promise<{ id, content, confidence }[]>`
-Semantic facts whose FSRS review is due. Nothing reviews them on its own: report each review with `recordReview`.
+Semantic facts whose FSRS-style review is due. Nothing reviews them on its own: report each review with `recordReview`.
 
 #### `recordReview(factId, grade): Promise<boolean>`
-Record a review of a semantic fact and update its FSRS state. `grade` is an integer from 1 to 5: 1 and 2 count as
+Record a review of a semantic fact and update its FSRS-style state. `grade` is an integer from 1 to 5: 1 and 2 count as
 forgotten, 3 to 5 as recalled (3 neutral, 5 perfect); anything else throws a `RangeError`. Returns `false` if no fact
 has that id.
 
