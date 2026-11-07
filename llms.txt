@@ -1,7 +1,7 @@
 # ZenBrain
 
-> Neuroscience-inspired, zero-dependency memory system for AI agents. Implements
-> spaced repetition (FSRS), Hebbian learning, Ebbinghaus forgetting curves,
+> Neuroscience-inspired memory system for AI agents, with no third-party dependencies
+> in its core packages. Implements FSRS-style spaced repetition, Hebbian learning, Ebbinghaus forgetting curves,
 > emotional memory tagging, sleep consolidation, and Bayesian confidence
 > propagation across a 7-layer memory architecture. TypeScript, dual ESM/CJS,
 > tree-shakeable. Apache-2.0.

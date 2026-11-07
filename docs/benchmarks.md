@@ -9,17 +9,20 @@ CI checks every point estimate against `backend/results`).
 
 ## LongMemEval-500 (system level)
 
-On LongMemEval-500, **three of nine head-to-head comparisons hold** against
-Letta, Mem0 and A-Mem — all three against A-Mem, the remaining six are ties, none lost. Three
+**What was measured.** On LongMemEval-500 (500 questions), the measured ZenBrain arm is a Python port of a scoring
+class from our test harness, not the seven-layer system and not an import of these packages. Input tokens are
+counted in the answer step only; building the memory is not counted. Source: paper version 9, Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288) (31 October 2026) and [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4).
+
+In that setup, **three of nine head-to-head comparisons hold** against
+Letta, Mem0 and A-Mem — all three against A-Mem; the remaining six, against Letta and Mem0, show no significant difference. Three
 competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and version-matched.
 
 | Measure | Result |
 |---|---|
-| Head-to-head comparisons against Letta, Mem0 and A-Mem, three LLM judges each | 3 hold (all against A-Mem), 6 ties, 0 lost |
+| Head-to-head comparisons against Letta, Mem0 and A-Mem, three LLM judges each | 3 hold (all against A-Mem), 6 with no significant difference, 0 lost |
 | Significance | Bonferroni-corrected, alpha = 0.05/18, version-matched judges |
 | Share of the binary-judge accuracy of a full-context comparison arm (answer model reads the whole history); measured arm: a Python port of a test-harness class (correction notice) | 91.3% (47.7% vs. 52.2%) |
-| Input tokens in the answer step against that arm (building the memory not counted) | 1/109.6 |
-| Multi-layer routing vs. flat single-layer baseline (LoCoMo) | +20.7% F1 |
+| Input tokens in the answer step against that arm (building the memory not counted) | 1/109.7 (paper version 9) |
 | Cost of principled forgetting (NoDecay ablation) | Delta-P@5 = 0.002 |
 
 > **Corrected on 2026-09-30.** Until today this file still carried the figures retracted on
@@ -113,7 +116,7 @@ The asymptotic formula `growth = LR * (1 - w/MAX)` ensures weights never exceed 
 
 | Algorithm | Time | Space | Notes |
 |-----------|------|-------|-------|
-| FSRS update | O(1) | O(1) | Single state update |
+| FSRS-style update | O(1) | O(1) | Single state update |
 | Ebbinghaus retention | O(1) | O(1) | Exponential formula |
 | Emotional tagging | O(n) | O(1) | n = words in text |
 | Hebbian strengthening | O(1) | O(1) | Single edge update |
@@ -133,7 +136,7 @@ time on adversarial input (CodeQL alerts #3, #4) are linear now; the CHANGELOG r
 
 ## Memory Footprint
 
-Estimates from the data layout, not measurements — except the two embedding rows and the FSRS
+Estimates from the data layout, not measurements — except the two embedding rows and the FSRS-style
 state, which are arithmetic (4 bytes per dimension; two numbers and a date).
 
 | Component | Per-Item Size | Notes |
@@ -141,10 +144,10 @@ state, which are arithmetic (4 bytes per dimension; two numbers and a date).
 | Working memory slot | ~1 KB | Content + metadata |
 | Short-term interaction | ~500 B | Role + content |
 | Episodic memory | ~2 KB | Content + embedding reference |
-| Semantic fact | ~2.5 KB | Content + FSRS state + embedding |
+| Semantic fact | ~2.5 KB | Content + FSRS-style state + embedding |
 | Embedding (1536D) | 6 KB | OpenAI ada-002 dimensions |
 | Embedding (384D) | 1.5 KB | all-MiniLM-L6-v2 dimensions |
-| FSRS state | 24 B | difficulty + stability + nextReview |
+| FSRS-style state | 24 B | difficulty + stability + nextReview |
 
 ### Typical Deployment Sizes
 
@@ -174,7 +177,7 @@ otherwise:
 | `@zensation/core` (full, includes the algorithms it uses) | 33.2 KB | 10.6 KB |
 | `@zensation/core` (`WorkingMemory` only) | 2.4 KB | 1.0 KB |
 
-**A typical integration — FSRS, emotional tagging and working memory — is 11.5 KB minified, 4.5 KB gzip.**
+**A typical integration — FSRS-style scheduling, emotional tagging and working memory — is 11.5 KB minified, 4.5 KB gzip.**
 
 ---
 

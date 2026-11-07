@@ -4,6 +4,20 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Changed
+
+- Docs follow paper version 9 (Zenodo 10.5281/zenodo.23832288, 31 October 2026): the README, the package READMEs,
+  `llms.txt` and `docs/benchmarks.md` give the input tokens in the answer step as 1/109.7 (version 8: 109.6), and describe the
+  six head-to-head comparisons against Letta and Mem0 in version 9's words, as showing no significant difference.
+  Where the text means this library's scheduler, it now says "FSRS-style": the scheduler follows FSRS in the form of its
+  updates, with constants that are not fitted and an exponential forgetting curve. `docs/benchmarks.md` drops the LoCoMo
+  row "multi-layer routing vs. flat single-layer baseline": version 9 withdraws that routing lead (item K-38), because it
+  came from a run with placeholder embeddings. The npm description of `@zensation/algorithms` changes with its next release.
+- README: the benchmark section opens with what was measured (the Python-port arm, input tokens in the answer step only,
+  building the memory not counted) and the versioned source, version 9 on Zenodo and arXiv:2604.23878v4; the paper block
+  links arXiv v4. New near the top: versions at a glance (release, packages, research records) and three ways in
+  (in the browser, across Claude Code sessions, re-running the numbers).
+
 ### Added
 
 - Plugin 0.1.4: `PRIVACY.md` and the plugin README name both downloads from the npm registry, Claude Code's install of
