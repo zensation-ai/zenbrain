@@ -21,6 +21,11 @@ The orchestration layer that turns [`@zensation/algorithms`](https://www.npmjs.c
 npm install @zensation/core @zensation/adapter-sqlite
 ```
 
+> **Requires Node.js 22 or newer.** On Node 20 or older, npm silently installs the last release that
+> allowed older Node (`@zensation/core@0.2.2` with `@zensation/algorithms@0.3.4`) instead of the current
+> one, and the example below stops at `forget()`. That looks like a broken package but is a platform
+> mismatch; see the [CHANGELOG](../../CHANGELOG.md#040--2026-08-05).
+
 ```typescript
 import { MemoryCoordinator } from '@zensation/core';
 import { SqliteAdapter } from '@zensation/adapter-sqlite';
@@ -33,7 +38,7 @@ const memory = new MemoryCoordinator({ storage: new SqliteAdapter({ filename: '.
 await memory.store('User prefers TypeScript', { type: 'auto' });
 
 // Cross-layer search: deduplicated results, sorted by score (0 to 1; 0 = nothing matched)
-const results = await memory.recall('programming preferences');
+const results = await memory.recall('Which language does the user prefer?');
 
 // Forget a memory by the id and layer of a recall result (a fact consolidated from it goes too)
 await memory.forget(results[0].id, results[0].layer);
@@ -66,7 +71,7 @@ import type { StorageAdapter, EmbeddingProvider } from '@zensation/core/interfac
 
 ## Research
 
-These algorithms are documented in an open-access technical disclosure: [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture](https://doi.org/10.5281/zenodo.19353663) (Zenodo). See also: [HuggingFace Model Card](https://huggingface.co/zensation-ai/zenbrain).
+ZenBrain's architecture and algorithms are described in the paper [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://doi.org/10.5281/zenodo.19353663), open access on Zenodo (the DOI resolves to the latest version; preprint: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)). See also: [HuggingFace Model Card](https://huggingface.co/zensation-ai/zenbrain).
 
 ## Part of ZenBrain
 
