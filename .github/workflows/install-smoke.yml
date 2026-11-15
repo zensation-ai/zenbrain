@@ -1,0 +1,51 @@
+name: Install smoke
+
+# Installs the published packages from the npm registry into an empty directory, the way a user
+# does, on Linux, macOS and Windows with Node 22, 24 and 26, and runs the README examples and the
+# MCP server against them (scripts/install-smoke.mjs). ci.yml builds and tests the source on Linux;
+# this checks what npm serves: native prebuilds, the version npm picks, the bin shim.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 5 * * 1' # Mondays: catches a new Node release or a dependency that stops installing
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-smoke.yml'
+      - 'scripts/install-smoke.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: ${{ matrix.os }} · Node ${{ matrix.node-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [22, 24, 26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/install-smoke.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install the published packages into an empty directory
+        shell: bash
+        run: |
+          mkdir "$RUNNER_TEMP/smoke"
+          cp scripts/install-smoke.mjs "$RUNNER_TEMP/smoke/"
+          cd "$RUNNER_TEMP/smoke"
+          npm init -y > /dev/null
+          npm install @zensation/core @zensation/adapter-sqlite @zensation/algorithms
+      - name: README examples and the MCP server
+        shell: bash
+        working-directory: ${{ runner.temp }}/smoke
+        run: node install-smoke.mjs

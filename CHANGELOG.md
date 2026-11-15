@@ -4,6 +4,15 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+### Added
+
+- Install smoke test of the published packages (`.github/workflows/install-smoke.yml`, `scripts/install-smoke.mjs`).
+  It installs `@zensation/core`, `@zensation/adapter-sqlite` and `@zensation/algorithms` from the npm registry into an
+  empty directory on Linux, macOS and Windows with Node 22, 24 and 26, checks that npm picked the current release of
+  each, runs the Quick Starts of the core and algorithms READMEs, and starts `npx -y @zensation/mcp` over stdio (five
+  tools, a memory stored and recalled). It runs after each GitHub release, every Monday, by hand, and on pull requests
+  that change it. Until now CI tested the source, on Linux only.
+
 ## [0.6.2] — 2026-11-15
 
 Only `@zensation/algorithms` and `@zensation/core` change version. Compared with their 0.6.0 tarballs, `src`, every
