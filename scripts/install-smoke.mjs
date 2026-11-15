@@ -65,7 +65,7 @@ console.log(`Node ${process.version} · npm ${spawnSync(windows ? 'npm.cmd' : 'n
 await section('versions', async () => {
   for (const pkg of ['@zensation/core', '@zensation/adapter-sqlite', '@zensation/algorithms']) {
     const installed = JSON.parse(readFileSync(join(here, 'node_modules', ...pkg.split('/'), 'package.json'), 'utf8')).version;
-    const res = await fetch(`https://registry.npmjs.org/${pkg.replace('/', '%2f')}`, {
+    const res = await fetch(`https://registry.npmjs.org/${pkg.replaceAll('/', '%2f')}`, {
       headers: { accept: 'application/vnd.npm.install-v1+json' },
     });
     const latest = (await res.json())['dist-tags'].latest;
