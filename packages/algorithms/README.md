@@ -11,7 +11,7 @@
 
 **20 algorithm modules** (10 core + 10 advanced), extracted from a production AI platform and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 539 tests.
 
-> ZenBrain's full architecture is **15 neuroscience-inspired mechanisms (9 foundational + 6 PMA)** ([paper](https://arxiv.org/abs/2604.23878)). The six Predictive Memory Architecture components themselves are proprietary and not in this package; it ships the algorithm library described below, including the hooks they plug into (the emotional replay term of `sleep-simulation-selection`, the natural-recall coupling of `fsrs-vmPFC`, the lock-score gate of `hebbian-two-factor`).
+> ZenBrain's full architecture is **seven memory layers, a MemoryCoordinator and nine foundational algorithms, plus six Predictive Memory Architecture (PMA) components** ([paper](https://arxiv.org/abs/2604.23878), version 9). The six PMA components themselves are proprietary and not in this package; it ships the algorithm library described below, including the hooks they plug into (the emotional replay term of `sleep-simulation-selection`, the natural-recall coupling of `fsrs-vmPFC`, the lock-score gate of `hebbian-two-factor`).
 
 ### Core (10 algorithms — since v0.2.x)
 
@@ -29,7 +29,7 @@
 | **Visualization** | — | Retention curves (illustrative) and FSRS-style schedules for charting |
 | (plus shared `types`) | — | Logger interface, common typedefs |
 
-### Advanced algorithms (10 algorithms — new in v0.3.0)
+### Advanced algorithms (10 algorithms — since v0.3.0)
 
 Each is a separate sub-path import. Grounded in recent neuroscience and ML literature:
 
@@ -51,6 +51,11 @@ Each is a separate sub-path import. Grounded in recent neuroscience and ML liter
 ```bash
 npm install @zensation/algorithms
 ```
+
+> **Requires Node.js 22 or newer.** On Node 20 or older, npm silently installs
+> `@zensation/algorithms@0.3.4`, the last release that allowed older Node, instead of the current one.
+> That looks like a broken package but is a platform mismatch; see the
+> [CHANGELOG](../../CHANGELOG.md#040--2026-08-05).
 
 ```typescript
 import {
@@ -230,7 +235,7 @@ updateAfterRecall(state, 4, 0.9, new Date(), console);
 
 ## Research
 
-These algorithms are documented in an open-access technical disclosure: [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture](https://doi.org/10.5281/zenodo.19353663) (Zenodo). See also: [HuggingFace Model Card](https://huggingface.co/zensation-ai/zenbrain).
+ZenBrain's architecture and algorithms are described in the paper [ZenBrain: A Neuroscience-Inspired 7-Layer Memory Architecture for Autonomous AI Systems](https://doi.org/10.5281/zenodo.19353663), open access on Zenodo (the DOI resolves to the latest version; preprint: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878)). See also: [HuggingFace Model Card](https://huggingface.co/zensation-ai/zenbrain).
 
 ## Part of ZenBrain
 
