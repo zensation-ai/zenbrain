@@ -4,8 +4,33 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-11-15
+
+Only `@zensation/algorithms` and `@zensation/core` change version. Compared with their 0.6.0 tarballs, `src`, every
+JavaScript file and every source map are byte-identical. What changes is the README, the npm description of
+algorithms, and the type declarations: tsup 9 (#146) builds them differently, and every entry point still exports the
+same names. The other packages stay at the versions 0.6.0 and 0.6.1 published, and the publish job skips them.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/algorithms` | 0.6.0 | 0.6.1 | README and npm description as on `main`: FSRS-style, the architecture counted as in paper version 9, the Node 22 note |
+| `@zensation/core` | 0.6.0 | 0.6.1 | README as on `main`: FSRS-style, the Node 22 note, a Quick Start query that matches without an embedding provider |
+
 ### Changed
 
+- Type declarations of `@zensation/algorithms` and `@zensation/core` are built by tsup 9 (#146) instead of tsup 8. A
+  sub-path's `.d.ts` now imports shared types from `./index.js` instead of a hashed chunk, type-only exports are written
+  `export type { … }`, and core's shared chunk has a new name. The exported names are the same at all 42 type entry
+  points of algorithms and all 18 of core, and a consumer project with `skipLibCheck: false` compiles against the old
+  and the new declarations, as ESM and as CommonJS. JavaScript and source maps are byte-identical to 0.6.0.
+- Package READMEs (#165): `@zensation/core` and `@zensation/algorithms` say that they need Node.js 22 or newer, and what
+  npm installs on Node 20 instead (`core@0.2.2` with `algorithms@0.3.4`). The core Quick Start recalls with a question
+  that matches by wording, because it passes no embedding provider (the old query scored 0). The algorithms README counts
+  the architecture as paper version 9 does and names ZenAI, the AI platform we ran in our own operation, as the origin of
+  the modules. Both name the paper with its full title and its concept DOI.
+- README and `docs/FAQ.md` (#164, #166): the architecture is counted as paper version 9 counts it (seven memory layers, a
+  MemoryCoordinator and nine foundational algorithms, plus six PMA components), the comparison sentence follows the
+  paper, and the statements about production name our own operation, without claims about users or load.
 - Docs follow paper version 9 (Zenodo 10.5281/zenodo.23832288, 31 October 2026): the README, the package READMEs,
   `llms.txt` and `docs/benchmarks.md` give the input tokens in the answer step as 1/109.7 (version 8: 109.6), and describe the
   six head-to-head comparisons against Letta and Mem0 in version 9's words, as showing no significant difference.
