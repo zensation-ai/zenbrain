@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">ZenBrain</h1>
   <p align="center"><strong>The neuroscience-inspired memory system for AI agents.</strong></p>
-  <p align="center">Memory for agents that lasts across sessions: seven layers, from working memory to long-term facts and procedures, and 20 tested algorithm modules for what memory research describes, such as spaced repetition, Hebbian strengthening, sleep replay and emotional tagging.<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 948 tests as of v0.6.1. Extracted from a production AI platform.</p>
+  <p align="center">Memory for agents that lasts across sessions: seven layers, from working memory to long-term facts and procedures, and 20 tested algorithm modules for what memory research describes, such as spaced repetition, Hebbian strengthening, sleep replay and emotional tagging.<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 948 tests as of v0.6.1. Extracted from ZenAI, the AI platform we ran in our own operation.</p>
 </p>
 
 <p align="center">
@@ -90,7 +90,7 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 > **Your AI forgets everything after every conversation.** ZenBrain gives it a memory that lasts across sessions, split into layers the way human memory is, and ships the mechanisms memory research describes (spaced repetition, emotional tagging, Hebbian strengthening, forgetting curves, sleep replay) as tested functions. Which of them run on their own and which you call yourself is in [one table](#what-runs-on-its-own-and-what-you-call-yourself).
 
-> **Architecture vs. this package.** ZenBrain's architecture is **seven memory layers, a MemoryCoordinator and nine foundational algorithms, plus six Predictive Memory Architecture (PMA) components** ([paper](https://arxiv.org/abs/2604.23878), version 9). The six PMA components are proprietary: they ran in the ZenAI production system and are not in these packages, which contain the hooks they plug into. **This open-source package ships the algorithm library: 10 core algorithms + 10 advanced research modules (20 modules), zero-dependency.**
+> **Architecture vs. this package.** ZenBrain's architecture is **seven memory layers, a MemoryCoordinator and nine foundational algorithms, plus six Predictive Memory Architecture (PMA) components** ([paper](https://arxiv.org/abs/2604.23878), version 9). The six PMA components are proprietary: they run in our own private production system and are not in these packages, which contain the hooks they plug into. **This open-source package ships the algorithm library: 10 core algorithms + 10 advanced research modules (20 modules), zero-dependency.**
 
 ---
 
@@ -509,7 +509,7 @@ function updateConfidenceGraph(relations: Relation[]) {
 
 ## Extracted From Production
 
-These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), the AI platform they ran in production. Everything claimed here is verifiable in this repository:
+These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), our first product, which ran in production in our own operation. Everything claimed here is verifiable in this repository:
 
 - **948 tests** as of v0.6.1 (539 algorithms · 164 core · 88 adapter-sqlite · 65 adapter-postgres, 12 of them against a real PostgreSQL · 64 mcp · 28 ai-sdk), all passing
 - **Zero runtime dependencies** in `@zensation/algorithms` and `@zensation/core` (core depends only on algorithms) — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
