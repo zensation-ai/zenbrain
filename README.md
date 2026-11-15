@@ -90,7 +90,7 @@ Feedback, replications, and counter-results are explicitly welcome — please op
 
 > **Your AI forgets everything after every conversation.** ZenBrain gives it a memory that lasts across sessions, split into layers the way human memory is, and ships the mechanisms memory research describes (spaced repetition, emotional tagging, Hebbian strengthening, forgetting curves, sleep replay) as tested functions. Which of them run on their own and which you call yourself is in [one table](#what-runs-on-its-own-and-what-you-call-yourself).
 
-> **Architecture vs. this package.** ZenBrain's architecture is **15 neuroscience-inspired mechanisms — 9 foundational algorithms + 6 Predictive Memory Architecture (PMA) components** ([paper](https://arxiv.org/abs/2604.23878)). The six PMA components are proprietary: they ran in the ZenAI production system and are not in these packages, which contain the hooks they plug into. **This open-source package ships the algorithm library: 10 core algorithms + 10 advanced research modules (20 modules), zero-dependency.**
+> **Architecture vs. this package.** ZenBrain's architecture is **seven memory layers, a MemoryCoordinator and nine foundational algorithms, plus six Predictive Memory Architecture (PMA) components** ([paper](https://arxiv.org/abs/2604.23878), version 9). The six PMA components are proprietary: they ran in the ZenAI production system and are not in these packages, which contain the hooks they plug into. **This open-source package ships the algorithm library: 10 core algorithms + 10 advanced research modules (20 modules), zero-dependency.**
 
 ---
 
@@ -162,10 +162,10 @@ Both packages name what they do not cover. Replications and counter-results are 
 
 ## How ZenBrain differs from Mem0, Letta and Zep
 
-ZenBrain's architecture combines fifteen mechanisms taken from human memory research: nine
-foundational algorithms, which are in this library, and six Predictive Memory Architecture
-components, which are not public. Among the systems the paper surveys, none integrates more than
-two of the features it compares. The table below records which of five of these mechanisms
+ZenBrain's architecture takes its mechanisms from human memory research: nine foundational
+algorithms, which are in this library, and six Predictive Memory Architecture components, which
+are not public. In the paper's comparison table, none of the eight compared systems has more
+than two of the nine features. The table below records which of five of these mechanisms
 appear in the public source of three widely used memory systems, at pinned versions, on a fixed
 date.
 
