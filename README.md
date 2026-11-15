@@ -106,6 +106,11 @@ competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and versi
 **91.3% of the binary-judge accuracy of a full-context comparison arm (whose answer model reads the whole history) with 1/109.7 of its input tokens in the answer step**
 (47.7% vs. 52.2%).
 
+Agreement between LLM judges is not the same as independent confirmation: the paper counts three
+repetitions of one model as one rater. Our separate package [voteworth](https://github.com/zensation-ai/voteworth)
+measures how many independent votes a judge or voter panel is actually worth; in its bundled screen,
+ten LLM voters from four model families count as about 1.5.
+
 Works out of the box without an embedding provider — lexical ranking, nothing extra
 to install. `nomic-embed-text` can be added as the embedding provider; it was the embedder of the
 measured run. The figures above were not measured with this package: per the correction notice,
