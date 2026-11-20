@@ -13,6 +13,15 @@ All notable changes to ZenBrain are documented in this file. The format is based
   tools, a memory stored and recalled). It runs after each GitHub release, every Monday, by hand, and on pull requests
   that change it. Until now CI tested the source, on Linux only.
 
+### Fixed
+
+- `@zensation/mcp`: `zenbrain_recall` and `zenbrain_health`, both annotated `readOnlyHint: true`, now leave every file of
+  the store unchanged. Neither tool changed a row, but the server opened the store in WAL mode, and the first read
+  after opening or after a write wrote SQLite's read mark into `zenbrain.db-shm`. The server now opens the store with
+  a rollback journal (`walMode: false`), so a new store is a single file and a read touches none. A store already in
+  WAL mode keeps it. A new test starts the built server in an empty directory and compares name, size and sha256 of
+  every file before and after the read-only calls.
+
 ## [0.6.2] — 2026-11-15
 
 Only `@zensation/algorithms` and `@zensation/core` change version. Compared with their 0.6.0 tarballs, `src`, every

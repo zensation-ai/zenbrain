@@ -138,7 +138,12 @@ async function main(): Promise<void> {
 
   let storage: InstanceType<typeof SqliteAdapter>;
   try {
-    storage = new SqliteAdapter({ filename });
+    // Rollback journal, not WAL: in WAL mode the first read after opening (or after
+    // a write) writes SQLite's read mark into `<store>-shm`, so the tools annotated
+    // `readOnlyHint: true` changed a file without changing a row (measured on 0.3.1).
+    // One stdio client per server gains nothing from WAL. A store file that is
+    // already in WAL mode keeps it; reads there leave the files unchanged as well.
+    storage = new SqliteAdapter({ filename, walMode: false });
   } catch (err) {
     process.stderr.write(storeOpenFailureMessage(filename, process.cwd(), err));
     process.exit(1);
