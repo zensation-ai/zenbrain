@@ -1,9 +1,8 @@
 # @zensation/mcp
 
 **Status: early release.** The tool surface is small on purpose and may still
-change before 1.0. The memory layers underneath it are the same ones the
-[ZenBrain paper](https://arxiv.org/abs/2604.23878) describes and the
-[benchmarks](https://github.com/zensation-ai/zenbrain/blob/main/docs/benchmarks.md) measure.
+change before 1.0. The memory layers underneath it are those of the open library the
+[ZenBrain paper](https://arxiv.org/abs/2604.23878v4) describes.
 
 An [MCP](https://modelcontextprotocol.io) server that gives any MCP client — Claude
 Desktop, Claude Code, Cursor, or your own — a memory that survives the conversation.
@@ -108,8 +107,7 @@ Worth knowing before you wire it in:
   returns its most recent episodes and facts, or its most successful procedures, at
   `score: 0`, behind every hit; every core block comes with 0.5 or 0.8, so a block can rank
   above a weak hit. Working memory, when you ask for it, is ranked the same way. Pass an `EmbeddingProvider`
-  through the library for true semantic matching — that is the configuration the published
-  benchmarks were measured with.
+  through the library for true semantic matching.
 - **SQLite similarity search is a full scan.** Fine for one person's memory; use
   [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres)
   for larger volumes.
@@ -159,8 +157,10 @@ configuration they were measured in, are reported in the paper; the reproduction
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
-provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
+to install. In the paper ([arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)), ZenBrain's arm in the comparisons
+with other systems embedded with `nomic-embed-text`. The paper's other retrieval experiments ran with OpenAI
+`text-embedding-3-small`, with `nomic-embed-text` or with a placeholder embedder, depending on the run; the Protocol
+paragraph of the paper's setup section says which.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

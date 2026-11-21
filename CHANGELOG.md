@@ -43,6 +43,16 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   file from before the start on: in an empty directory, at `~/.zenbrain/memory.db`, on a store this version created,
   on a WAL store from 0.3.1, and with two servers on one store. Four of the five fail against 0.3.1.
 
+### Documentation
+
+- `@zensation/mcp` README, three sentences checked against version 9 of the paper (arXiv:2604.23878v4): the memory
+  layers are those of the open library the paper describes, without the claim that the benchmarks measured them (the
+  measured arm is not the seven-layer system); passing an `EmbeddingProvider` no longer claims to be "the configuration
+  the published benchmarks were measured with", since the published runs used several; and the embedders are named per
+  experiment: `nomic-embed-text` for ZenBrain's arm in the comparisons, OpenAI `text-embedding-3-small`,
+  `nomic-embed-text` or a placeholder embedder in the other retrieval experiments, depending on the run. The other
+  packages carry the same sentences and get them with their next version.
+
 ## [0.6.2] — 2026-11-15
 
 Only `@zensation/algorithms` and `@zensation/core` change version. Compared with their 0.6.0 tarballs, `src`, every
