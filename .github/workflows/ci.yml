@@ -118,6 +118,94 @@ jobs:
           node scripts/extract-results.mjs run.log fresh/
           node scripts/verify-against-reference.mjs fresh/ results/
 
+  # Every other job runs on Linux, and install-smoke tests what npm already ships, so the mcp
+  # package was never built and tested on Windows or macOS before a release. This job does
+  # that, with the Node versions of `test`. Tests that cannot run on Windows (unwritable
+  # directories made with chmod, symbolic links) skip themselves there; the reason stands next
+  # to each skipIf. Tests with a branch per platform (name lengths) run their macOS branch here.
+  mcp-windows-macos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+        node-version: [22, 24, 26]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install --no-package-lock
+      - name: Build algorithms, core, adapter-sqlite and mcp
+        run: |
+          cd packages/algorithms && npm run build
+          cd ../core && npm run build
+          cd ../adapters/sqlite && npm run build
+          cd ../../mcp && npm run build
+      - name: Lint mcp
+        run: cd packages/mcp && npx tsc --noEmit
+      - name: Test mcp
+        run: cd packages/mcp && npx vitest run
+      - name: MCP server smoke test
+        run: node scripts/smoke-mcp.mjs
+
+  # `engines` says `node >=22.14`. The `test` job runs the newest 22, 24 and 26, so the floor
+  # itself was never run, and when this job first ran it (2026-11-21) the floor turned out to
+  # be wrong: better-sqlite3 13 is built against Node-API 10, and on Node 22.0.0, 22.12.0 and
+  # 22.13.0 it segfaulted on the first `new Database()`, also after `npm rebuild` on that
+  # version, while 22.14.0 to 22.22.0 worked. So this job checks both sides of the floor the
+  # way a user meets them: build with the newest 22 (the build tools need it; users install
+  # `dist`), switch to the version under test, rebuild better-sqlite3 there, then run.
+  # On 22.13.0 the server must refuse to start with a message, not crash; on 22.14.0 it must
+  # serve (stdio, five tools, a memory stored and recalled) and load by `import` and `require()`.
+  node-floor:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22.13.0', '22.14.0']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --no-package-lock
+      - name: Build algorithms, core, adapter-sqlite and mcp (newest Node 22)
+        run: |
+          cd packages/algorithms && npm run build
+          cd ../core && npm run build
+          cd ../adapters/sqlite && npm run build
+          cd ../../mcp && npm run build
+      - name: Switch to Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Runtime is Node ${{ matrix.node-version }}
+        run: test "$(node --version)" = "v${{ matrix.node-version }}"
+      - name: Install better-sqlite3 the way a user on this Node would (npm rebuild)
+        run: npm rebuild better-sqlite3
+      - name: Below the floor the server refuses to start, with a message
+        if: matrix.node-version == '22.13.0'
+        run: |
+          set +e
+          out=$(printf '' | node packages/mcp/dist/index.js 2>&1); code=$?
+          echo "exit=$code"; echo "$out"
+          test "$code" = 1 && echo "$out" | grep -q "needs Node 22.14 or newer"
+      - name: better-sqlite3 loads and answers
+        if: matrix.node-version == '22.14.0'
+        run: node -e "const D = require('better-sqlite3'); console.log(new D(':memory:').prepare('select sqlite_version() v').get(), process.version)"
+      - name: MCP server smoke test
+        if: matrix.node-version == '22.14.0'
+        run: node scripts/smoke-mcp.mjs
+      - name: import() and require() load both entry points
+        if: matrix.node-version == '22.14.0'
+        run: |
+          node --input-type=module -e "await import('@zensation/mcp'); await import('@zensation/mcp/server'); console.log('import ok on', process.version)"
+          node -e "require('@zensation/mcp'); require('@zensation/mcp/server'); console.log('require ok on', process.version)"
+
   # The unit tests of adapter-postgres mock `pg`, so they never see what PostgreSQL itself
   # decides: the schema in sql/001_init.sql, uuid and JSONB columns, pgvector. Until this job
   # nothing in CI ran a single query against PostgreSQL, and procedures could not be stored
@@ -154,7 +242,7 @@ jobs:
         run: cd packages/adapters/postgres && npx vitest run __tests__/real-postgres.test.ts
 
   publish:
-    needs: [test, postgres]
+    needs: [test, node-floor, mcp-windows-macos, postgres]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:

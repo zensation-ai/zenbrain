@@ -10,43 +10,58 @@
  *                      A leading `~/` means the home directory. Relative
  *                      paths are relative to the working directory the
  *                      client chose. Use ':memory:' for a store that dies
- *                      with the process.
+ *                      with the process. The file, and any missing
+ *                      directory above it, is created when the first memory
+ *                      is stored, not by the start.
  *   ZENBRAIN_CONTEXTS  Comma-separated context domains.
  *                      Default: personal,work,learning,creative
  *
  * Nothing is written to stdout except protocol traffic — stdout *is* the
  * transport. Diagnostics go to stderr.
  */
-import { realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve as resolvePath } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import type { StorageAdapter } from '@zensation/core';
 import { createZenBrainServer } from './server.js';
+import { DeferredStore, notSqliteReason, precheckApplies, storeCreationProblem } from './store.js';
 
 export { createZenBrainServer } from './server.js';
 export type { ZenBrainServerOptions } from './server.js';
 
 /** Lowest Node this package supports, mirroring `engines.node` in package.json. */
-const MIN_NODE_MAJOR = 22;
+const MIN_NODE = { major: 22, minor: 14 } as const;
+const MIN_NODE_LABEL = `${MIN_NODE.major}.${MIN_NODE.minor}`;
 
 /**
  * `engines` only makes npm print a warning, and an MCP client shows the user
- * nothing at all. On Node 20 the storage adapter's native module loads and then
- * segfaults the moment it is instantiated — exit 139, no stdout, no stderr. From
- * the client's side the server simply never comes up, with nothing to go on.
+ * nothing at all. Below the floor the storage adapter's native module loads and
+ * then segfaults the moment it is instantiated — exit 139, no stdout, no stderr.
+ * From the client's side the server simply never comes up, with nothing to go on.
+ *
+ * Measured on Node 20 first. On 2026-11-21 the CI job `node-floor` found the same
+ * crash on Node 22.0.0, 22.12.0 and 22.13.0, also after `npm rebuild` on that
+ * version, and none on 22.14.0, 22.16.0, 22.18.0, 22.20.0 and 22.22.0:
+ * better-sqlite3 13 is built against Node-API 10 (`NAPI_VERSION=10` in its
+ * binding.gyp), which Node 22 has from 22.14.0 on. The floor was `>=22` until then.
  *
  * So check before anything native is reachable, and say what is wrong.
  */
 export function unsupportedNodeMessage(version: string): string | null {
-  const major = Number(version.replace(/^v/, '').split('.')[0]);
-  if (Number.isFinite(major) && major >= MIN_NODE_MAJOR) return null;
+  const [major, minor] = version.replace(/^v/, '').split('.').map(Number);
+  const supported =
+    Number.isFinite(major) &&
+    Number.isFinite(minor) &&
+    (major > MIN_NODE.major || (major === MIN_NODE.major && minor >= MIN_NODE.minor));
+  if (supported) return null;
 
   return (
-    `zenbrain-mcp needs Node ${MIN_NODE_MAJOR} or newer — this is Node ${version}.\n` +
+    `zenbrain-mcp needs Node ${MIN_NODE_LABEL} or newer — this is Node ${version}.\n` +
     `Its SQLite storage uses better-sqlite3, whose native module crashes on older\n` +
     `runtimes instead of failing cleanly. Upgrade Node, or point your MCP client at a\n` +
-    `Node ${MIN_NODE_MAJOR}+ binary:\n\n` +
+    `Node ${MIN_NODE_LABEL}+ binary:\n\n` +
     `  { "command": "/path/to/node22/bin/node",\n` +
     `    "args": ["/path/to/node_modules/@zensation/mcp/dist/index.js"] }\n`
   );
@@ -87,7 +102,12 @@ export function resolveStorePath(value: string | undefined, home: string = homed
   // working directory. A value that is nothing but such a placeholder therefore means
   // the plugin's documented default, the file the README's `claude mcp add` line uses.
   if (value !== undefined && isUnresolvedPlaceholder(value)) return join(home, '.zenbrain', 'memory.db');
-  const raw = value === undefined || value.trim() === '' ? DEFAULT_STORE : value;
+  // Trimmed once, here, so that every later step sees the same path. better-sqlite3
+  // trims the name it is given; a check for the file on the untrimmed value would
+  // look somewhere else. A trailing space or a `\r` from a CRLF file then hid an
+  // existing store until the first store (found by review of the 0.3.2 draft).
+  const trimmed = value?.trim() ?? '';
+  const raw = trimmed === '' ? DEFAULT_STORE : trimmed;
   if (raw.startsWith('~/') || raw.startsWith('~\\')) return join(home, raw.slice(2));
   return raw;
 }
@@ -108,10 +128,15 @@ export function isUnresolvedPlaceholder(value: string): boolean {
 export function storeOpenFailureMessage(filename: string, cwd: string, cause: unknown): string {
   const absolute = filename === ':memory:' || isAbsolute(filename);
   const where = absolute ? filename : resolvePath(cwd, filename);
+  // The hint about permissions only where the cause is one: for "file is not a
+  // database" or "database is locked" it would send the user the wrong way.
+  const permissions = /EACCES|EPERM|EROFS|permission denied|read-only|readonly|unable to open database file|cannot create files/i.test(String(cause));
   return (
     `zenbrain-mcp could not open its store at ${where}: ${String(cause)}\n` +
     (absolute
-      ? `Check that this user can write to that directory (missing directories are created).\n`
+      ? permissions
+        ? `Check that this user can write to that directory (missing directories are created).\n`
+        : ''
       : `That path is relative to the working directory your MCP client started the server in (${cwd}).\n` +
         `Set ZENBRAIN_DB to an absolute path or one starting with ~/, for example "~/.zenbrain/memory.db".\n`)
   );
@@ -136,19 +161,57 @@ async function main(): Promise<void> {
     .map((c) => c.trim())
     .filter(Boolean);
 
-  let storage: InstanceType<typeof SqliteAdapter>;
-  try {
-    storage = new SqliteAdapter({ filename });
-  } catch (err) {
-    process.stderr.write(storeOpenFailureMessage(filename, process.cwd(), err));
-    process.exit(1);
+  // Rollback journal, not WAL: in WAL mode the first read after opening (or after
+  // a write) writes SQLite's read mark into `<store>-shm`, so the tools annotated
+  // `readOnlyHint: true` changed a file without changing a row (measured on 0.3.1).
+  // A store file that is already in WAL mode keeps it: switching it back would
+  // itself be a write, and SQLite cannot do it while another server has it open.
+  const openFile = () => new SqliteAdapter({ filename, walMode: false });
+
+  let storage: StorageAdapter;
+  if (filename === ':memory:') {
+    storage = new SqliteAdapter({ filename, walMode: false });
+  } else {
+    // Nothing is created before the first memory is stored (see ./store.ts), so check now,
+    // without creating anything, that it could be created — unless the check would read the
+    // path differently from SQLite (see precheckApplies).
+    const problem = existsSync(filename) || !precheckApplies(filename) ? null : storeCreationProblem(filename);
+    if (problem !== null) {
+      process.stderr.write(storeOpenFailureMessage(filename, process.cwd(), problem));
+      process.exit(1);
+    }
+    try {
+      storage = new DeferredStore({
+        filename,
+        openFile: () => {
+          try {
+            const notSqlite = notSqliteReason(filename);
+            if (notSqlite !== null) throw new Error(notSqlite);
+            return openFile();
+          } catch (err) {
+            const message = storeOpenFailureMessage(filename, process.cwd(), err);
+            process.stderr.write(message);
+            throw new Error(message);
+          }
+        },
+        openEmpty: () => new SqliteAdapter({ filename: ':memory:', walMode: false }),
+      });
+    } catch {
+      // An existing file is opened at start; openFile has said why it failed.
+      process.exit(1);
+    }
   }
   const coordinator = new MemoryCoordinator({
     storage,
     ...(contexts && contexts.length > 0 ? { contexts } : {}),
   });
 
-  const server = createZenBrainServer(coordinator);
+  // A store file that exists but cannot be opened must not look like an empty
+  // memory: the coordinator's recall paths catch storage errors, so check first.
+  const server = createZenBrainServer(
+    coordinator,
+    storage instanceof DeferredStore ? { checkStorage: () => (storage as DeferredStore).ensureReadable() } : {},
+  );
 
   const shutdown = async (): Promise<void> => {
     try {
@@ -161,8 +224,11 @@ async function main(): Promise<void> {
   process.on('SIGTERM', () => void shutdown().finally(() => process.exit(0)));
 
   await server.connect(new StdioServerTransport());
-  const where = filename === ':memory:' ? filename : resolvePath(filename);
-  process.stderr.write(`zenbrain-mcp ready — store: ${where}\n`);
+  // A path with a `..` part is named as given: resolving it as text could name a place
+  // the system does not mean (see precheckApplies).
+  const where = filename === ':memory:' || !precheckApplies(filename) ? filename : resolvePath(filename);
+  const pending = storage instanceof DeferredStore && !storage.fileOpen ? ' (created when the first memory is stored)' : '';
+  process.stderr.write(`zenbrain-mcp ready — store: ${where}${pending}\n`);
 }
 
 /**

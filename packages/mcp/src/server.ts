@@ -3,8 +3,10 @@
  *
  * This module builds the server around an already-constructed MemoryCoordinator
  * rather than constructing one itself. That is what makes it testable: the tests
- * drive the real protocol over an in-memory transport against an in-memory store,
- * and never touch a file or a database. `index.ts` does the wiring for real use.
+ * of this module (`server.test.ts`, `tool-definitions.test.ts`) drive the real
+ * protocol over an in-memory transport against an in-memory store, and never touch
+ * a file or a database. `index.ts` does the wiring for real use; its tests start
+ * the built server against real files.
  */
 import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -61,6 +63,12 @@ export interface ZenBrainServerOptions {
   name?: string;
   /** Reported to the client during initialization. */
   version?: string;
+  /**
+   * Called, and awaited, before each tool runs. If it throws or its promise is
+   * rejected, the tool returns that error instead of running. The executable uses it so that a store file which exists
+   * but cannot be opened is reported as an error rather than as an empty memory.
+   */
+  checkStorage?: () => void | Promise<void>;
 }
 
 /** Renders a value as the text block every MCP client can display. */
@@ -110,13 +118,14 @@ export function createZenBrainServer(
       description:
         'Write something into long-term memory so it survives this conversation. ' +
         'Routing is automatic by default, first match wins: `steps`, or wording such as "How to", ' +
-        '"Steps:" or "workflow:", make a procedure; an emotional weight above 0.5 (detected, or ' +
-        'set via `emotionalWeight`) an episode; a `confidence` above 0.9 a pinned core memory; ' +
+        '"Steps:" or "workflow:", make a procedure; an emotional weight above 0.5 an episode ' +
+        '(set it via `emotionalWeight`: the detection from the content rates most clearly emotional ' +
+        'texts below 0.5); a `confidence` above 0.9 a pinned core memory; ' +
         'anything else a semantic fact. Set `type` only when you want to override that. Every ' +
-        'call adds a new memory, except that storing the same core memory again updates it; the ' +
-        'content is also kept in working memory (the most recent seven) while the server runs, ' +
-        'so once seven are held each store replaces the oldest copy there. Long-term memory is ' +
-        'never changed by a store. ' +
+        'call adds a new memory, except that storing the same core memory again only renews its ' +
+        'timestamp. The content is also kept in working memory (the most recent seven) while the ' +
+        'server runs; once seven are held, each store drops the oldest copy there, which exists ' +
+        'only in the server\'s memory. Nothing else that is already stored is changed by a store. ' +
         'Returns the id of the stored memory. ' +
         'If it may already be stored, check with zenbrain_recall first: storing it again adds ' +
         'a duplicate.',
@@ -143,7 +152,8 @@ export function createZenBrainServer(
           .max(1)
           .optional()
           .describe(
-            'Emotional significance (0–1). Detected from the content when omitted. ' +
+            'Emotional significance (0–1). Detected from the content when omitted, but the detection ' +
+              'rates most clearly emotional texts below 0.5, so set it when a memory should be an episode. ' +
               'Above 0.5 routes to episodic memory unless steps or procedural wording matched first. ' +
               "With type 'fact' it is not stored, but lengthens the fact's first review interval (×(1 + weight)).",
           ),
@@ -166,6 +176,7 @@ export function createZenBrainServer(
       },
     },
     async ({ content, ...rest }) => {
+      await options.checkStorage?.();
       const opts: StoreOptions = {};
       if (rest.type !== undefined) opts.type = rest.type;
       if (rest.context !== undefined) opts.context = rest.context;
@@ -266,6 +277,7 @@ export function createZenBrainServer(
       },
     },
     async ({ query, ...rest }) => {
+      await options.checkStorage?.();
       const opts: RecallOptions = {
         layers: (rest.layers ?? [...DEFAULT_RECALL_LAYERS]) as RecallOptions['layers'],
       };
@@ -331,6 +343,7 @@ export function createZenBrainServer(
       },
     },
     async ({ id, layer }) => {
+      await options.checkStorage?.();
       const { removed: forgotten, alsoForgotten } = await coordinator.forgetWithDerived(id, layer);
       const payload = { forgotten, id, layer, alsoForgotten };
       return { content: text(payload), structuredContent: payload };
@@ -359,6 +372,7 @@ export function createZenBrainServer(
       },
     },
     async () => {
+      await options.checkStorage?.();
       const r = await coordinator.consolidate();
       const payload = { promoted: r.promoted, decayed: r.decayed, pruned: r.pruned };
       return { content: text(payload), structuredContent: payload };
@@ -393,6 +407,7 @@ export function createZenBrainServer(
       },
     },
     async () => {
+      await options.checkStorage?.();
       const h = await coordinator.getHealth();
       const payload = {
         working: { used: h.working.used, max: h.working.max },
