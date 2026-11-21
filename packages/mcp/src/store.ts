@@ -19,14 +19,15 @@
  * This module imports no native code: it is loaded before the Node version check
  * has had its say, and the adapters are handed in as factories.
  */
-import { accessSync, closeSync, constants, existsSync, lstatSync, openSync, readSync, statSync } from 'node:fs';
+import { accessSync, closeSync, constants, existsSync, lstatSync, openSync, readlinkSync, readSync, statSync } from 'node:fs';
 import { dirname, parse, resolve as resolvePath } from 'node:path';
 import type { QueryResult, StorageAdapter } from '@zensation/core';
 
 /**
  * What a statement can do to a store that has no rows yet.
  *
- * - `read`: SELECT, a WITH that only selects, and a PRAGMA that sets nothing.
+ * - `read`: SELECT, a WITH that only selects, and a PRAGMA that only reads (`PRAGMA x`;
+ *   `PRAGMA x = v` and `PRAGMA x(v)` set a value and count as `add`).
  * - `change`: UPDATE or DELETE. On an empty store they match no row, so before
  *   the file exists they are answered from the empty store and create nothing:
  *   `zenbrain_forget` and `zenbrain_consolidate` on a memory that was never
@@ -40,7 +41,7 @@ export function statementKind(sql: string): 'read' | 'change' | 'add' {
   const head = text.slice(0, 6).toUpperCase();
   if (head.startsWith('SELECT')) return 'read';
   if (head.startsWith('WITH')) return /\b(INSERT|UPDATE|DELETE|REPLACE)\b/i.test(text) ? 'add' : 'read';
-  if (head.startsWith('PRAGMA')) return text.includes('=') ? 'add' : 'read';
+  if (head.startsWith('PRAGMA')) return /[=(]/.test(text) ? 'add' : 'read';
   if (head.startsWith('UPDATE') || head.startsWith('DELETE')) return 'change';
   return 'add';
 }
@@ -82,15 +83,23 @@ const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
  * Checked at start so that a server started where nothing can be written — the
  * working directory `/` that some clients choose — still says so at once instead
  * of failing on its first `zenbrain_store`. It finds: no writable directory on
- * the path, a part of the path that is a file or a link to nothing, the store
- * path itself being a link to nothing, a name longer than 255 bytes, and on
- * Windows a name Windows refuses. Anything else (a full disk, a quota, a file
- * system that refuses the name for its own reasons) surfaces at the first store.
+ * the path, a part of the path that is a file or a link to nothing, a name
+ * longer than 255 bytes, and on Windows a name Windows refuses. The store path
+ * itself may be a link to a file that does not exist yet: SQLite follows the link
+ * and creates the file it points to, as 0.3.1 did, so then the link's target is
+ * checked instead. Anything else (a full disk, a quota, a file system that
+ * refuses the name for its own reasons) surfaces at the first store. On Windows
+ * the write check passes for every directory (Node does not read ACLs there).
  */
-export function storeCreationProblem(filename: string, cwd: string = process.cwd()): string | null {
+export function storeCreationProblem(filename: string, cwd: string = process.cwd(), links = 0): string | null {
   const full = resolvePath(cwd, filename);
   try {
-    if (lstatSync(full).isSymbolicLink() && !existsSync(full)) return `${full} is a link to nothing`;
+    if (lstatSync(full).isSymbolicLink() && !existsSync(full)) {
+      if (links >= 8) return `${full} is one of too many links in a row`;
+      const target = resolvePath(dirname(full), readlinkSync(full));
+      if (!existsSync(dirname(target))) return `${full} is a link to ${target}, whose directory does not exist`;
+      return storeCreationProblem(target, cwd, links + 1);
+    }
   } catch {
     // no such path: the usual case
   }
@@ -208,6 +217,7 @@ export class DeferredStore implements StorageAdapter {
   }
 
   private open(): StorageAdapter {
+    if (this.file) return this.file;
     if (this.failure !== undefined && this.now() < this.retryAt) throw this.failure;
     try {
       this.file = this.options.openFile();
@@ -243,28 +253,36 @@ export class DeferredStore implements StorageAdapter {
 
   /**
    * Before the file exists, `fn` first runs in a transaction on the empty store.
-   * If it only reads, that is the result and no file appears. At its first
-   * statement that adds a row, that transaction is rolled back, the file is
-   * opened and `fn` runs again from the start, in a transaction on the file. So
-   * `fn` may run twice; the first run has done nothing but read an empty store.
+   * If it only reads, that is the result and no file appears. Its first statement
+   * that adds a row is not run there: it throws, and whatever `fn` then does, the
+   * first run counts as void, its transaction is ended, the file is opened and
+   * `fn` runs again from the start, in a transaction on the file. So `fn` may run
+   * twice. The first run has only read an empty store, but anything `fn` does
+   * outside the store (a log line, a counter, a call elsewhere) happens twice.
    */
   async transaction<T>(fn: (adapter: StorageAdapter) => Promise<T>): Promise<T> {
     const current = this.target(false);
     if (current === this.file) return current.transaction(fn);
     const empty = current;
+    let needsFile = false;
     const probe: StorageAdapter = {
       query: async <R>(sql: string, params?: unknown[]): Promise<QueryResult<R>> => {
-        if (statementKind(sql) === 'add') throw new NeedsFile();
+        if (statementKind(sql) === 'add') {
+          needsFile = true; // set before throwing: `fn` may catch the error, the mark stays
+          throw new NeedsFile();
+        }
         return empty.query<R>(sql, params);
       },
       transaction: (inner) => inner(probe),
     };
+    let result: T | undefined;
     try {
-      return await empty.transaction(() => fn(probe));
+      result = await empty.transaction(() => fn(probe));
     } catch (err) {
-      if (!(err instanceof NeedsFile)) throw err;
-      return this.open().transaction(fn);
+      if (!needsFile) throw err;
     }
+    if (!needsFile) return result as T;
+    return this.open().transaction(fn);
   }
 
   async close(): Promise<void> {

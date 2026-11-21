@@ -20,7 +20,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import {
-  chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, writeFileSync,
+  chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, symlinkSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -251,6 +251,21 @@ describe('a store that cannot be created or opened is reported, not shown as emp
     }
   });
 
+  it.skipIf(process.platform === 'win32')('a store path that links to a file still to be created: the first store creates the link target, as in 0.3.1', async () => {
+    const dir = tmp('zenbrain-ro-link-');
+    mkdirSync(join(dir, 'sync'));
+    symlinkSync(join(dir, 'sync', 'memory.db'), join(dir, 'memory.db'));
+    const client = await startServer(dir, { ZENBRAIN_DB: join(dir, 'memory.db') });
+    try {
+      expect(readdirSync(join(dir, 'sync'))).toEqual([]);
+      await ok(client, 'zenbrain_store', { content: 'Stored through a link.' });
+      expect(readdirSync(join(dir, 'sync'))).toEqual(['memory.db']);
+      expect(await recallCount(client, 'stored through a link')).toBe(1);
+    } finally {
+      await client.close();
+    }
+  }, 30_000);
+
   it('the start fails when part of the path is a file, and says so', () => {
     const dir = tmp('zenbrain-ro-file-');
     writeFileSync(join(dir, 'plain'), 'not a directory');
@@ -259,15 +274,19 @@ describe('a store that cannot be created or opened is reported, not shown as emp
     expect(r.stderr).toContain(`${join(dir, 'plain')} is a file, not a directory`);
   });
 
-  it('a store file that appears but cannot be opened makes every tool return an error, without waiting', async () => {
+  it('a store file that appears but cannot be opened makes each of the five tools return an error, without waiting', async () => {
     const dir = tmp('zenbrain-ro-broken-');
     const client = await startServer(dir);
     try {
       expect(await recallCount(client, 'anything')).toBe(0);
       writeFileSync(join(dir, 'zenbrain.db'), 'this is not a database '.repeat(20));
-      for (const name of ['zenbrain_recall', 'zenbrain_health', 'zenbrain_recall']) {
+      const calls: Array<[string, Record<string, unknown>]> = [
+        ['zenbrain_recall', { query: 'anything' }], ['zenbrain_health', {}], ['zenbrain_store', { content: 'not stored' }],
+        ['zenbrain_forget', { id: NO_SUCH_ID, layer: 'semantic' }], ['zenbrain_consolidate', {}], ['zenbrain_recall', { query: 'anything' }],
+      ];
+      for (const [name, args] of calls) {
         const t0 = Date.now();
-        const r = await client.callTool({ name, arguments: name === 'zenbrain_recall' ? { query: 'anything' } : {} });
+        const r = await client.callTool({ name, arguments: args });
         expect(r.isError).toBe(true);
         expect(JSON.stringify(r.content)).toContain(`could not open its store at ${join(dir, 'zenbrain.db')}`);
         expect(Date.now() - t0).toBeLessThan(2_000);

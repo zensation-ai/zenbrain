@@ -56,6 +56,7 @@ describe('statementKind', () => {
     expect(statementKind('WITH a AS (SELECT 1) DELETE FROM t')).toBe('add');
     expect(statementKind('PRAGMA user_version')).toBe('read');
     expect(statementKind('PRAGMA user_version = 3')).toBe('add');
+    expect(statementKind('PRAGMA user_version(5)')).toBe('add');
     expect(statementKind('UPDATE learned_facts SET x = 1')).toBe('change');
     expect(statementKind('  delete from episodic_memories')).toBe('change');
     expect(statementKind('INSERT INTO learned_facts VALUES (1)')).toBe('add');
@@ -77,12 +78,22 @@ describe('what the start checks, creating nothing', () => {
     expect(storeCreationProblem(join(base, 'plain', 'sub', 'memory.db'))).toBe(`${join(base, 'plain')} is a file, not a directory`);
   });
 
-  it.skipIf(process.platform === 'win32')('names a link to nothing, on the path or as the store itself', () => {
+  it.skipIf(process.platform === 'win32')('names a directory link to nothing on the path', () => {
     const base = tmp();
     symlinkSync(join(base, 'gone'), join(base, 'dir-link'));
-    symlinkSync(join(base, 'gone.db'), join(base, 'store-link.db'));
     expect(storeCreationProblem(join(base, 'dir-link', 'memory.db'))).toMatch(/is a link to nothing/);
-    expect(storeCreationProblem(join(base, 'store-link.db'))).toMatch(/is a link to nothing/);
+  });
+
+  // SQLite follows a link and creates the file it points to, if that file's directory exists (0.3.1 did so too).
+  it.skipIf(process.platform === 'win32')('accepts a store path that links to a file still to be created, where its directory exists', () => {
+    const base = tmp();
+    mkdirSync(join(base, 'sync'));
+    symlinkSync(join(base, 'sync', 'memory.db'), join(base, 'store-link.db'));
+    expect(storeCreationProblem(join(base, 'store-link.db'))).toBeNull();
+    symlinkSync(join(base, 'nowhere', 'memory.db'), join(base, 'bad-link.db'));
+    expect(storeCreationProblem(join(base, 'bad-link.db'))).toMatch(/whose directory does not exist/);
+    symlinkSync(join(base, 'loop.db'), join(base, 'loop.db'));
+    expect(storeCreationProblem(join(base, 'loop.db'))).toMatch(/too many links/);
   });
 
   it('names a name longer than 255 bytes', () => {
@@ -185,6 +196,31 @@ describe('DeferredStore', () => {
       'empty: BEGIN', 'empty: SELECT 2', 'empty: ROLLBACK',
       'file: BEGIN', 'file: SELECT 2', 'file: INSERT INTO t VALUES (1)', 'file: COMMIT',
     ]);
+  });
+
+  it('a transaction whose fn catches the refused write still runs again on the file, and the file opens once', async () => {
+    const calls: string[] = [];
+    let opened = 0;
+    const store = make(join(tmp(), 'memory.db'), calls, () => {
+      opened++;
+      return fakeAdapter('file', calls);
+    });
+    let runs = 0;
+    const r = await store.transaction(async (a) => {
+      runs++;
+      try {
+        await a.query('INSERT INTO t VALUES (1)');
+      } catch {
+        return 'swallowed';
+      }
+      return 'written';
+    });
+    expect(r).toBe('written');
+    expect(runs).toBe(2);
+    expect(opened).toBe(1);
+    expect(calls).toContain('file: INSERT INTO t VALUES (1)');
+    await store.query('INSERT INTO t VALUES (2)');
+    expect(opened).toBe(1);
   });
 
   it('a file that cannot be opened is an error, rejected not thrown, and not retried on every statement', async () => {

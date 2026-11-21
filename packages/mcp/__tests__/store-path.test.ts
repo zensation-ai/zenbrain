@@ -83,4 +83,13 @@ describe('the message when the store cannot be opened', () => {
     expect(msg).not.toMatch(/to an absolute path/);
     expect(msg).toMatch(/write/);
   });
+
+  it('gives the permissions hint only where the cause is about permissions', () => {
+    for (const c of ['EACCES: permission denied', 'cannot create files in /x: EROFS', 'SqliteError: unable to open database file']) {
+      expect(storeOpenFailureMessage('/var/data/zenbrain.db', '/', c), c).toMatch(/Check that this user can write/);
+    }
+    for (const c of ['file is not a database', 'SqliteError: database is locked', '/var/data is a file, not a directory']) {
+      expect(storeOpenFailureMessage('/var/data/zenbrain.db', '/', c), c).not.toMatch(/Check that this user can write/);
+    }
+  });
 });

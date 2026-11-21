@@ -122,14 +122,19 @@ Worth knowing before you wire it in:
   that one file (a `-journal` file exists only during a write), and reading it changes
   nothing. A store that 0.3.1 or earlier created or opened is in WAL mode and stays in it:
   while a server has it open, SQLite keeps `-wal` and `-shm` files next to it (the start
-  creates them), and a read after a write can change the `-shm` file. The store file and the
-  memories in it stay as they are, and both side files are gone once the last server exits.
-  The Claude Code plugin 0.1.4 runs 0.3.1, so using it next to the `claude mcp add` line on
-  the same `~/.zenbrain/memory.db` makes the store a WAL store for good. To switch a WAL store
-  to the single file, stop every server that uses it and run the `sqlite3` command-line tool
-  on your store's full path: `sqlite3 ~/.zenbrain/memory.db "PRAGMA journal_mode=DELETE;"`. It
+  creates them), and a read after a write can change the `-shm` file. The memories stay as
+  they are. When the last server exits, SQLite writes what is in `-wal` into the store file
+  and removes both side files; if a server is killed, they stay until the next one exits. The
+  Claude Code plugin 0.1.4 runs 0.3.1, so using it next to the `claude mcp add` line on the
+  same `~/.zenbrain/memory.db` makes the store a WAL store for good. To switch a WAL store to
+  the single file, stop every server that uses it and run the `sqlite3` command-line tool on
+  your store's full path: `sqlite3 ~/.zenbrain/memory.db "PRAGMA journal_mode=DELETE;"`. It
   prints `delete`; a `-shm` file it leaves behind can be deleted. While a server still has the
   store open, it fails with "database is locked" and changes nothing.
+- **A locked store makes recall come back short.** If another program holds a store with a
+  rollback journal locked for longer than 5 seconds, `zenbrain_recall` waits about 5 seconds
+  per query and then returns fewer results or none, without an error; `zenbrain_health`
+  reports "database is locked". On a WAL store readers do not wait.
 
 ## Using it as a library
 

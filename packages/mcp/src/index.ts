@@ -128,10 +128,15 @@ export function isUnresolvedPlaceholder(value: string): boolean {
 export function storeOpenFailureMessage(filename: string, cwd: string, cause: unknown): string {
   const absolute = filename === ':memory:' || isAbsolute(filename);
   const where = absolute ? filename : resolvePath(cwd, filename);
+  // The hint about permissions only where the cause is one: for "file is not a
+  // database" or "database is locked" it would send the user the wrong way.
+  const permissions = /EACCES|EPERM|EROFS|permission denied|read-only|readonly|unable to open database file|cannot create files/i.test(String(cause));
   return (
     `zenbrain-mcp could not open its store at ${where}: ${String(cause)}\n` +
     (absolute
-      ? `Check that this user can write to that directory (missing directories are created).\n`
+      ? permissions
+        ? `Check that this user can write to that directory (missing directories are created).\n`
+        : ''
       : `That path is relative to the working directory your MCP client started the server in (${cwd}).\n` +
         `Set ZENBRAIN_DB to an absolute path or one starting with ~/, for example "~/.zenbrain/memory.db".\n`)
   );

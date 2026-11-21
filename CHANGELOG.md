@@ -13,16 +13,16 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 
 | Package | From | To | Why |
 |---|---|---|---|
-| `@zensation/mcp` | 0.3.1 | 0.3.2 | without a store, starting the server and the read-only tools create no file; on a store this version created they change none (stores in WAL mode keep their side files) |
+| `@zensation/mcp` | 0.3.1 | 0.3.2 | without a store, starting the server and the read-only tools create no file; on a store 0.3.2 created and 0.3.1 never opened they change none (a WAL store, from 0.3.1 or opened by it, keeps its side files, and reads change `-shm`) |
 
 `@zensation/mcp` 0.3.2 also requires `@modelcontextprotocol/sdk` ^1.32.2 (was ^1.32.1, #157) and `zod` ^4.6.7 (was
 ^4.6.5, #147); both bumps were already on `main`.
 
 ### Added
 
-- `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called before each tool
-  runs, and if it throws, the tool returns that error instead of running; the server uses it to report a store it cannot
-  open.
+- `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called and awaited before
+  each tool runs; if it throws or its promise is rejected, the tool returns that error instead of running. The server
+  uses it to report a store it cannot open.
 - CI job `node-floor`: on both sides of the Node floor of `@zensation/mcp`, 22.13.0 and 22.14.0, it rebuilds
   better-sqlite3 on that version, then checks that the server built with the newest Node 22 refuses to start on
   22.13.0 with a message and serves on 22.14.0 (stdio, five tools, a memory stored and recalled), where `import` and
@@ -53,33 +53,43 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   it, is created when the first memory is stored; until then the read-only tools answer from an empty memory,
   `zenbrain_forget` and `zenbrain_consolidate`, which find nothing to delete or promote, create nothing either, and
   the start line on stderr ends in "(created when the first memory is stored)". Each read looks for the file again, so
-  a server started before a second one created the store reads it from then on, as soon as the other server has
-  finished creating it. A store this version creates is opened with a rollback journal (`walMode: false`): it is a
-  single file, and a read touches none.
+  a server started before a second one created the store reads it from then on: once the other server has finished
+  creating it, or, if that server runs 0.3.1, as soon as its `-wal` file exists. A store this version creates is
+  opened with a rollback journal (`walMode: false`): it is a single file, and a read touches none.
   This holds for stores in rollback mode only. Every store that 0.3.1 or earlier created is in WAL mode and stays in
   it: switching would itself be a write, and SQLite cannot do it while another server has the file open. On such a
   store the start creates `-wal` and `-shm` next to it before any tool is called, as before, and a read after a write,
-  by this server or another, changes `-shm`; the store file and the memories in it stay as they are, and both side
-  files are gone once the last server exits. A store this version created becomes such a WAL store for good as soon as
-  0.3.1 opens it. The Claude Code plugin 0.1.4 runs 0.3.1, so this happens when the plugin and the `claude mcp add`
-  line, which runs the newest release, share `~/.zenbrain/memory.db`, until the plugin moves to 0.3.2. The README says
-  how to switch a WAL store to the single file by hand. A store last written by 0.1.6 or earlier is brought up to the
-  current schema once, at the start, which writes to it.
+  by this server or another, changes `-shm`; the memories stay as they are. When the last server exits, SQLite writes
+  what is in `-wal` into the store file, also after reads only, and removes both side files; after a server is killed
+  they stay. A store this version created becomes such a WAL store for good as soon as 0.3.1 opens it. The Claude Code
+  plugin 0.1.4 runs 0.3.1, so this happens when the plugin and the `claude mcp add` line, which runs the newest
+  release, share `~/.zenbrain/memory.db`, until the plugin moves to 0.3.2. The README says how to switch a WAL store
+  to the single file by hand. A store last written by 0.1.6 or earlier is brought up to the current schema once, at
+  the start, which writes to it.
   The path in `ZENBRAIN_DB` is trimmed of surrounding spaces and line breaks before anything looks for the file, as
-  the SQLite driver trims the name it opens. A start where the store could not be created still fails at once and
-  names the path: when no directory on the path can be written (such as the working directory `/`), when part of the
-  path is a file or a link to nothing, or when a name is longer than 255 bytes or, on Windows, one that Windows
-  refuses; the message names the path and what it found there, where 0.3.1 passed on SQLite's "unable to open database
-  file". Anything else, a full disk for instance, surfaces at the first store, with the same message. A store file
-  that appears while the server runs but cannot be opened makes every tool return that message as an error, instead of
-  recall and health reporting an empty memory, and the server tries to open it again at most every 10 seconds.
-  Two servers on one store, as in two Claude Code windows, were checked with 2 × 1,000 stores and recalls at the same
-  time, and with 2 × 100 where one of them runs 0.3.1: no entry lost, no "database is locked". New tests start the
-  built server and compare name, size and sha256 of every file from before the start on: in an empty directory (with
-  forget, given a valid id in each long-term layer, and consolidate), at `~/.zenbrain/memory.db`, on a store this
-  version created, with `ZENBRAIN_DB` ending in a space or a CRLF, with two servers on one store and two creating it
-  at the same moment, where the store cannot be created (exit 1 and the path) or appears and cannot be opened (an
-  error from every tool), and on WAL stores, which pin the side files described above. The clients used were the MCP TypeScript SDK client 1.32.2 and the MCP Inspector 2.13.0 (CLI).
+  the SQLite driver trims the name it opens. On Linux and macOS a start where the store could not be created still
+  fails at once and names the path: when no directory on the path can be written (such as the working directory `/`),
+  when part of the path is a file or a link to nothing, when the store path is a link to a file whose directory does
+  not exist, or when a name is longer than 255 bytes or one that Windows refuses. A store path that links to a file
+  still to be created is accepted, and the first store creates the file it points to, as in 0.3.1. The message names
+  the path and what it found there, where 0.3.1 passed on SQLite's "unable to open database file", and it suggests
+  checking the permissions only when the cause is about permissions. On Windows Node cannot tell whether a directory
+  is writable, so there such a store fails at its first store, with the same message, and so does anything else, a
+  full disk for instance. A store file that appears while the server runs but cannot be opened makes every tool return
+  that message as an error, instead of recall and health reporting an empty memory, and the server tries to open it
+  again at most every 10 seconds.
+  A limit that stays: on a store with a rollback journal, a program that holds the store locked for longer than 5
+  seconds makes `zenbrain_recall` return fewer results or none, without an error, after waiting about 5 seconds per
+  query (measured: 0 results after 21 seconds), while `zenbrain_health` returns "database is locked" as an error. The
+  recall paths of `@zensation/core` catch the error; that changes with a version of core. On a WAL store readers do
+  not wait for a writer.
+  New tests start the built server. In an empty directory (with forget, given a valid id in each long-term layer, and
+  consolidate), at `~/.zenbrain/memory.db`, on a store this version created, with `ZENBRAIN_DB` ending in a space or a
+  CRLF, and on WAL stores they compare name, size and sha256 of every file from before the start on; with two servers
+  on one store, and two creating it at the same moment, they compare the file names. Where the store cannot be created
+  they check exit 1 and the path, where it appears and cannot be opened an error from each of the five tools, and for
+  a store path that links to a file still to be created that the first store creates it. The clients used were the MCP
+  TypeScript SDK client 1.32.2 and the MCP Inspector 2.13.0 (CLI).
 - `@zensation/mcp`: the description of `zenbrain_store` and of its `emotionalWeight` input, and the package README, no
   longer suggest that the emotional weight is found in the content reliably. Measured on 20 clearly emotional texts,
   the detection gave 5 a weight above 0.5 (3 of 8 joyful ones, 2 of 12 sad, frightened or angry ones), and none of 20
