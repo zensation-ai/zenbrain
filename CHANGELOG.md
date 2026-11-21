@@ -78,18 +78,18 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   the parent of where that directory really is, so a check could refuse a path SQLite would accept; a store that
   cannot be created there fails at the first store, with the message. Otherwise a start where the store could not be
   created still fails at once and names the path, on every platform: when part of the path is a file, or when a name
-  is longer than 255 bytes on Linux or 255 UTF-16 units on macOS and Windows; and when part of the path is a link to
-  nothing, or the store path is a link to a file whose directory does not exist (links: not tested on Windows). On
-  Windows it also fails at once for a name Windows refuses (CON, NUL, COM1, `<`, `|` and the like) and for a part of
-  the path that ends in a dot or a space: Windows drops it for SQLite but not for Node, so the two would look at
-  different files and an existing store would seem empty (read in the sources of Node and SQLite, not run). That the
-  start refuses both is checked in the Windows CI job. The rule is stricter than needed in one case: a directory whose
-  name ends in a space, which Windows keeps, is refused too. On Linux and macOS it fails at once, too, when no
-  directory on the path can be written, such as the working directory `/`. On Windows, according to Node's
+  is longer than 255 bytes on Linux or 255 UTF-16 units on macOS (APFS) and Windows; and when part of the path is a
+  link to nothing, or the store path is a link to a file whose directory does not exist (links: not tested on
+  Windows). On Windows it also fails at once for a name Windows refuses (CON, NUL, COM1, `<`, `|` and the like) and
+  for a part of the path that ends in a dot or a space: Windows drops it for SQLite but not for Node, so the two would
+  look at different files and an existing store would seem empty (read in the sources of Node and SQLite, not run).
+  That the start refuses both is checked in the Windows CI job. The rule is stricter than needed in one case: a
+  directory whose name ends in a space, which Windows keeps, is refused too. On Linux and macOS it fails at once, too,
+  when no directory on the path can be written, such as the working directory `/`. On Windows, according to Node's
   documentation of `fs.access`, the write check cannot see a directory's permissions, so there a directory that cannot
   be written is found only at the first store, with the same message (not tested on Windows); so is anything else on
   every platform, a full disk for instance. A store path that links to a file still to be created is accepted, through
-  up to 32 links in a row (macOS and Node follow no more, Linux 40), each relative target read against the link's real
+  up to 32 links in a row (macOS follows no more, Linux 40), each relative target read against the link's real
   directory as SQLite reads it, and the first store creates the file it points to, as in 0.3.1; a `-wal` file is
   looked for next to the link and next to that file, since where SQLite keeps it differs by system (links: not tested
   on Windows). The message names the path and what it found there, where 0.3.1 passed on SQLite's "unable to open

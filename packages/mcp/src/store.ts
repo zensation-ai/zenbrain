@@ -74,10 +74,12 @@ export function nearestExisting(
 }
 
 /**
- * How many links in a row the check follows. SQLite would follow 200
- * (SQLITE_MAX_SYMLINK), but it opens the path through the system, and macOS stops
- * after 32 links (Linux after 40), as does Node's existsSync. 32 is where all of
- * them still agree.
+ * How many links in a row the check follows, for a chain with no other link on
+ * the path. SQLite would follow 200 (SQLITE_MAX_SYMLINK), but it opens the path
+ * through the system: macOS follows no more than 32 links, Linux 40, and Node's
+ * existsSync goes as far as the system does. The system counts every link on the
+ * way, so a chain behind a linked directory gets fewer than 32. 32 is where both
+ * systems still agree.
  */
 const LINK_LIMIT = 32;
 
@@ -96,7 +98,9 @@ export function physicalTarget(path: string): string | undefined {
 
 /**
  * Longest name one path component may have, and how it is counted: 255 bytes on
- * Linux (ext4 and most others), 255 UTF-16 code units on macOS (APFS; measured:
+ * Linux (ext4 and most others), 255 UTF-16 code units on macOS (APFS, and exFAT;
+ * HFS+ counts after NFD decomposition, so there a name with accents can be
+ * refused at the first store although it passes here; measured on APFS:
  * 255 × "ä" and 127 emoji are created, 256 × "ä" and 128 emoji are not) and on
  * Windows (NTFS). On any other platform the length is not checked in advance; a
  * name that is too long fails at the first store instead.
