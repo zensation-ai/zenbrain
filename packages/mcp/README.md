@@ -115,7 +115,11 @@ Worth knowing before you wire it in:
   for larger volumes.
 - **Consolidation is a tool call, not a schedule.** Nothing runs it for you.
 - **The store is a plain file.** It is not encrypted. Put it somewhere you would put a
-  notebook. While the server runs, SQLite keeps `-wal` and `-shm` files next to it.
+  notebook. The server creates it, and any missing directory above it, with the first memory
+  it stores; until then it writes nothing, and `zenbrain_recall` and `zenbrain_health` answer
+  from an empty memory. A store created by 0.3.2 or later is that one file (SQLite's
+  `-journal` file exists only during a write). A store created by 0.3.1 or earlier stays in
+  WAL mode, and while a server has it open SQLite keeps `-wal` and `-shm` files next to it.
 
 ## Using it as a library
 

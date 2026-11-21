@@ -10,19 +10,23 @@
  *                      A leading `~/` means the home directory. Relative
  *                      paths are relative to the working directory the
  *                      client chose. Use ':memory:' for a store that dies
- *                      with the process.
+ *                      with the process. The file, and any missing
+ *                      directory above it, is created when the first memory
+ *                      is stored, not by the start.
  *   ZENBRAIN_CONTEXTS  Comma-separated context domains.
  *                      Default: personal,work,learning,creative
  *
  * Nothing is written to stdout except protocol traffic — stdout *is* the
  * transport. Diagnostics go to stderr.
  */
-import { realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve as resolvePath } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import type { StorageAdapter } from '@zensation/core';
 import { createZenBrainServer } from './server.js';
+import { DeferredStore, storeCreationProblem } from './store.js';
 
 export { createZenBrainServer } from './server.js';
 export type { ZenBrainServerOptions } from './server.js';
@@ -136,17 +140,42 @@ async function main(): Promise<void> {
     .map((c) => c.trim())
     .filter(Boolean);
 
-  let storage: InstanceType<typeof SqliteAdapter>;
-  try {
-    // Rollback journal, not WAL: in WAL mode the first read after opening (or after
-    // a write) writes SQLite's read mark into `<store>-shm`, so the tools annotated
-    // `readOnlyHint: true` changed a file without changing a row (measured on 0.3.1).
-    // One stdio client per server gains nothing from WAL. A store file that is
-    // already in WAL mode keeps it; reads there leave the files unchanged as well.
+  // Rollback journal, not WAL: in WAL mode the first read after opening (or after
+  // a write) writes SQLite's read mark into `<store>-shm`, so the tools annotated
+  // `readOnlyHint: true` changed a file without changing a row (measured on 0.3.1).
+  // A store file that is already in WAL mode keeps it: switching it back would
+  // itself be a write, and SQLite cannot do it while another server has it open.
+  const openFile = () => new SqliteAdapter({ filename, walMode: false });
+
+  let storage: StorageAdapter;
+  if (filename === ':memory:') {
     storage = new SqliteAdapter({ filename, walMode: false });
-  } catch (err) {
-    process.stderr.write(storeOpenFailureMessage(filename, process.cwd(), err));
-    process.exit(1);
+  } else {
+    // Nothing is created before the first memory is stored (see ./store.ts), so check now,
+    // without creating anything, that it could be created.
+    const problem = existsSync(filename) ? null : storeCreationProblem(filename);
+    if (problem !== null) {
+      process.stderr.write(storeOpenFailureMessage(filename, process.cwd(), problem));
+      process.exit(1);
+    }
+    try {
+      storage = new DeferredStore({
+        filename,
+        openFile: () => {
+          try {
+            return openFile();
+          } catch (err) {
+            const message = storeOpenFailureMessage(filename, process.cwd(), err);
+            process.stderr.write(message);
+            throw new Error(message);
+          }
+        },
+        openEmpty: () => new SqliteAdapter({ filename: ':memory:', walMode: false }),
+      });
+    } catch {
+      // An existing file is opened at start; openFile has said why it failed.
+      process.exit(1);
+    }
   }
   const coordinator = new MemoryCoordinator({
     storage,
@@ -167,7 +196,8 @@ async function main(): Promise<void> {
 
   await server.connect(new StdioServerTransport());
   const where = filename === ':memory:' ? filename : resolvePath(filename);
-  process.stderr.write(`zenbrain-mcp ready — store: ${where}\n`);
+  const pending = storage instanceof DeferredStore && !storage.fileOpen ? ' (created when the first memory is stored)' : '';
+  process.stderr.write(`zenbrain-mcp ready — store: ${where}${pending}\n`);
 }
 
 /**

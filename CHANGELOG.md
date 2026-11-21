@@ -4,6 +4,17 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-11-23
+
+Only `@zensation/mcp` changes version. The other packages stay at the versions earlier releases published, and the
+publish job skips them; the dependency ranges that changed on `main` since then (`better-sqlite3` in
+`@zensation/adapter-sqlite`, dev dependencies of `@zensation/ai-sdk`) wait for those packages' next version. The Claude
+Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once npm serves 0.3.2.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/mcp` | 0.3.1 | 0.3.2 | starting the server and the read-only tools no longer create or change a file |
+
 ### Added
 
 - Install smoke test of the published packages (`.github/workflows/install-smoke.yml`, `scripts/install-smoke.mjs`).
@@ -15,12 +26,22 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ### Fixed
 
-- `@zensation/mcp`: `zenbrain_recall` and `zenbrain_health`, both annotated `readOnlyHint: true`, now leave every file of
-  the store unchanged. Neither tool changed a row, but the server opened the store in WAL mode, and the first read
-  after opening or after a write wrote SQLite's read mark into `zenbrain.db-shm`. The server now opens the store with
-  a rollback journal (`walMode: false`), so a new store is a single file and a read touches none. A store already in
-  WAL mode keeps it. A new test starts the built server in an empty directory and compares name, size and sha256 of
-  every file before and after the read-only calls.
+- `@zensation/mcp`: starting the server and calling `zenbrain_recall` or `zenbrain_health`, the two tools annotated
+  `readOnlyHint: true`, no longer create or change a file. Measured on 0.3.1: neither tool changed a row, but the start
+  created `zenbrain.db`, `zenbrain.db-wal` and `zenbrain.db-shm` in an empty directory, and the first read after opening
+  or after a write wrote SQLite's read mark into `zenbrain.db-shm`. Now the store file, and any missing directory above
+  it, is created when the first memory is stored; until then the read-only tools answer from an empty memory, and
+  `zenbrain_forget` and `zenbrain_consolidate`, which find nothing to delete or promote, create nothing either. Each read
+  looks for the file again, so a server started before a second one created the store reads it from then on. The store
+  is opened with a rollback journal (`walMode: false`): a new store is a single file, and a read touches none. A start
+  where the store could not be created, such as the working directory `/`, still fails at once and names the path.
+  A store created by 0.3.1 or earlier stays in WAL mode: switching it would itself be a write, and SQLite cannot do it
+  while another server has the file open. On such a store the file itself is not changed by reads either, but while a
+  server has it open SQLite keeps `-wal` and `-shm` next to it, as before. Two servers on one store, as in two Claude
+  Code windows, were checked with 2 × 1,000 stores and recalls at the same time, and with 2 × 100 where one of them
+  runs 0.3.1: no entry lost, no "database is locked". New tests start the built server and compare name, size and sha256 of every
+  file from before the start on: in an empty directory, at `~/.zenbrain/memory.db`, on a store this version created,
+  on a WAL store from 0.3.1, and with two servers on one store. Four of the five fail against 0.3.1.
 
 ## [0.6.2] — 2026-11-15
 
