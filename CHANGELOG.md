@@ -23,10 +23,11 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 - `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called before each tool
   runs, and if it throws, the tool returns that error instead of running; the server uses it to report a store it cannot
   open.
-- CI job `node-floor`: on Node 22.0.0 and 22.12.0, the lower bound of `engines` and the first version whose
-  `require()` loads ES modules, it starts the MCP server built with the newest Node 22 over stdio, and checks that
-  `import` loads `@zensation/mcp` on both, `require()` on 22.12.0, and that 22.0.0 refuses `require()` with
-  `ERR_REQUIRE_ESM`, as the README says. The build tools themselves need a newer 22. The publish job waits for it.
+- CI job `node-floor`: on both sides of the Node floor of `@zensation/mcp`, 22.13.0 and 22.14.0, it rebuilds
+  better-sqlite3 on that version, then checks that the server built with the newest Node 22 refuses to start on
+  22.13.0 with a message and serves on 22.14.0 (stdio, five tools, a memory stored and recalled), where `import` and
+  `require()` load both entry points. The build tools themselves need a newer 22, users install `dist`. The publish
+  job waits for it.
 - Install smoke test of the published packages (`.github/workflows/install-smoke.yml`, `scripts/install-smoke.mjs`).
   It installs `@zensation/core`, `@zensation/adapter-sqlite` and `@zensation/algorithms` from the npm registry into an
   empty directory on Linux, macOS and Windows with Node 22, 24 and 26, checks that npm picked the current release of
@@ -36,6 +37,14 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 
 ### Fixed
 
+- `@zensation/mcp` needs Node 22.14 or newer, not 22: `engines` now says `>=22.14`, and the start check refuses 22.0
+  to 22.13 with a message instead of letting the server crash. better-sqlite3 13, the SQLite driver underneath, is
+  built against Node-API 10, which Node 22 has from 22.14.0 on. Measured in CI on 21 November 2026: on Node 22.0.0,
+  22.12.0 and 22.13.0 the first `new Database()` ended in a segmentation fault, also after `npm rebuild` on that
+  version, and the server, whose check let any Node 22 through as in 0.3.1, closed the connection without a word;
+  22.14.0, 22.16.0, 22.18.0, 22.20.0 and 22.22.0 worked. With the floor at 22.14, `require()` loads the package on
+  every supported version, and the README says so. `@zensation/adapter-sqlite` has the same floor and gets it with its
+  next version.
 - `@zensation/mcp`: in a directory without a store, starting the server and calling `zenbrain_recall` or
   `zenbrain_health`, the two tools annotated `readOnlyHint: true`, no longer create a file, and on a store this
   version created they change none. Measured on 0.3.1: neither tool changed a row, but the start created

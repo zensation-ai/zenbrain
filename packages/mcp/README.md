@@ -26,7 +26,8 @@ local file.
 
 ## Install
 
-Requires **Node.js 22 or newer**.
+Requires **Node.js 22.14 or newer**. On Node 22.0 to 22.13 the SQLite driver underneath (better-sqlite3 13, built
+for Node-API 10) crashes, so the server refuses to start there and says why.
 
 ```bash
 npm install -g @zensation/mcp
@@ -133,7 +134,7 @@ Worth knowing before you wire it in:
 ## Using it as a library
 
 The server factory is exported, so you can mount ZenBrain's tools on a server of your own
-or drive them in tests. The package is ESM; `require()` loads it on Node 22.12 and later (on 22.0–22.11, use `import`).
+or drive them in tests. The package is ESM; `require()` loads it as well, on every Node it supports.
 
 ```typescript
 import { createZenBrainServer } from '@zensation/mcp/server';

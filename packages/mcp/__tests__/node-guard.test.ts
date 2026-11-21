@@ -15,13 +15,14 @@ import { unsupportedNodeMessage } from '../src/index.js';
 
 describe('the Node version guard', () => {
   it('passes every supported runtime', () => {
-    for (const v of ['v22.0.0', 'v22.11.0', 'v24.3.1', 'v26.0.0', 'v30.1.2', '22.11.0']) {
+    for (const v of ['v22.14.0', 'v22.23.3', 'v23.0.0', 'v24.3.1', 'v26.0.0', 'v30.1.2', '22.14.0']) {
       expect(unsupportedNodeMessage(v), `${v} should be accepted`).toBeNull();
     }
   });
 
   it('rejects every runtime below the engines floor', () => {
-    for (const v of ['v18.20.4', 'v20.20.2', 'v21.7.3', '20.0.0']) {
+    // 22.0 to 22.13: better-sqlite3 13 needs Node-API 10 and segfaults below it (CI job node-floor, 2026-11-21).
+    for (const v of ['v18.20.4', 'v20.20.2', 'v21.7.3', '20.0.0', 'v22.0.0', 'v22.12.0', 'v22.13.1', '22.13.0']) {
       expect(unsupportedNodeMessage(v), `${v} should be rejected`).not.toBeNull();
     }
   });
@@ -29,7 +30,7 @@ describe('the Node version guard', () => {
   it('names the runtime it found and the one it needs', () => {
     const msg = unsupportedNodeMessage('v20.20.2');
     expect(msg).toContain('v20.20.2');
-    expect(msg).toContain('Node 22 or newer');
+    expect(msg).toContain('Node 22.14 or newer');
   });
 
   it('tells the user what to do, not just what is wrong', () => {
@@ -39,7 +40,7 @@ describe('the Node version guard', () => {
   });
 
   it('rejects a version string it cannot parse rather than waving it through', () => {
-    for (const v of ['', 'not-a-version', 'vNaN']) {
+    for (const v of ['', 'not-a-version', 'vNaN', 'v22']) {
       expect(unsupportedNodeMessage(v), `${v} should not be treated as supported`).not.toBeNull();
     }
   });

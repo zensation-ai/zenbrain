@@ -118,21 +118,21 @@ jobs:
           node scripts/extract-results.mjs run.log fresh/
           node scripts/verify-against-reference.mjs fresh/ results/
 
-  # `engines` says `node >=22`, and the mcp README says `require()` loads the package on
-  # Node 22.12 and later while 22.0 to 22.11 need `import`. The `test` job runs the newest
-  # 22, 24 and 26, so neither boundary was ever run. Users install the built `dist`, they do
-  # not build, and the build tools themselves need a newer 22 (tsup's cac is ESM-only and
-  # breaks `require()` on 22.0.0). So this job builds with the newest 22, then switches to
-  # the boundary version and checks only what a user runs there: the server over stdio (five
-  # tools, a memory stored and recalled), `import` on both versions, `require()` on 22.12.0,
-  # and ERR_REQUIRE_ESM on 22.0.0. better-sqlite3 needs no rebuild: every Node 22 shares one
-  # native ABI. `fail-fast: false`, so one version's failure does not cancel the other's run.
+  # `engines` says `node >=22.14`. The `test` job runs the newest 22, 24 and 26, so the floor
+  # itself was never run, and when this job first ran it (2026-11-21) the floor turned out to
+  # be wrong: better-sqlite3 13 is built against Node-API 10, and on Node 22.0.0, 22.12.0 and
+  # 22.13.0 it segfaulted on the first `new Database()`, also after `npm rebuild` on that
+  # version, while 22.14.0 to 22.22.0 worked. So this job checks both sides of the floor the
+  # way a user meets them: build with the newest 22 (the build tools need it; users install
+  # `dist`), switch to the version under test, rebuild better-sqlite3 there, then run.
+  # On 22.13.0 the server must refuse to start with a message, not crash; on 22.14.0 it must
+  # serve (stdio, five tools, a memory stored and recalled) and load by `import` and `require()`.
   node-floor:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['22.0.0', '22.12.0', '22.13.0', '22.14.0', '22.16.0', '22.18.0', '22.20.0', '22.22.0']
+        node-version: ['22.13.0', '22.14.0']
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -152,26 +152,25 @@ jobs:
       - name: Runtime is Node ${{ matrix.node-version }}
         run: test "$(node --version)" = "v${{ matrix.node-version }}"
       - name: Install better-sqlite3 the way a user on this Node would (npm rebuild)
-        run: npm rebuild better-sqlite3 --foreground-scripts 2>&1 | tail -20
-      - name: better-sqlite3 loads and answers
-        run: node -e "const D = require('better-sqlite3'); console.log(new D(':memory:').prepare('select sqlite_version() v').get(), process.version)"
-      - name: The server starts and says it is ready
+        run: npm rebuild better-sqlite3
+      - name: Below the floor the server refuses to start, with a message
+        if: matrix.node-version == '22.13.0'
         run: |
           set +e
           out=$(printf '' | node packages/mcp/dist/index.js 2>&1); code=$?
           echo "exit=$code"; echo "$out"
-          echo "$out" | grep -q "zenbrain-mcp ready"
+          test "$code" = 1 && echo "$out" | grep -q "needs Node 22.14 or newer"
+      - name: better-sqlite3 loads and answers
+        if: matrix.node-version == '22.14.0'
+        run: node -e "const D = require('better-sqlite3'); console.log(new D(':memory:').prepare('select sqlite_version() v').get(), process.version)"
       - name: MCP server smoke test
+        if: matrix.node-version == '22.14.0'
         run: node scripts/smoke-mcp.mjs
-      - name: import() loads both entry points
-        run: node --input-type=module -e "await import('@zensation/mcp'); await import('@zensation/mcp/server'); console.log('import ok on', process.version)"
-      - name: require() loads both entry points (22.12 and later)
-        if: matrix.node-version == '22.12.0'
-        run: node -e "require('@zensation/mcp'); require('@zensation/mcp/server'); console.log('require ok on', process.version)"
-      - name: require() is refused with ERR_REQUIRE_ESM (before 22.12)
-        if: matrix.node-version == '22.0.0'
+      - name: import() and require() load both entry points
+        if: matrix.node-version == '22.14.0'
         run: |
-          node -e "try { require('@zensation/mcp/server'); console.error('require unexpectedly loaded the package'); process.exit(1) } catch (e) { if (e.code !== 'ERR_REQUIRE_ESM') throw e; console.log('ERR_REQUIRE_ESM on', process.version) }"
+          node --input-type=module -e "await import('@zensation/mcp'); await import('@zensation/mcp/server'); console.log('import ok on', process.version)"
+          node -e "require('@zensation/mcp'); require('@zensation/mcp/server'); console.log('require ok on', process.version)"
 
   # The unit tests of adapter-postgres mock `pg`, so they never see what PostgreSQL itself
   # decides: the schema in sql/001_init.sql, uuid and JSONB columns, pgvector. Until this job

@@ -57,7 +57,7 @@
   },
   "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/mcp#readme",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.14"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

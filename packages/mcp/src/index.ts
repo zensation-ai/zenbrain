@@ -32,25 +32,36 @@ export { createZenBrainServer } from './server.js';
 export type { ZenBrainServerOptions } from './server.js';
 
 /** Lowest Node this package supports, mirroring `engines.node` in package.json. */
-const MIN_NODE_MAJOR = 22;
+const MIN_NODE = { major: 22, minor: 14 } as const;
+const MIN_NODE_LABEL = `${MIN_NODE.major}.${MIN_NODE.minor}`;
 
 /**
  * `engines` only makes npm print a warning, and an MCP client shows the user
- * nothing at all. On Node 20 the storage adapter's native module loads and then
- * segfaults the moment it is instantiated — exit 139, no stdout, no stderr. From
- * the client's side the server simply never comes up, with nothing to go on.
+ * nothing at all. Below the floor the storage adapter's native module loads and
+ * then segfaults the moment it is instantiated — exit 139, no stdout, no stderr.
+ * From the client's side the server simply never comes up, with nothing to go on.
+ *
+ * Measured on Node 20 first. On 2026-11-21 the CI job `node-floor` found the same
+ * crash on Node 22.0.0, 22.12.0 and 22.13.0, also after `npm rebuild` on that
+ * version, and none on 22.14.0, 22.16.0, 22.18.0, 22.20.0 and 22.22.0:
+ * better-sqlite3 13 is built against Node-API 10 (`NAPI_VERSION=10` in its
+ * binding.gyp), which Node 22 has from 22.14.0 on. The floor was `>=22` until then.
  *
  * So check before anything native is reachable, and say what is wrong.
  */
 export function unsupportedNodeMessage(version: string): string | null {
-  const major = Number(version.replace(/^v/, '').split('.')[0]);
-  if (Number.isFinite(major) && major >= MIN_NODE_MAJOR) return null;
+  const [major, minor] = version.replace(/^v/, '').split('.').map(Number);
+  const supported =
+    Number.isFinite(major) &&
+    Number.isFinite(minor) &&
+    (major > MIN_NODE.major || (major === MIN_NODE.major && minor >= MIN_NODE.minor));
+  if (supported) return null;
 
   return (
-    `zenbrain-mcp needs Node ${MIN_NODE_MAJOR} or newer — this is Node ${version}.\n` +
+    `zenbrain-mcp needs Node ${MIN_NODE_LABEL} or newer — this is Node ${version}.\n` +
     `Its SQLite storage uses better-sqlite3, whose native module crashes on older\n` +
     `runtimes instead of failing cleanly. Upgrade Node, or point your MCP client at a\n` +
-    `Node ${MIN_NODE_MAJOR}+ binary:\n\n` +
+    `Node ${MIN_NODE_LABEL}+ binary:\n\n` +
     `  { "command": "/path/to/node22/bin/node",\n` +
     `    "args": ["/path/to/node_modules/@zensation/mcp/dist/index.js"] }\n`
   );

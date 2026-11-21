@@ -29,7 +29,7 @@ Apache 2.0 — use it in commercial products, modify it, distribute it. When you
 
 ### Which Node.js versions are supported?
 
-ZenBrain requires Node.js 22 or newer. The supported versions are Node.js 22, 24, and 26, matching the CI matrix.
+ZenBrain requires Node.js 22 or newer. The supported versions are Node.js 22, 24, and 26, matching the CI matrix. The SQLite adapter and the MCP server need 22.14 or newer: better-sqlite3 13, which they use, is built against Node-API 10 and crashes on Node 22.0 to 22.13.
 
 If you use Node.js 20 or older, npm may silently install the last compatible package versions instead of showing an error:
 
