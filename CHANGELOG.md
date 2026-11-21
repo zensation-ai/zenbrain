@@ -72,20 +72,24 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   the start, which writes to it.
   The path in `ZENBRAIN_DB` is trimmed of surrounding spaces and line breaks before anything looks for the file, as
   the SQLite driver trims the name it opens. A start where the store could not be created still fails at once and
-  names the path, on every platform: when part of the path is a file, or when a name is longer than 255 bytes (on
-  Windows 255 UTF-16 units); and when part of the path is a link to nothing, or the store path is a link to a file
-  whose directory does not exist (links: not tested on Windows). On Windows it also fails at once for a name Windows
-  refuses (CON, NUL, COM1, `<`, `|` and the like; checked in the Windows CI job). On Linux and macOS it fails at once,
-  too, when no directory on the path can be written, such as the working directory `/`. On Windows, according to
-  Node's documentation of `fs.access`, the write check cannot see a directory's permissions, so there a directory that
-  cannot be written is found only at the first store, with the same message (not tested on Windows); so is anything
-  else on every platform, a full disk for instance. A store path that links to a file still to be created is accepted,
-  through as many links in a row as SQLite follows (200), and the first store creates the file it points to, as in
-  0.3.1 (not tested on Windows). The message names the path and what it found there, where 0.3.1 passed on SQLite's
-  "unable to open database file", and it suggests checking the permissions only when the cause is about permissions. A
-  store file that appears while the server runs but cannot be opened makes every tool return that message as an error,
-  instead of recall and health reporting an empty memory, and the server tries to open it again at most every 10
-  seconds.
+  names the path, on every platform: when part of the path is a file, or when a name is longer than 255 bytes on
+  Linux, 255 characters on macOS or 255 UTF-16 units on Windows; and when part of the path is a link to nothing, or
+  the store path is a link to a file whose directory does not exist (links: not tested on Windows). On Windows it also
+  fails at once for a name Windows refuses (CON, NUL, COM1, `<`, `|` and the like) and for a part of the path that
+  ends in a dot or a space: Windows drops it for SQLite but not for Node, so the two would look at different files and
+  an existing store would seem empty (read in the sources of Node and SQLite, not run). That the start refuses both is
+  checked in the Windows CI job. On Linux and macOS it fails at once, too, when no directory on the path can be
+  written, such as the working directory `/`. On Windows, according to Node's documentation of `fs.access`, the write
+  check cannot see a directory's permissions, so there a directory that cannot be written is found only at the first
+  store, with the same message (not tested on Windows); so is anything else on every platform, a full disk for
+  instance. A store path that links to a file still to be created is accepted, through as many links in a row as
+  SQLite follows (200), each relative target read against the link's real directory as SQLite reads it, and the first
+  store creates the file it points to, as in 0.3.1; a `-wal` file is looked for next to that file, where SQLite keeps
+  it (links: not tested on Windows). The message names the path and what it found there, where 0.3.1 passed on
+  SQLite's "unable to open database file", and it suggests checking the permissions only when the cause is about
+  permissions. A store file that appears while the server runs but cannot be opened makes every tool return that
+  message as an error, instead of recall and health reporting an empty memory, and the server tries to open it again
+  at most every 10 seconds.
   A limit that stays: on a store with a rollback journal, a program that holds the store locked for longer than 5
   seconds makes `zenbrain_recall` return fewer results or none, without an error, after waiting about 5 seconds per
   query (measured: 0 results after 21 seconds), while `zenbrain_health` returns "database is locked" as an error. The

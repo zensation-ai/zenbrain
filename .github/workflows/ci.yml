@@ -121,7 +121,7 @@ jobs:
   # Every other job runs on Linux, and install-smoke tests what npm already ships, so the mcp
   # package was never built and tested on Windows before a release. This job does that, with
   # the Node versions of `test`. Tests that cannot run on Windows (unwritable directories made
-  # with chmod, symbolic links) skip themselves there and say why.
+  # with chmod, symbolic links) skip themselves there; the reason stands next to each skipIf.
   mcp-windows:
     runs-on: windows-latest
     strategy:

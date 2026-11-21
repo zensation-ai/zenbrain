@@ -19,15 +19,17 @@
  * This module imports no native code: it is loaded before the Node version check
  * has had its say, and the adapters are handed in as factories.
  */
-import { accessSync, closeSync, constants, existsSync, lstatSync, openSync, readlinkSync, readSync, statSync } from 'node:fs';
+import { accessSync, closeSync, constants, existsSync, lstatSync, openSync, readlinkSync, readSync, realpathSync, statSync } from 'node:fs';
 import { dirname, parse, resolve as resolvePath } from 'node:path';
 import type { QueryResult, StorageAdapter } from '@zensation/core';
 
 /**
  * What a statement can do to a store that has no rows yet.
  *
- * - `read`: SELECT, a WITH that only selects, and a PRAGMA that only reads (`PRAGMA x`;
- *   `PRAGMA x = v` and `PRAGMA x(v)` set a value and count as `add`).
+ * - `read`: SELECT, a WITH that only selects, and a PRAGMA without an argument
+ *   (`PRAGMA x`). A PRAGMA with one (`PRAGMA x = v`, `PRAGMA x(v)`) may set a
+ *   value and counts as `add`, also where it only reads (`PRAGMA table_info(t)`),
+ *   which at worst creates the file early.
  * - `change`: UPDATE or DELETE. On an empty store they match no row, so before
  *   the file exists they are answered from the empty store and create nothing:
  *   `zenbrain_forget` and `zenbrain_consolidate` on a memory that was never
@@ -75,15 +77,19 @@ export function nearestExisting(
 const SQLITE_MAX_SYMLINK = 200;
 
 /**
- * Longest name one path component may have: 255 bytes on the file systems of
- * Linux and macOS, 255 UTF-16 code units on NTFS.
+ * Longest name one path component may have, and how it is counted: 255 bytes on
+ * Linux (ext4 and most others), 255 characters on macOS (APFS; measured: 255 × "ä"
+ * is created, 256 is not), 255 UTF-16 code units on Windows (NTFS). On any other
+ * platform the length is not checked in advance; a name that is too long fails at
+ * the first store instead.
  */
 const NAME_MAX = 255;
-const nameLength = (name: string): number => (process.platform === 'win32' ? name.length : Buffer.byteLength(name));
-/**
- * Names Windows refuses for a file in any directory. (A trailing dot or space is
- * not refused but dropped by Windows, so it is not checked.)
- */
+const NAME_UNIT: Partial<Record<NodeJS.Platform, { unit: string; length: (name: string) => number }>> = {
+  linux: { unit: 'bytes', length: (name) => Buffer.byteLength(name) },
+  darwin: { unit: 'characters', length: (name) => [...name].length },
+  win32: { unit: 'UTF-16 units', length: (name) => name.length },
+};
+/** Names Windows refuses for a file in any directory. */
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 
 /**
@@ -94,7 +100,8 @@ const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
  * working directory `/` that some clients choose — still says so at once instead
  * of failing on its first `zenbrain_store`. It finds: no writable directory on
  * the path, a part of the path that is a file or a link to nothing, a name
- * longer than 255 bytes, and on Windows a name Windows refuses. The store path
+ * longer than 255 bytes, characters or UTF-16 units (see NAME_UNIT), and on
+ * Windows a name Windows refuses or one that ends in a dot or a space. The store path
  * itself may be a link to a file that does not exist yet: SQLite follows the link
  * and creates the file it points to, as 0.3.1 did, so then the link's target is
  * checked instead, through as many links in a row as SQLite follows (200). Anything else (a full disk, a quota, a file system that
@@ -106,7 +113,8 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
   try {
     if (lstatSync(full).isSymbolicLink() && !existsSync(full)) {
       if (links >= SQLITE_MAX_SYMLINK) return `${full} is one of more than ${SQLITE_MAX_SYMLINK} links in a row`;
-      const target = resolvePath(dirname(full), readlinkSync(full));
+      // Against the real directory of the link, as SQLite resolves it (`..` included).
+      const target = resolvePath(realpathSync(dirname(full)), readlinkSync(full));
       if (!existsSync(dirname(target))) return `${full} is a link to ${target}, whose directory does not exist`;
       return storeCreationProblem(target, cwd, links + 1);
     }
@@ -118,10 +126,19 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
   if (found.kind === 'file') return `${found.path} is a file, not a directory`;
   if (found.kind === 'dangling-link') return `${found.path} is a link to nothing`;
 
+  if (process.platform === 'win32') {
+    // Node hands Windows the path as \\?\C:\…, which keeps a trailing dot or
+    // space; SQLite asks for the full path name first, which drops it. The two
+    // would then look at different files: an existing store would seem empty.
+    for (const name of full.split(/[\\/]+/).filter(Boolean).slice(1)) {
+      if (/[. ]$/.test(name)) return `the name ${name} ends in a dot or a space, which Windows drops for SQLite but not for Node`;
+    }
+  }
   const missing = full.slice(found.path.length).split(/[\\/]+/).filter(Boolean);
+  const rule = NAME_UNIT[process.platform];
   for (const name of missing) {
-    if (nameLength(name) > NAME_MAX) {
-      return `the name ${name.slice(0, 40)}… is longer than ${NAME_MAX} ${process.platform === 'win32' ? 'UTF-16 units' : 'bytes'}`;
+    if (rule && rule.length(name) > NAME_MAX) {
+      return `the name ${name.slice(0, 40)}… is longer than ${NAME_MAX} ${rule.unit}`;
     }
     if (process.platform === 'win32' && (/[<>:"|?*\x00-\x1f]/.test(name) || WINDOWS_RESERVED.test(name))) {
       return `Windows does not allow the name ${name}`;
@@ -148,7 +165,8 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
  */
 export function storeFileReady(filename: string): boolean {
   if (!existsSync(filename)) return false;
-  if (existsSync(`${filename}-wal`)) return true;
+  // SQLite keeps `-wal` next to the file a link points to, not next to the link.
+  if (existsSync(`${realpathSync(filename)}-wal`)) return true;
   const header = Buffer.alloc(100);
   let read = 0;
   try {

@@ -231,6 +231,7 @@ describe('read-only tools and the start leave the store directory unchanged', ()
 });
 
 describe('a store that cannot be created or opened is reported, not shown as empty', () => {
+  // chmod does not take a directory's write permission away on Windows, and root may write anyway.
   it.skipIf(!canLock)('the start fails with exit 1 and the path, in an unwritable working directory or ZENBRAIN_DB', () => {
     const locked = join(tmp('zenbrain-ro-locked-'), 'locked');
     mkdirSync(locked);
@@ -251,6 +252,7 @@ describe('a store that cannot be created or opened is reported, not shown as emp
     }
   });
 
+  // Symbolic links need developer mode or administrator rights on Windows.
   it.skipIf(process.platform === 'win32')('a store path that links to a file still to be created: the first store creates the link target, as in 0.3.1', async () => {
     const dir = tmp('zenbrain-ro-link-');
     mkdirSync(join(dir, 'sync'));

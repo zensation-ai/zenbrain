@@ -84,6 +84,18 @@ describe('what the start checks, creating nothing', () => {
     expect(storeCreationProblem(join(base, 'dir-link', 'memory.db'))).toMatch(/is a link to nothing/);
   });
 
+  // Symbolic links need developer mode or administrator rights on Windows; these tests skip there.
+  // SQLite resolves a relative link target against the link's real directory, `..` included.
+  it.skipIf(process.platform === 'win32')('resolves a relative link target against the real directory of the link', () => {
+    const base = tmp();
+    mkdirSync(join(base, 'real', 'sub'), { recursive: true });
+    mkdirSync(join(base, 'real', 'data'));
+    symlinkSync(join(base, 'real', 'sub'), join(base, 'lnk'));
+    symlinkSync(join('..', 'data', 'memory.db'), join(base, 'real', 'sub', 'store.db'));
+    // Physically ../data is real/data, which exists; read lexically it would be base/data, which does not.
+    expect(storeCreationProblem(join(base, 'lnk', 'store.db'))).toBeNull();
+  });
+
   // SQLite follows a link and creates the file it points to, if that file's directory exists (0.3.1 did so too).
   it.skipIf(process.platform === 'win32')('accepts a store path that links to a file still to be created, where its directory exists', () => {
     const base = tmp();
@@ -96,8 +108,22 @@ describe('what the start checks, creating nothing', () => {
     expect(storeCreationProblem(join(base, 'loop.db'))).toMatch(/more than 200 links in a row/);
   });
 
-  it('names a name longer than 255 bytes (255 UTF-16 units on Windows)', () => {
-    expect(storeCreationProblem(join(tmp(), `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 (bytes|UTF-16 units)/);
+  it('names a name longer than 255 bytes (Linux), characters (macOS) or UTF-16 units (Windows)', () => {
+    const base = tmp();
+    expect(storeCreationProblem(join(base, `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 (bytes|characters|UTF-16 units)/);
+    // 203 characters, 203 UTF-16 units, 403 bytes: too long only where bytes count.
+    const umlauts = join(base, `${'ä'.repeat(200)}.db`);
+    if (process.platform === 'linux') expect(storeCreationProblem(umlauts)).toMatch(/longer than 255 bytes/);
+    if (process.platform === 'darwin' || process.platform === 'win32') expect(storeCreationProblem(umlauts)).toBeNull();
+    if (process.platform === 'darwin') expect(storeCreationProblem(join(base, 'ä'.repeat(256)))).toMatch(/longer than 255 characters/);
+  });
+
+  // Node passes \\?\C:\… and keeps a trailing dot or space; SQLite drops it: two different files.
+  it.runIf(process.platform === 'win32')('on Windows, names a part of the path that ends in a dot or a space', () => {
+    const base = tmp();
+    for (const p of [join(base, 'memory.db.'), join(base, 'memory.db '), join(base, 'sub.', 'memory.db')]) {
+      expect(storeCreationProblem(p), p).toMatch(/ends in a dot or a space/);
+    }
   });
 
   it.runIf(process.platform === 'win32')('on Windows, names a name Windows refuses', () => {
@@ -108,6 +134,7 @@ describe('what the start checks, creating nothing', () => {
     expect(storeCreationProblem(join(base, 'memory.db'))).toBeNull();
   });
 
+  // chmod does not take a directory's write permission away on Windows, and root may write anyway.
   it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)('names a directory this user cannot write to', () => {
     const locked = join(tmp(), 'locked');
     mkdirSync(locked);
@@ -131,6 +158,16 @@ describe('storeFileReady: a file another server is still creating is not read', 
     expect(storeFileReady(f)).toBe(false);
     sqliteHeader(f, 1);
     expect(storeFileReady(f)).toBe(true);
+  });
+
+  it.skipIf(process.platform === 'win32')('looks for -wal next to the file a link points to, where SQLite keeps it', () => {
+    const base = tmp();
+    mkdirSync(join(base, 'target'));
+    const target = join(base, 'target', 'memory.db');
+    sqliteHeader(target, 0); // a WAL store another server is creating: header still says 0
+    writeFileSync(`${target}-wal`, '');
+    symlinkSync(target, join(base, 'store.db'));
+    expect(storeFileReady(join(base, 'store.db'))).toBe(true);
   });
 
   it('reads a WAL store in use at once, and lets a file that is not SQLite fail on opening', () => {
@@ -204,6 +241,21 @@ describe('DeferredStore', () => {
       'empty: BEGIN', 'empty: SELECT 2', 'empty: ROLLBACK',
       'file: BEGIN', 'file: SELECT 2', 'file: INSERT INTO t VALUES (1)', 'file: COMMIT',
     ]);
+  });
+
+  it('two transactions that both turn out to write open the file once', async () => {
+    const calls: string[] = [];
+    let opened = 0;
+    const store = make(join(tmp(), 'memory.db'), calls, () => {
+      opened++;
+      return fakeAdapter('file', calls);
+    });
+    const write = (n: number) => store.transaction(async (a) => {
+      await a.query(`INSERT INTO t VALUES (${n})`);
+    });
+    await Promise.all([write(1), write(2)]);
+    expect(opened).toBe(1);
+    expect(calls.filter((c) => c.startsWith('file: INSERT'))).toHaveLength(2);
   });
 
   it('a transaction whose fn catches the refused write still runs again on the file, and the file opens once', async () => {
