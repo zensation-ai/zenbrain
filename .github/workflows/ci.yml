@@ -151,6 +151,14 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Runtime is Node ${{ matrix.node-version }}
         run: test "$(node --version)" = "v${{ matrix.node-version }}"
+      - name: better-sqlite3 loads and answers
+        run: node -e "const D = require('better-sqlite3'); console.log(new D(':memory:').prepare('select sqlite_version() v').get(), process.version)"
+      - name: The server starts and says it is ready
+        run: |
+          set +e
+          out=$(printf '' | node packages/mcp/dist/index.js 2>&1); code=$?
+          echo "exit=$code"; echo "$out"
+          echo "$out" | grep -q "zenbrain-mcp ready"
       - name: MCP server smoke test
         run: node scripts/smoke-mcp.mjs
       - name: import() loads both entry points
