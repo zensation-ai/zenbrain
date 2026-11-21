@@ -57,8 +57,9 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   measured arm is not the seven-layer system); passing an `EmbeddingProvider` no longer claims to be "the configuration
   the published benchmarks were measured with", since the published runs used several; and the embedders are named per
   experiment: `nomic-embed-text` for ZenBrain's arm in the comparisons, OpenAI `text-embedding-3-small`,
-  `nomic-embed-text` or a placeholder embedder in the other retrieval experiments, depending on the run. The other
-  packages carry the same sentences and get them with their next version.
+  `nomic-embed-text` or a placeholder embedder in the other retrieval experiments, depending on the run. The third
+  sentence also stands in the other five packages, and `@zensation/ai-sdk` carries the first two as well; they are
+  corrected with their next versions.
 
 ## [0.6.2] — 2026-11-15
 
