@@ -1,9 +1,8 @@
 # @zensation/mcp
 
 **Status: early release.** The tool surface is small on purpose and may still
-change before 1.0. The memory layers underneath it are the same ones the
-[ZenBrain paper](https://arxiv.org/abs/2604.23878) describes and the
-[benchmarks](https://github.com/zensation-ai/zenbrain/blob/main/docs/benchmarks.md) measure.
+change before 1.0. The memory layers underneath it are those of the open library the
+[ZenBrain paper](https://arxiv.org/abs/2604.23878v4) describes.
 
 An [MCP](https://modelcontextprotocol.io) server that gives any MCP client — Claude
 Desktop, Claude Code, Cursor, or your own — a memory that survives the conversation.
@@ -12,20 +11,23 @@ Five tools, one local SQLite file, no account and no network call.
 
 | Tool | What it does |
 |---|---|
-| `zenbrain_store` | Write something into long-term memory. Routing is automatic, first match wins: `steps` or wording such as "How to", "Steps:", "workflow:" make a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again is updated. |
+| `zenbrain_store` | Write something into long-term memory. Routing is automatic, first match wins: `steps` or wording such as "How to", "Steps:", "workflow:" make a procedure, an emotional weight above 0.5 an episode (set `emotionalWeight`: detected from the content, most clearly emotional texts stay below 0.5), a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again only gets a new timestamp. |
 | `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back sorted by a score from 0 to 1, each with its id and the layer it came from; a layer in which nothing matches returns recent episodes and facts, or its most successful procedures, at score 0, behind every hit, and `minScore` above 0 leaves them out. Every core block scores 0.5 or 0.8. |
 | `zenbrain_forget` | Delete a memory for good, by the id and layer `zenbrain_recall` returned, together with what consolidation linked to it: forgetting an episode deletes the fact made from it, forgetting such a fact every episode consolidated into it, and both delete the working-memory copies of that content. `alsoForgotten` lists what went with it. A memory stored on its own and never consolidated keeps its long-term entry (`duplicates` on a recall result names such copies); forget a long-term result rather than a working-memory slot, which is only a copy. To correct a memory, forget it and store the corrected version. |
 | `zenbrain_consolidate` | One maintenance pass: among the 100 most recent episodes, each with an emotional weight above 0.5 becomes a semantic fact, only once; working-memory slots decay, and those at a relevance of 0.01 or below are removed. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
 Each tool also tells the client what it does to the store, through the MCP tool annotations: `zenbrain_recall` and
-`zenbrain_health` are read-only; `zenbrain_store` only adds; `zenbrain_forget` and `zenbrain_consolidate` are marked
-destructive (consolidation removes decayed working-memory slots), so a client that asks before destructive calls asks
-before these two. No tool reaches anything outside the local file.
+`zenbrain_health` are read-only; `zenbrain_store` adds and changes nothing else that is stored, except that the same
+core memory stored again gets a new timestamp; the oldest working-memory copy drops out of the server's memory;
+`zenbrain_forget` and `zenbrain_consolidate` are marked destructive (consolidation removes decayed working-memory
+slots), so a client that asks before destructive calls asks before these two. No tool reaches anything outside the
+local file.
 
 ## Install
 
-Requires **Node.js 22 or newer**.
+Requires **Node.js 22.14 or newer**. On Node 22.0 to 22.13 the SQLite driver underneath (better-sqlite3 13, built
+for Node-API 10) crashes, so the server refuses to start there and says why.
 
 ```bash
 npm install -g @zensation/mcp
@@ -108,19 +110,36 @@ Worth knowing before you wire it in:
   returns its most recent episodes and facts, or its most successful procedures, at
   `score: 0`, behind every hit; every core block comes with 0.5 or 0.8, so a block can rank
   above a weak hit. Working memory, when you ask for it, is ranked the same way. Pass an `EmbeddingProvider`
-  through the library for true semantic matching — that is the configuration the published
-  benchmarks were measured with.
+  through the library for true semantic matching.
 - **SQLite similarity search is a full scan.** Fine for one person's memory; use
   [`@zensation/adapter-postgres`](https://www.npmjs.com/package/@zensation/adapter-postgres)
   for larger volumes.
 - **Consolidation is a tool call, not a schedule.** Nothing runs it for you.
 - **The store is a plain file.** It is not encrypted. Put it somewhere you would put a
-  notebook. While the server runs, SQLite keeps `-wal` and `-shm` files next to it.
+  notebook. The server creates it, and any missing directory above it, with the first memory
+  it stores; until then it writes nothing, and `zenbrain_recall` and `zenbrain_health` answer
+  from an empty memory. A store this release creates uses SQLite's rollback journal: it is
+  that one file (a `-journal` file exists only during a write), and reading it changes
+  nothing. A store that 0.3.1 or earlier created or opened is in WAL mode and stays in it:
+  while a server has it open, SQLite keeps `-wal` and `-shm` files next to it (the start
+  creates them), and a read after a write can change the `-shm` file. The memories stay as
+  they are. When the last server exits, SQLite writes what is in `-wal` into the store file
+  and removes both side files; if a server is killed, they stay until the next one exits. The
+  Claude Code plugin 0.1.4 runs 0.3.1, so using it next to the `claude mcp add` line on the
+  same `~/.zenbrain/memory.db` makes the store a WAL store for good. To switch a WAL store to
+  the single file, stop every server that uses it and run the `sqlite3` command-line tool on
+  your store's full path: `sqlite3 ~/.zenbrain/memory.db "PRAGMA journal_mode=DELETE;"`. It
+  prints `delete`; a `-shm` file it leaves behind can be deleted. While a server still has the
+  store open, it fails with "database is locked" and changes nothing.
+- **A locked store makes recall come back short.** If another program holds a store with a
+  rollback journal locked for longer than 5 seconds, `zenbrain_recall` waits about 5 seconds
+  per query and then returns fewer results or none, without an error; `zenbrain_health`
+  reports "database is locked". On a WAL store readers do not wait.
 
 ## Using it as a library
 
 The server factory is exported, so you can mount ZenBrain's tools on a server of your own
-or drive them in tests. The package is ESM; `require()` loads it on Node 22.12 and later (on 22.0–22.11, use `import`).
+or drive them in tests. The package is ESM; `require()` loads it as well, on every Node it supports.
 
 ```typescript
 import { createZenBrainServer } from '@zensation/mcp/server';
@@ -151,12 +170,14 @@ the claim the core makes.
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
 TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
 dependencies. The benchmark results, and the
-configuration they were measured in, are reported in the paper; the reproduction packages
+configurations they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
-provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
+to install. In the paper ([arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)), ZenBrain's arm in the comparisons
+with other systems embedded with `nomic-embed-text`. The paper's other retrieval experiments ran with OpenAI
+`text-embedding-3-small`, with `nomic-embed-text` or with a placeholder embedder, depending on the run; the Protocol
+paragraph of the paper's setup section says which.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

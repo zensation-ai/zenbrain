@@ -4,14 +4,133 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-11-21
+
+Only `@zensation/mcp` changes version. The other packages stay at the versions earlier releases published, and the
+publish job skips them; the dependency ranges that changed on `main` since then (`better-sqlite3` in
+`@zensation/adapter-sqlite`, dev dependencies of `@zensation/ai-sdk`) wait for those packages' next version. The Claude
+Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once npm serves 0.3.2.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/mcp` | 0.3.1 | 0.3.2 | without a store, starting the server and the read-only tools create no file; on a store 0.3.2 created and 0.3.1 never opened they change none (a WAL store, from 0.3.1 or opened by it, keeps its side files, and reads change `-shm`) |
+
+`@zensation/mcp` 0.3.2 also requires `@modelcontextprotocol/sdk` ^1.32.2 (was ^1.32.1, #157) and `zod` ^4.6.7 (was
+^4.6.5, #147); both bumps were already on `main`.
+
 ### Added
 
+- `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called and awaited before
+  each tool runs; if it throws or its promise is rejected, the tool returns that error instead of running. The server
+  uses it to report a store it cannot open.
+- CI job `mcp-windows-macos`: builds `@zensation/mcp` and the packages it depends on on Windows and on macOS with Node
+  22, 24 and 26, runs its type check, its tests and the MCP smoke test. Until now every CI job ran on Linux, and the
+  Windows and macOS runs of the install smoke test check only what npm already ships. Tests that need chmod or
+  symbolic links skip themselves on Windows; two tests of names Windows refuses run only there, and the macOS branch
+  of the name-length test runs on macOS. The publish job waits for it. `publish-mcp-registry.yml` installs
+  mcp-publisher v1.8.8, checked against its published sha256, instead of the latest release.
+- CI job `node-floor`: on both sides of the Node floor of `@zensation/mcp`, 22.13.0 and 22.14.0, it rebuilds
+  better-sqlite3 on that version, then checks that the server built with the newest Node 22 refuses to start on
+  22.13.0 with a message and serves on 22.14.0 (stdio, five tools, a memory stored and recalled), where `import` and
+  `require()` load both entry points. The build tools themselves need a newer 22, users install `dist`. The publish
+  job waits for it.
 - Install smoke test of the published packages (`.github/workflows/install-smoke.yml`, `scripts/install-smoke.mjs`).
   It installs `@zensation/core`, `@zensation/adapter-sqlite` and `@zensation/algorithms` from the npm registry into an
   empty directory on Linux, macOS and Windows with Node 22, 24 and 26, checks that npm picked the current release of
   each, runs the Quick Starts of the core and algorithms READMEs, and starts `npx -y @zensation/mcp` over stdio (five
   tools, a memory stored and recalled). It runs after each GitHub release, every Monday, by hand, and on pull requests
   that change it. Until now CI tested the source, on Linux only.
+
+### Fixed
+
+- `@zensation/mcp` needs Node 22.14 or newer, not 22: `engines` now says `>=22.14`, and the start check refuses 22.0
+  to 22.13 with a message instead of letting the server crash. better-sqlite3 13, the SQLite driver underneath, is
+  built against Node-API 10, which Node 22 has from 22.14.0 on. Measured in CI on 21 November 2026: on Node 22.0.0,
+  22.12.0 and 22.13.0 the first `new Database()` ended in a segmentation fault, also after `npm rebuild` on that
+  version, and the server, whose check let any Node 22 through as in 0.3.1, closed the connection without a word;
+  22.14.0, 22.16.0, 22.18.0, 22.20.0 and 22.22.0 worked. With the floor at 22.14, `require()` loads the package on
+  every supported version, and the README says so. `@zensation/adapter-sqlite` has the same floor; its `engines` still
+  says `>=22`.
+- `@zensation/mcp`: in a directory without a store, starting the server and calling `zenbrain_recall` or
+  `zenbrain_health`, the two tools annotated `readOnlyHint: true`, no longer create a file, and on a store this
+  version created they change none. Measured on 0.3.1: neither tool changed a row, but the start created
+  `zenbrain.db`, `zenbrain.db-wal` and `zenbrain.db-shm` in an empty directory, and the first read after opening or
+  after a write wrote SQLite's read mark into `zenbrain.db-shm`. Now the store file, and any missing directory above
+  it, is created when the first memory is stored; until then the read-only tools answer from an empty memory,
+  `zenbrain_forget` and `zenbrain_consolidate`, which find nothing to delete or promote, create nothing either, and
+  the start line on stderr ends in "(created when the first memory is stored)". Each read looks for the file again, so
+  a server started before a second one created the store reads it from then on: once the other server has finished
+  creating it, or, if that server runs 0.3.1, as soon as its `-wal` file exists. A store this version creates is
+  opened with a rollback journal (`walMode: false`): it is a single file, and a read touches none.
+  This holds for stores in rollback mode only. Every store that 0.3.1 or earlier created is in WAL mode and stays in
+  it: switching would itself be a write, and SQLite cannot do it while another server has the file open. On such a
+  store the start creates `-wal` and `-shm` next to it before any tool is called, as before, and a read after a write,
+  by this server or another, changes `-shm`; the memories stay as they are. When the last server exits, SQLite writes
+  what is in `-wal` into the store file, also after reads only, and removes both side files; after a server is killed
+  they stay. A store this version created becomes such a WAL store for good as soon as 0.3.1 opens it. The Claude Code
+  plugin 0.1.4 runs 0.3.1, so this happens when the plugin and the `claude mcp add` line, which runs the newest
+  release, share `~/.zenbrain/memory.db`, until the plugin moves to 0.3.2. The README says how to switch a WAL store
+  to the single file by hand. A store last written by 0.1.6 or earlier is brought up to the current schema once, at
+  the start, which writes to it.
+  The path in `ZENBRAIN_DB` is trimmed of surrounding spaces and line breaks before anything looks for the file, as
+  the SQLite driver trims the name it opens. On Linux and macOS a path with a `..` part is not checked in advance: the
+  check reads the path as text, while the system, and so SQLite, reads `..` after a linked directory as the parent of
+  where that directory really is, so a check could refuse a path SQLite would accept; a store that cannot be created
+  there fails at the first store, with the message, and the start line names the path as given. Otherwise a start
+  where the store could not be created still fails at once and names the path, on every platform: when part of the
+  path is a file, or when a name is longer than 255 bytes on Linux or 255 UTF-16 units on macOS (APFS) and Windows;
+  and when part of the path is a link to nothing, or the store path is a link to a file whose directory does not exist
+  (links: not tested on Windows). On Windows it also fails at once for a name Windows refuses (CON, NUL, COM1, `<`,
+  `|` and the like) and for a part of the path that ends in a dot or a space: Windows drops it for SQLite but not for
+  Node, so the two would look at different files and an existing store would seem empty (read in the sources of Node
+  and SQLite, not run). That the start refuses both is checked in the Windows CI job. The rule is stricter than needed
+  in one case: a directory whose name ends in a space, which Windows keeps, is refused too. On Linux and macOS it
+  fails at once, too, when no directory on the path can be written, such as the working directory `/`, except for a
+  path with a `..` part. On Windows, according to Node's documentation of `fs.access`, the write check cannot see a
+  directory's permissions, so there a directory that cannot be written is found only at the first store, with the same
+  message (not tested on Windows); so is anything else on every platform, a full disk for instance. A store path that
+  links to a file still to be created is accepted, through up to 32 links in a row (macOS follows no more, Linux 40),
+  each relative target read against the link's real directory as SQLite reads it, and the first store creates the file
+  it points to (0.3.1 created it at the start); a `-wal` file is looked for next to the link and next to that file,
+  since where SQLite keeps it differs by system (links: not tested on Windows). The message names the path and what it
+  found there, where 0.3.1 passed on SQLite's "unable to open database file", and it suggests checking the permissions
+  only when the cause is about permissions. A store file that appears while the server runs but cannot be opened makes
+  every tool return that message as an error, instead of recall and health reporting an empty memory, and the server
+  tries to open it again at most every 10 seconds.
+  A limit that stays: on a store with a rollback journal, a program that holds the store locked for longer than 5
+  seconds makes `zenbrain_recall` return fewer results or none, without an error, after waiting about 5 seconds per
+  query (measured: 0 results after 21 seconds), while `zenbrain_health` returns "database is locked" as an error. The
+  recall paths of `@zensation/core` catch the error. On a WAL store readers do not wait for a writer.
+  New tests start the built server. In an empty directory (with forget, given a valid id in each long-term layer, and
+  consolidate), at `~/.zenbrain/memory.db`, on a store this version created, with `ZENBRAIN_DB` ending in a space or a
+  CRLF, and on WAL stores they compare name, size and sha256 of every file from before the start on; with two servers
+  on one store, and two creating it at the same moment, they compare the file names. Where the store cannot be created
+  they check exit 1 and the path, where it appears and cannot be opened an error from each of the five tools, and for
+  a store path that links to a file still to be created that the first store creates it. The clients used were the MCP
+  TypeScript SDK client 1.32.2 and the MCP Inspector 2.13.0 (CLI).
+- `@zensation/mcp`: the description of `zenbrain_store` and of its `emotionalWeight` input, and the package README, no
+  longer suggest that the emotional weight is found in the content reliably. Measured on 20 clearly emotional texts,
+  the detection gave 5 a weight above 0.5 (3 of 8 joyful ones, 2 of 12 sad, frightened or angry ones), and none of 20
+  neutral texts; the texts now say to set `emotionalWeight` when a memory should be an episode. The detection itself
+  is part of `@zensation/core`.
+- `@zensation/mcp`: the description of `zenbrain_store` said both that storing the same core memory again "updates
+  it" and that "long-term memory is never changed by a store". Measured: the same core memory stored again keeps its
+  row and its content and only gets a new timestamp, and once seven working-memory slots are held a store drops the
+  oldest one, which lives only in the server's memory. The description and the package README now say exactly that,
+  and `destructiveHint: false` stays. A new test pins both: the core row unchanged but for `updated_at`, and eight
+  stores adding eight long-term rows, each earlier row unchanged, with seven working-memory copies.
+
+### Documentation
+
+- `@zensation/mcp` README, three sentences checked against version 9 of the paper (arXiv:2604.23878v4): the memory
+  layers are those of the open library the paper describes, without the claim that the benchmarks measured them (the
+  measured arm is not the seven-layer system); passing an `EmbeddingProvider` no longer claims to be "the
+  configuration the published benchmarks were measured with", since the published runs used several; and the embedders
+  are named per experiment: `nomic-embed-text` for ZenBrain's arm in the comparisons, OpenAI `text-embedding-3-small`,
+  `nomic-embed-text` or a placeholder embedder in the other retrieval experiments, depending on the run. "The
+  benchmark results, and the configurations they were measured in" is now plural, for the same reason. In the versions
+  on npm the third sentence still stands in the other five packages, and `@zensation/ai-sdk` still carries the first
+  two as well.
 
 ## [0.6.2] — 2026-11-15
 

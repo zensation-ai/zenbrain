@@ -38,6 +38,18 @@ describe('the store path', () => {
     expect(resolveStorePath('/data/${x}/memory.db', HOME)).toBe('/data/${x}/memory.db');
   });
 
+  // better-sqlite3 trims the name it opens; the existence check must see the same path.
+  it('trims surrounding whitespace, a CRLF included, once for every later step', () => {
+    for (const [v, want] of [
+      ['/var/data/zenbrain.db ', '/var/data/zenbrain.db'],
+      ['/var/data/zenbrain.db\r\n', '/var/data/zenbrain.db'],
+      [' ~/.zenbrain/memory.db\n', join(HOME, '.zenbrain', 'memory.db')],
+      [' :memory: ', ':memory:'],
+    ] as const) {
+      expect(resolveStorePath(v, HOME), JSON.stringify(v)).toBe(want);
+    }
+  });
+
   it('passes everything else through unchanged', () => {
     for (const v of [':memory:', '/var/data/zenbrain.db', './zenbrain.db', 'data/memory.db', 'a~/b.db', '~user/x.db']) {
       expect(resolveStorePath(v, HOME), v).toBe(v);
@@ -70,5 +82,14 @@ describe('the message when the store cannot be opened', () => {
     const msg = storeOpenFailureMessage('/var/data/zenbrain.db', '/', cause);
     expect(msg).not.toMatch(/to an absolute path/);
     expect(msg).toMatch(/write/);
+  });
+
+  it('gives the permissions hint only where the cause is about permissions', () => {
+    for (const c of ['EACCES: permission denied', 'cannot create files in /x: EROFS', 'SqliteError: unable to open database file']) {
+      expect(storeOpenFailureMessage('/var/data/zenbrain.db', '/', c), c).toMatch(/Check that this user can write/);
+    }
+    for (const c of ['file is not a database', 'SqliteError: database is locked', '/var/data is a file, not a directory']) {
+      expect(storeOpenFailureMessage('/var/data/zenbrain.db', '/', c), c).not.toMatch(/Check that this user can write/);
+    }
   });
 });
