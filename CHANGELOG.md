@@ -36,12 +36,19 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   is opened with a rollback journal (`walMode: false`): a new store is a single file, and a read touches none. A start
   where the store could not be created, such as the working directory `/`, still fails at once and names the path.
   A store created by 0.3.1 or earlier stays in WAL mode: switching it would itself be a write, and SQLite cannot do it
-  while another server has the file open. On such a store the file itself is not changed by reads either, but while a
-  server has it open SQLite keeps `-wal` and `-shm` next to it, as before. Two servers on one store, as in two Claude
+  while another server has the file open. On such a store reads change neither the file nor the memories in it, but
+  while a server has it open SQLite keeps `-wal` and `-shm` next to it, as before, and a read can change `-shm`; both
+  are gone once the last server exits. The README says how to switch such a store to the single file by hand. Two servers on one store, as in two Claude
   Code windows, were checked with 2 × 1,000 stores and recalls at the same time, and with 2 × 100 where one of them
   runs 0.3.1: no entry lost, no "database is locked". New tests start the built server and compare name, size and sha256 of every
   file from before the start on: in an empty directory, at `~/.zenbrain/memory.db`, on a store this version created,
   on a WAL store from 0.3.1, and with two servers on one store. Four of the five fail against 0.3.1.
+- `@zensation/mcp`: the description of `zenbrain_store` said both that storing the same core memory again "updates
+  it" and that "long-term memory is never changed by a store". Measured: the same core memory stored again keeps its
+  row and its content and only gets a new timestamp, and once seven working-memory slots are held a store drops the
+  oldest one, which lives only in the server's memory. The description and the package README now say exactly that,
+  and `destructiveHint: false` stays. A new test pins both: the core row unchanged but for `updated_at`, and eight
+  stores adding eight long-term rows, each earlier row unchanged, with seven working-memory copies.
 
 ### Documentation
 

@@ -11,16 +11,17 @@ Five tools, one local SQLite file, no account and no network call.
 
 | Tool | What it does |
 |---|---|
-| `zenbrain_store` | Write something into long-term memory. Routing is automatic, first match wins: `steps` or wording such as "How to", "Steps:", "workflow:" make a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again is updated. |
+| `zenbrain_store` | Write something into long-term memory. Routing is automatic, first match wins: `steps` or wording such as "How to", "Steps:", "workflow:" make a procedure, an emotional weight above 0.5 an episode, a confidence above 0.9 a pinned core memory, anything else a semantic fact. Each call adds a memory; the same core memory stored again only gets a new timestamp. |
 | `zenbrain_recall` | Search the episodic, semantic, procedural and core layers for what is relevant to a query; working memory only when you name it. Results come back sorted by a score from 0 to 1, each with its id and the layer it came from; a layer in which nothing matches returns recent episodes and facts, or its most successful procedures, at score 0, behind every hit, and `minScore` above 0 leaves them out. Every core block scores 0.5 or 0.8. |
 | `zenbrain_forget` | Delete a memory for good, by the id and layer `zenbrain_recall` returned, together with what consolidation linked to it: forgetting an episode deletes the fact made from it, forgetting such a fact every episode consolidated into it, and both delete the working-memory copies of that content. `alsoForgotten` lists what went with it. A memory stored on its own and never consolidated keeps its long-term entry (`duplicates` on a recall result names such copies); forget a long-term result rather than a working-memory slot, which is only a copy. To correct a memory, forget it and store the corrected version. |
 | `zenbrain_consolidate` | One maintenance pass: among the 100 most recent episodes, each with an emotional weight above 0.5 becomes a semantic fact, only once; working-memory slots decay, and those at a relevance of 0.01 or below are removed. Deletes nothing from long-term memory. |
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
 Each tool also tells the client what it does to the store, through the MCP tool annotations: `zenbrain_recall` and
-`zenbrain_health` are read-only; `zenbrain_store` only adds; `zenbrain_forget` and `zenbrain_consolidate` are marked
-destructive (consolidation removes decayed working-memory slots), so a client that asks before destructive calls asks
-before these two. No tool reaches anything outside the local file.
+`zenbrain_health` are read-only; `zenbrain_store` only adds (the same core memory stored again gets a new timestamp,
+and the oldest working-memory copy drops out of the server's memory); `zenbrain_forget` and `zenbrain_consolidate` are
+marked destructive (consolidation removes decayed working-memory slots), so a client that asks before destructive
+calls asks before these two. No tool reaches anything outside the local file.
 
 ## Install
 
@@ -117,7 +118,13 @@ Worth knowing before you wire it in:
   it stores; until then it writes nothing, and `zenbrain_recall` and `zenbrain_health` answer
   from an empty memory. A store created by 0.3.2 or later is that one file (SQLite's
   `-journal` file exists only during a write). A store created by 0.3.1 or earlier stays in
-  WAL mode, and while a server has it open SQLite keeps `-wal` and `-shm` files next to it.
+  WAL mode: while a server has it open, SQLite keeps `-wal` and `-shm` files next to it, and
+  a read can change the `-shm` file. The store file and the memories in it stay as they are,
+  and both side files are gone once the last server exits. To switch such a store to the
+  single file, stop every server that uses it and run
+  `sqlite3 ~/.zenbrain/memory.db 'PRAGMA journal_mode=DELETE;'` with your store's path. It
+  prints `delete`; a `-shm` file it leaves behind can be deleted. While a server still has
+  the store open, it fails with "database is locked" and changes nothing.
 
 ## Using it as a library
 

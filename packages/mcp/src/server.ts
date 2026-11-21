@@ -113,10 +113,10 @@ export function createZenBrainServer(
         '"Steps:" or "workflow:", make a procedure; an emotional weight above 0.5 (detected, or ' +
         'set via `emotionalWeight`) an episode; a `confidence` above 0.9 a pinned core memory; ' +
         'anything else a semantic fact. Set `type` only when you want to override that. Every ' +
-        'call adds a new memory, except that storing the same core memory again updates it; the ' +
-        'content is also kept in working memory (the most recent seven) while the server runs, ' +
-        'so once seven are held each store replaces the oldest copy there. Long-term memory is ' +
-        'never changed by a store. ' +
+        'call adds a new memory, except that storing the same core memory again only renews its ' +
+        'timestamp. The content is also kept in working memory (the most recent seven) while the ' +
+        'server runs; once seven are held, each store drops the oldest copy there, which exists ' +
+        'only in the server\'s memory. Nothing else that is already stored is changed by a store. ' +
         'Returns the id of the stored memory. ' +
         'If it may already be stored, check with zenbrain_recall first: storing it again adds ' +
         'a duplicate.',
