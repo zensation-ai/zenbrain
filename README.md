@@ -38,7 +38,7 @@ claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx
 |---|---|
 | **Repository release** | [v0.6.3](https://github.com/zensation-ai/zenbrain/releases/tag/v0.6.3), 21 November 2026. |
 | **Packages** | `@zensation/algorithms` 0.6.1 · `@zensation/core` 0.6.1 · `@zensation/mcp` 0.3.2 · Claude Code plugin 0.1.4 ([manifest](./plugins/zenbrain/.claude-plugin/plugin.json)) |
-| **Research records** | Software: Zenodo [10.5281/zenodo.24247664](https://doi.org/10.5281/zenodo.24247664) (v0.6.2; all versions under [10.5281/zenodo.22260018](https://doi.org/10.5281/zenodo.22260018)) · Paper: version 9, Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288) and [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4) |
+| **Research records** | Software: Zenodo [10.5281/zenodo.24426158](https://doi.org/10.5281/zenodo.24426158) (v0.6.3; all versions under [10.5281/zenodo.22260018](https://doi.org/10.5281/zenodo.22260018)) · Paper: version 9, Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288) and [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4) |
 
 ---
 
