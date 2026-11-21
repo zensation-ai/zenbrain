@@ -47,8 +47,8 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   22.12.0 and 22.13.0 the first `new Database()` ended in a segmentation fault, also after `npm rebuild` on that
   version, and the server, whose check let any Node 22 through as in 0.3.1, closed the connection without a word;
   22.14.0, 22.16.0, 22.18.0, 22.20.0 and 22.22.0 worked. With the floor at 22.14, `require()` loads the package on
-  every supported version, and the README says so. `@zensation/adapter-sqlite` has the same floor and gets it with its
-  next version.
+  every supported version, and the README says so. `@zensation/adapter-sqlite` has the same floor; its `engines` still
+  says `>=22`.
 - `@zensation/mcp`: in a directory without a store, starting the server and calling `zenbrain_recall` or
   `zenbrain_health`, the two tools annotated `readOnlyHint: true`, no longer create a file, and on a store this
   version created they change none. Measured on 0.3.1: neither tool changed a row, but the start created
@@ -71,24 +71,24 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   to the single file by hand. A store last written by 0.1.6 or earlier is brought up to the current schema once, at
   the start, which writes to it.
   The path in `ZENBRAIN_DB` is trimmed of surrounding spaces and line breaks before anything looks for the file, as
-  the SQLite driver trims the name it opens. On Linux and macOS a start where the store could not be created still
-  fails at once and names the path: when no directory on the path can be written (such as the working directory `/`),
-  when part of the path is a file or a link to nothing, when the store path is a link to a file whose directory does
-  not exist, or when a name is longer than 255 bytes (on Windows 255 characters) or one that Windows refuses (CON,
-  NUL, COM1, `<`, `|` and the like; checked in the Windows CI job). A store path that links to a file still to be
-  created is accepted, and the first store creates the file it points to, as in 0.3.1. The message names the path and
-  what it found there, where 0.3.1 passed on SQLite's "unable to open database file", and it suggests checking the
-  permissions only when the cause is about permissions. On Windows, according to Node's documentation of `fs.access`,
-  the write check cannot see a directory's permissions, so a directory that cannot be written is found only at the
-  first store, with the same message (not tested on Windows); so is anything else, a full disk for instance. A store
-  file that appears while the server runs but cannot be opened makes every tool return that message as an error,
-  instead of recall and health reporting an empty memory, and the server tries to open it again at most every 10
-  seconds.
+  the SQLite driver trims the name it opens. A start where the store could not be created still fails at once and
+  names the path, on every platform: when part of the path is a file or a link to nothing, when the store path is a
+  link to a file whose directory does not exist, or when a name is longer than 255 bytes (on Windows 255 UTF-16
+  units). On Windows it also fails at once for a name Windows refuses (CON, NUL, COM1, `<`, `|` and the like; checked
+  in the Windows CI job). On Linux and macOS it fails at once, too, when no directory on the path can be written, such
+  as the working directory `/`. On Windows, according to Node's documentation of `fs.access`, the write check cannot
+  see a directory's permissions, so there a directory that cannot be written is found only at the first store, with
+  the same message (not tested on Windows); so is anything else on every platform, a full disk for instance. A store
+  path that links to a file still to be created is accepted, through as many links in a row as SQLite follows (200),
+  and the first store creates the file it points to, as in 0.3.1. The message names the path and what it found there,
+  where 0.3.1 passed on SQLite's "unable to open database file", and it suggests checking the permissions only when
+  the cause is about permissions. A store file that appears while the server runs but cannot be opened makes every
+  tool return that message as an error, instead of recall and health reporting an empty memory, and the server tries
+  to open it again at most every 10 seconds.
   A limit that stays: on a store with a rollback journal, a program that holds the store locked for longer than 5
   seconds makes `zenbrain_recall` return fewer results or none, without an error, after waiting about 5 seconds per
   query (measured: 0 results after 21 seconds), while `zenbrain_health` returns "database is locked" as an error. The
-  recall paths of `@zensation/core` catch the error; that changes with a version of core. On a WAL store readers do
-  not wait for a writer.
+  recall paths of `@zensation/core` catch the error. On a WAL store readers do not wait for a writer.
   New tests start the built server. In an empty directory (with forget, given a valid id in each long-term layer, and
   consolidate), at `~/.zenbrain/memory.db`, on a store this version created, with `ZENBRAIN_DB` ending in a space or a
   CRLF, and on WAL stores they compare name, size and sha256 of every file from before the start on; with two servers
@@ -100,7 +100,7 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   longer suggest that the emotional weight is found in the content reliably. Measured on 20 clearly emotional texts,
   the detection gave 5 a weight above 0.5 (3 of 8 joyful ones, 2 of 12 sad, frightened or angry ones), and none of 20
   neutral texts; the texts now say to set `emotionalWeight` when a memory should be an episode. The detection itself
-  is part of `@zensation/core` and changes with a version of its own.
+  is part of `@zensation/core`.
 - `@zensation/mcp`: the description of `zenbrain_store` said both that storing the same core memory again "updates
   it" and that "long-term memory is never changed by a store". Measured: the same core memory stored again keeps its
   row and its content and only gets a new timestamp, and once seven working-memory slots are held a store drops the

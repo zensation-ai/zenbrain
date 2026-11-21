@@ -288,7 +288,9 @@ describe('a store that cannot be created or opened is reported, not shown as emp
         const t0 = Date.now();
         const r = await client.callTool({ name, arguments: args });
         expect(r.isError).toBe(true);
-        expect(JSON.stringify(r.content)).toContain(`could not open its store at ${join(dir, 'zenbrain.db')}`);
+        // Compare with the message text, not with its JSON: JSON doubles every backslash of a Windows path.
+        const message = (r.content as Array<{ text?: string }>).map((c) => c.text ?? '').join('');
+        expect(message).toContain(`could not open its store at ${join(dir, 'zenbrain.db')}`);
         expect(Date.now() - t0).toBeLessThan(2_000);
       }
     } finally {

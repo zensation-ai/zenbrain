@@ -71,6 +71,9 @@ export function nearestExisting(
   }
 }
 
+/** How many links in a row SQLite follows (SQLITE_MAX_SYMLINK in sqlite3.c); the check follows as many. */
+const SQLITE_MAX_SYMLINK = 200;
+
 /**
  * Longest name one path component may have: 255 bytes on the file systems of
  * Linux and macOS, 255 UTF-16 code units on NTFS.
@@ -94,7 +97,7 @@ const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
  * longer than 255 bytes, and on Windows a name Windows refuses. The store path
  * itself may be a link to a file that does not exist yet: SQLite follows the link
  * and creates the file it points to, as 0.3.1 did, so then the link's target is
- * checked instead. Anything else (a full disk, a quota, a file system that
+ * checked instead, through as many links in a row as SQLite follows (200). Anything else (a full disk, a quota, a file system that
  * refuses the name for its own reasons) surfaces at the first store. On Windows
  * the write check passes for every directory (Node does not read ACLs there).
  */
@@ -102,7 +105,7 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
   const full = resolvePath(cwd, filename);
   try {
     if (lstatSync(full).isSymbolicLink() && !existsSync(full)) {
-      if (links >= 8) return `${full} is one of too many links in a row`;
+      if (links >= SQLITE_MAX_SYMLINK) return `${full} is one of more than ${SQLITE_MAX_SYMLINK} links in a row`;
       const target = resolvePath(dirname(full), readlinkSync(full));
       if (!existsSync(dirname(target))) return `${full} is a link to ${target}, whose directory does not exist`;
       return storeCreationProblem(target, cwd, links + 1);
@@ -118,7 +121,7 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
   const missing = full.slice(found.path.length).split(/[\\/]+/).filter(Boolean);
   for (const name of missing) {
     if (nameLength(name) > NAME_MAX) {
-      return `the name ${name.slice(0, 40)}… is longer than ${NAME_MAX} ${process.platform === 'win32' ? 'characters' : 'bytes'}`;
+      return `the name ${name.slice(0, 40)}… is longer than ${NAME_MAX} ${process.platform === 'win32' ? 'UTF-16 units' : 'bytes'}`;
     }
     if (process.platform === 'win32' && (/[<>:"|?*\x00-\x1f]/.test(name) || WINDOWS_RESERVED.test(name))) {
       return `Windows does not allow the name ${name}`;

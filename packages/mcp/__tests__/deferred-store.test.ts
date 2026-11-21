@@ -93,11 +93,11 @@ describe('what the start checks, creating nothing', () => {
     symlinkSync(join(base, 'nowhere', 'memory.db'), join(base, 'bad-link.db'));
     expect(storeCreationProblem(join(base, 'bad-link.db'))).toMatch(/whose directory does not exist/);
     symlinkSync(join(base, 'loop.db'), join(base, 'loop.db'));
-    expect(storeCreationProblem(join(base, 'loop.db'))).toMatch(/too many links/);
+    expect(storeCreationProblem(join(base, 'loop.db'))).toMatch(/more than 200 links in a row/);
   });
 
-  it('names a name longer than 255 bytes (255 characters on Windows)', () => {
-    expect(storeCreationProblem(join(tmp(), `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 (bytes|characters)/);
+  it('names a name longer than 255 bytes (255 UTF-16 units on Windows)', () => {
+    expect(storeCreationProblem(join(tmp(), `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 (bytes|UTF-16 units)/);
   });
 
   it.runIf(process.platform === 'win32')('on Windows, names a name Windows refuses', () => {
