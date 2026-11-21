@@ -38,6 +38,18 @@ describe('the store path', () => {
     expect(resolveStorePath('/data/${x}/memory.db', HOME)).toBe('/data/${x}/memory.db');
   });
 
+  // better-sqlite3 trims the name it opens; the existence check must see the same path.
+  it('trims surrounding whitespace, a CRLF included, once for every later step', () => {
+    for (const [v, want] of [
+      ['/var/data/zenbrain.db ', '/var/data/zenbrain.db'],
+      ['/var/data/zenbrain.db\r\n', '/var/data/zenbrain.db'],
+      [' ~/.zenbrain/memory.db\n', join(HOME, '.zenbrain', 'memory.db')],
+      [' :memory: ', ':memory:'],
+    ] as const) {
+      expect(resolveStorePath(v, HOME), JSON.stringify(v)).toBe(want);
+    }
+  });
+
   it('passes everything else through unchanged', () => {
     for (const v of [':memory:', '/var/data/zenbrain.db', './zenbrain.db', 'data/memory.db', 'a~/b.db', '~user/x.db']) {
       expect(resolveStorePath(v, HOME), v).toBe(v);

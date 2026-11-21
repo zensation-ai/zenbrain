@@ -61,6 +61,12 @@ export interface ZenBrainServerOptions {
   name?: string;
   /** Reported to the client during initialization. */
   version?: string;
+  /**
+   * Called before each tool runs. If it throws, the tool returns that error
+   * instead of running. The executable uses it so that a store file which exists
+   * but cannot be opened is reported as an error rather than as an empty memory.
+   */
+  checkStorage?: () => void;
 }
 
 /** Renders a value as the text block every MCP client can display. */
@@ -166,6 +172,7 @@ export function createZenBrainServer(
       },
     },
     async ({ content, ...rest }) => {
+      options.checkStorage?.();
       const opts: StoreOptions = {};
       if (rest.type !== undefined) opts.type = rest.type;
       if (rest.context !== undefined) opts.context = rest.context;
@@ -266,6 +273,7 @@ export function createZenBrainServer(
       },
     },
     async ({ query, ...rest }) => {
+      options.checkStorage?.();
       const opts: RecallOptions = {
         layers: (rest.layers ?? [...DEFAULT_RECALL_LAYERS]) as RecallOptions['layers'],
       };
@@ -331,6 +339,7 @@ export function createZenBrainServer(
       },
     },
     async ({ id, layer }) => {
+      options.checkStorage?.();
       const { removed: forgotten, alsoForgotten } = await coordinator.forgetWithDerived(id, layer);
       const payload = { forgotten, id, layer, alsoForgotten };
       return { content: text(payload), structuredContent: payload };
@@ -359,6 +368,7 @@ export function createZenBrainServer(
       },
     },
     async () => {
+      options.checkStorage?.();
       const r = await coordinator.consolidate();
       const payload = { promoted: r.promoted, decayed: r.decayed, pruned: r.pruned };
       return { content: text(payload), structuredContent: payload };
@@ -393,6 +403,7 @@ export function createZenBrainServer(
       },
     },
     async () => {
+      options.checkStorage?.();
       const h = await coordinator.getHealth();
       const payload = {
         working: { used: h.working.used, max: h.working.max },

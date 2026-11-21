@@ -117,15 +117,18 @@ Worth knowing before you wire it in:
 - **The store is a plain file.** It is not encrypted. Put it somewhere you would put a
   notebook. The server creates it, and any missing directory above it, with the first memory
   it stores; until then it writes nothing, and `zenbrain_recall` and `zenbrain_health` answer
-  from an empty memory. A store created by 0.3.2 or later is that one file (SQLite's
-  `-journal` file exists only during a write). A store created by 0.3.1 or earlier stays in
-  WAL mode: while a server has it open, SQLite keeps `-wal` and `-shm` files next to it, and
-  a read can change the `-shm` file. The store file and the memories in it stay as they are,
-  and both side files are gone once the last server exits. To switch such a store to the
-  single file, stop every server that uses it and run the `sqlite3` command-line tool on
-  your store's full path: `sqlite3 ~/.zenbrain/memory.db "PRAGMA journal_mode=DELETE;"`. It
-  prints `delete`; a `-shm` file it leaves behind can be deleted. While a server still has
-  the store open, it fails with "database is locked" and changes nothing.
+  from an empty memory. A store this release creates uses SQLite's rollback journal: it is
+  that one file (a `-journal` file exists only during a write), and reading it changes
+  nothing. A store that 0.3.1 or earlier created or opened is in WAL mode and stays in it:
+  while a server has it open, SQLite keeps `-wal` and `-shm` files next to it (the start
+  creates them), and a read after a write can change the `-shm` file. The store file and the
+  memories in it stay as they are, and both side files are gone once the last server exits.
+  The Claude Code plugin 0.1.4 runs 0.3.1, so using it next to the `claude mcp add` line on
+  the same `~/.zenbrain/memory.db` makes the store a WAL store for good. To switch a WAL store
+  to the single file, stop every server that uses it and run the `sqlite3` command-line tool
+  on your store's full path: `sqlite3 ~/.zenbrain/memory.db "PRAGMA journal_mode=DELETE;"`. It
+  prints `delete`; a `-shm` file it leaves behind can be deleted. While a server still has the
+  store open, it fails with "database is locked" and changes nothing.
 
 ## Using it as a library
 

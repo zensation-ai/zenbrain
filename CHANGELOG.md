@@ -13,10 +13,13 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 
 | Package | From | To | Why |
 |---|---|---|---|
-| `@zensation/mcp` | 0.3.1 | 0.3.2 | starting the server and the read-only tools no longer create or change a file |
+| `@zensation/mcp` | 0.3.1 | 0.3.2 | without a store, starting the server and the read-only tools create no file; on a store this version created they change none (stores in WAL mode keep their side files) |
 
 ### Added
 
+- `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called before each tool
+  runs, and if it throws, the tool returns that error instead of running; the server uses it to report a store it cannot
+  open.
 - Install smoke test of the published packages (`.github/workflows/install-smoke.yml`, `scripts/install-smoke.mjs`).
   It installs `@zensation/core`, `@zensation/adapter-sqlite` and `@zensation/algorithms` from the npm registry into an
   empty directory on Linux, macOS and Windows with Node 22, 24 and 26, checks that npm picked the current release of
@@ -26,23 +29,40 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 
 ### Fixed
 
-- `@zensation/mcp`: starting the server and calling `zenbrain_recall` or `zenbrain_health`, the two tools annotated
-  `readOnlyHint: true`, no longer create or change a file. Measured on 0.3.1: neither tool changed a row, but the start
-  created `zenbrain.db`, `zenbrain.db-wal` and `zenbrain.db-shm` in an empty directory, and the first read after opening
-  or after a write wrote SQLite's read mark into `zenbrain.db-shm`. Now the store file, and any missing directory above
-  it, is created when the first memory is stored; until then the read-only tools answer from an empty memory, and
-  `zenbrain_forget` and `zenbrain_consolidate`, which find nothing to delete or promote, create nothing either. Each read
-  looks for the file again, so a server started before a second one created the store reads it from then on. The store
-  is opened with a rollback journal (`walMode: false`): a new store is a single file, and a read touches none. A start
-  where the store could not be created, such as the working directory `/`, still fails at once and names the path.
-  A store created by 0.3.1 or earlier stays in WAL mode: switching it would itself be a write, and SQLite cannot do it
-  while another server has the file open. On such a store reads change neither the file nor the memories in it, but
-  while a server has it open SQLite keeps `-wal` and `-shm` next to it, as before, and a read can change `-shm`; both
-  are gone once the last server exits. The README says how to switch such a store to the single file by hand. Two servers on one store, as in two Claude
-  Code windows, were checked with 2 × 1,000 stores and recalls at the same time, and with 2 × 100 where one of them
-  runs 0.3.1: no entry lost, no "database is locked". New tests start the built server and compare name, size and sha256 of every
-  file from before the start on: in an empty directory, at `~/.zenbrain/memory.db`, on a store this version created,
-  on a WAL store from 0.3.1, and with two servers on one store. Four of the five fail against 0.3.1.
+- `@zensation/mcp`: in a directory without a store, starting the server and calling `zenbrain_recall` or
+  `zenbrain_health`, the two tools annotated `readOnlyHint: true`, no longer create a file, and on a store this
+  version created they change none. Measured on 0.3.1: neither tool changed a row, but the start created
+  `zenbrain.db`, `zenbrain.db-wal` and `zenbrain.db-shm` in an empty directory, and the first read after opening or
+  after a write wrote SQLite's read mark into `zenbrain.db-shm`. Now the store file, and any missing directory above
+  it, is created when the first memory is stored; until then the read-only tools answer from an empty memory,
+  `zenbrain_forget` and `zenbrain_consolidate`, which find nothing to delete or promote, create nothing either, and
+  the start line on stderr ends in "(created when the first memory is stored)". Each read looks for the file again, so
+  a server started before a second one created the store reads it from then on, as soon as the other server has
+  finished creating it. A store this version creates is opened with a rollback journal (`walMode: false`): it is a
+  single file, and a read touches none.
+  This holds for stores in rollback mode only. Every store that 0.3.1 or earlier created is in WAL mode and stays in
+  it: switching would itself be a write, and SQLite cannot do it while another server has the file open. On such a
+  store the start creates `-wal` and `-shm` next to it before any tool is called, as before, and a read after a write,
+  by this server or another, changes `-shm`; the store file and the memories in it stay as they are, and both side
+  files are gone once the last server exits. A store this version created becomes such a WAL store for good as soon as
+  0.3.1 opens it. The Claude Code plugin 0.1.4 runs 0.3.1, so this happens when the plugin and the `claude mcp add`
+  line, which runs the newest release, share `~/.zenbrain/memory.db`, until the plugin moves to 0.3.2. The README says
+  how to switch a WAL store to the single file by hand. A store last written by 0.1.6 or earlier is brought up to the
+  current schema once, at the start, which writes to it.
+  The path in `ZENBRAIN_DB` is trimmed of surrounding spaces and line breaks before anything looks for the file, as
+  the SQLite driver trims the name it opens. A start where the store could not be created still fails at once and
+  names the path: when no directory on the path can be written (such as the working directory `/`), when part of the
+  path is a file or a link to nothing, or when a name is longer than 255 bytes or, on Windows, one that Windows
+  refuses. Anything else, a full disk for instance, surfaces at the first store, with the same message. A store file
+  that appears while the server runs but cannot be opened makes every tool return that message as an error, instead of
+  recall and health reporting an empty memory, and the server tries to open it again at most every 10 seconds.
+  Two servers on one store, as in two Claude Code windows, were checked with 2 × 1,000 stores and recalls at the same
+  time, and with 2 × 100 where one of them runs 0.3.1: no entry lost, no "database is locked". New tests start the
+  built server and compare name, size and sha256 of every file from before the start on: in an empty directory (with
+  forget, given a valid id in each long-term layer, and consolidate), at `~/.zenbrain/memory.db`, on a store this
+  version created, with `ZENBRAIN_DB` ending in a space or a CRLF, with two servers on one store and two creating it
+  at the same moment, where the store cannot be created (exit 1 and the path) or appears and cannot be opened (an
+  error from every tool), and on WAL stores, which pin the side files described above.
 - `@zensation/mcp`: the description of `zenbrain_store` said both that storing the same core memory again "updates
   it" and that "long-term memory is never changed by a store". Measured: the same core memory stored again keeps its
   row and its content and only gets a new timestamp, and once seven working-memory slots are held a store drops the

@@ -26,7 +26,7 @@ import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { StorageAdapter } from '@zensation/core';
 import { createZenBrainServer } from './server.js';
-import { DeferredStore, storeCreationProblem } from './store.js';
+import { DeferredStore, notSqliteReason, storeCreationProblem } from './store.js';
 
 export { createZenBrainServer } from './server.js';
 export type { ZenBrainServerOptions } from './server.js';
@@ -91,7 +91,12 @@ export function resolveStorePath(value: string | undefined, home: string = homed
   // working directory. A value that is nothing but such a placeholder therefore means
   // the plugin's documented default, the file the README's `claude mcp add` line uses.
   if (value !== undefined && isUnresolvedPlaceholder(value)) return join(home, '.zenbrain', 'memory.db');
-  const raw = value === undefined || value.trim() === '' ? DEFAULT_STORE : value;
+  // Trimmed once, here, so that every later step sees the same path. better-sqlite3
+  // trims the name it is given; a check for the file on the untrimmed value would
+  // look somewhere else. A trailing space or a `\r` from a CRLF file then hid an
+  // existing store until the first store (found by review of the 0.3.2 draft).
+  const trimmed = value?.trim() ?? '';
+  const raw = trimmed === '' ? DEFAULT_STORE : trimmed;
   if (raw.startsWith('~/') || raw.startsWith('~\\')) return join(home, raw.slice(2));
   return raw;
 }
@@ -163,6 +168,8 @@ async function main(): Promise<void> {
         filename,
         openFile: () => {
           try {
+            const notSqlite = notSqliteReason(filename);
+            if (notSqlite !== null) throw new Error(notSqlite);
             return openFile();
           } catch (err) {
             const message = storeOpenFailureMessage(filename, process.cwd(), err);
@@ -182,7 +189,12 @@ async function main(): Promise<void> {
     ...(contexts && contexts.length > 0 ? { contexts } : {}),
   });
 
-  const server = createZenBrainServer(coordinator);
+  // A store file that exists but cannot be opened must not look like an empty
+  // memory: the coordinator's recall paths catch storage errors, so check first.
+  const server = createZenBrainServer(
+    coordinator,
+    storage instanceof DeferredStore ? { checkStorage: () => (storage as DeferredStore).ensureReadable() } : {},
+  );
 
   const shutdown = async (): Promise<void> => {
     try {

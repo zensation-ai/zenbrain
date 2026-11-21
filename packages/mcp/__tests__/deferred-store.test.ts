@@ -1,30 +1,49 @@
 /**
  * The store file is created when the first memory is stored, not when the
- * server starts (see src/store.ts). These tests pin the pieces of that:
- * which statements open the file, where creating it would start, and that a
- * file another server created is read from then on.
+ * server starts (see src/store.ts). These tests pin the pieces of that: which
+ * statements open the file, what the start checks without creating anything,
+ * when a file another server is creating counts as ready, and what happens when
+ * a file is there but cannot be opened.
  */
 import { describe, it, expect } from 'vitest';
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { QueryResult, StorageAdapter } from '@zensation/core';
-import { DeferredStore, nearestExistingDirectory, statementKind, storeCreationProblem } from '../src/store.js';
+import { DeferredStore, OPEN_RETRY_MS, nearestExisting, statementKind, storeCreationProblem, storeFileReady } from '../src/store.js';
+
+const tmp = () => mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
 
 function fakeAdapter(name: string, calls: string[]): StorageAdapter {
-  return {
+  const adapter: StorageAdapter = {
     async query<T>(sql: string): Promise<QueryResult<T>> {
       calls.push(`${name}: ${sql}`);
       return { rows: [] as T[], rowCount: 0 };
     },
     async transaction<T>(fn: (a: StorageAdapter) => Promise<T>): Promise<T> {
-      calls.push(`${name}: transaction`);
-      return fn(this);
+      calls.push(`${name}: BEGIN`);
+      try {
+        const r = await fn(adapter);
+        calls.push(`${name}: COMMIT`);
+        return r;
+      } catch (err) {
+        calls.push(`${name}: ROLLBACK`);
+        throw err;
+      }
     },
     async close() {
       calls.push(`${name}: close`);
     },
   };
+  return adapter;
+}
+
+/** A file with a complete SQLite header and the given `user_version`. */
+function sqliteHeader(path: string, userVersion: number): void {
+  const b = Buffer.alloc(4096);
+  b.write('SQLite format 3\u0000', 0, 'latin1');
+  b.writeUInt32BE(userVersion, 60);
+  writeFileSync(path, b);
 }
 
 describe('statementKind', () => {
@@ -32,86 +51,168 @@ describe('statementKind', () => {
     expect(statementKind('SELECT 1')).toBe('read');
     expect(statementKind('\n      select * from x')).toBe('read');
     expect(statementKind('WITH a AS (SELECT 1) SELECT * FROM a')).toBe('read');
+    expect(statementKind('WITH a AS (SELECT 1) INSERT INTO t SELECT * FROM a')).toBe('add');
+    expect(statementKind('with a as (select 1) update t set x = 1')).toBe('add');
+    expect(statementKind('WITH a AS (SELECT 1) DELETE FROM t')).toBe('add');
+    expect(statementKind('PRAGMA user_version')).toBe('read');
+    expect(statementKind('PRAGMA user_version = 3')).toBe('add');
     expect(statementKind('UPDATE learned_facts SET x = 1')).toBe('change');
     expect(statementKind('  delete from episodic_memories')).toBe('change');
     expect(statementKind('INSERT INTO learned_facts VALUES (1)')).toBe('add');
-    expect(statementKind('PRAGMA user_version')).toBe('add');
+    expect(statementKind('CREATE TABLE t (x)')).toBe('add');
   });
 });
 
-describe('nearestExistingDirectory and storeCreationProblem', () => {
-  it('finds the first directory on the path that exists, without creating any', () => {
-    const base = mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
-    expect(nearestExistingDirectory(join(base, 'a', 'b', 'memory.db'))).toBe(base);
-    expect(nearestExistingDirectory('memory.db', base)).toBe(base);
+describe('what the start checks, creating nothing', () => {
+  it('finds the first directory on the path that exists', () => {
+    const base = tmp();
+    expect(nearestExisting(join(base, 'a', 'b', 'memory.db'))).toEqual({ path: base, kind: 'directory' });
+    expect(nearestExisting('memory.db', base)).toEqual({ path: base, kind: 'directory' });
     expect(storeCreationProblem(join(base, 'a', 'b', 'memory.db'))).toBeNull();
   });
 
-  it('reports a path that runs through a regular file', () => {
-    const base = mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
+  it('names a part of the path that is a file', () => {
+    const base = tmp();
     writeFileSync(join(base, 'plain'), '');
-    expect(nearestExistingDirectory(join(base, 'plain', 'memory.db'))).toBeUndefined();
-    expect(storeCreationProblem(join(base, 'plain', 'memory.db'))).toMatch(/no directory/);
+    expect(storeCreationProblem(join(base, 'plain', 'sub', 'memory.db'))).toBe(`${join(base, 'plain')} is a file, not a directory`);
   });
 
-  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)('reports a directory this user cannot write to', () => {
-    const base = mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
-    const locked = join(base, 'locked');
+  it.skipIf(process.platform === 'win32')('names a link to nothing, on the path or as the store itself', () => {
+    const base = tmp();
+    symlinkSync(join(base, 'gone'), join(base, 'dir-link'));
+    symlinkSync(join(base, 'gone.db'), join(base, 'store-link.db'));
+    expect(storeCreationProblem(join(base, 'dir-link', 'memory.db'))).toMatch(/is a link to nothing/);
+    expect(storeCreationProblem(join(base, 'store-link.db'))).toMatch(/is a link to nothing/);
+  });
+
+  it('names a name longer than 255 bytes', () => {
+    expect(storeCreationProblem(join(tmp(), `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 bytes/);
+  });
+
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)('names a directory this user cannot write to', () => {
+    const locked = join(tmp(), 'locked');
     mkdirSync(locked);
     chmodSync(locked, 0o500);
     try {
-      expect(storeCreationProblem(join(locked, 'sub', 'memory.db'))).toMatch(/cannot create files in/);
+      expect(storeCreationProblem(join(locked, 'sub', 'memory.db'))).toMatch(/cannot create files in .*locked/);
     } finally {
       chmodSync(locked, 0o700);
     }
   });
 });
 
+describe('storeFileReady: a file another server is still creating is not read', () => {
+  it('waits for a full header with user_version set', () => {
+    const base = tmp();
+    const f = join(base, 'memory.db');
+    expect(storeFileReady(f)).toBe(false);
+    writeFileSync(f, '');
+    expect(storeFileReady(f)).toBe(false);
+    sqliteHeader(f, 0);
+    expect(storeFileReady(f)).toBe(false);
+    sqliteHeader(f, 1);
+    expect(storeFileReady(f)).toBe(true);
+  });
+
+  it('reads a WAL store in use at once, and lets a file that is not SQLite fail on opening', () => {
+    const base = tmp();
+    const f = join(base, 'memory.db');
+    sqliteHeader(f, 0);
+    writeFileSync(`${f}-wal`, '');
+    expect(storeFileReady(f)).toBe(true);
+    const g = join(base, 'other.db');
+    writeFileSync(g, 'x'.repeat(200));
+    expect(storeFileReady(g)).toBe(true);
+  });
+});
+
 describe('DeferredStore', () => {
-  it('answers reads and changes from the empty store until the first row is added', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
+  const make = (filename: string, calls: string[], openFile?: () => StorageAdapter, now?: () => number) =>
+    new DeferredStore({ filename, openFile: openFile ?? (() => fakeAdapter('file', calls)), openEmpty: () => fakeAdapter('empty', calls), now });
+
+  it('answers reads, PRAGMA reads and changes from the empty store until the first row is added', async () => {
     const calls: string[] = [];
-    const store = new DeferredStore({
-      filename: join(dir, 'memory.db'),
-      openFile: () => fakeAdapter('file', calls),
-      openEmpty: () => fakeAdapter('empty', calls),
-    });
+    const store = make(join(tmp(), 'memory.db'), calls);
     await store.query('SELECT 1');
+    await store.query('PRAGMA user_version');
     await store.query('DELETE FROM learned_facts');
     expect(store.fileOpen).toBe(false);
     await store.query('INSERT INTO learned_facts VALUES (1)');
     await store.query('SELECT 2');
     expect(store.fileOpen).toBe(true);
-    expect(calls).toEqual(['empty: SELECT 1', 'empty: DELETE FROM learned_facts', 'file: INSERT INTO learned_facts VALUES (1)', 'file: SELECT 2']);
+    expect(calls).toEqual(['empty: SELECT 1', 'empty: PRAGMA user_version', 'empty: DELETE FROM learned_facts', 'file: INSERT INTO learned_facts VALUES (1)', 'file: SELECT 2']);
     await store.close();
     expect(calls.slice(-2)).toEqual(['file: close', 'empty: close']);
   });
 
-  it('reads a file that appeared after the start', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
-    const filename = join(dir, 'memory.db');
+  it('reads a file another server created once it is ready, not before', async () => {
+    const filename = join(tmp(), 'memory.db');
     const calls: string[] = [];
-    const store = new DeferredStore({
-      filename,
-      openFile: () => fakeAdapter('file', calls),
-      openEmpty: () => fakeAdapter('empty', calls),
-    });
+    const store = make(filename, calls);
     await store.query('SELECT 1');
-    writeFileSync(filename, ''); // a second server created it
+    sqliteHeader(filename, 0); // being created: tables not all there yet
     await store.query('SELECT 2');
-    expect(calls).toEqual(['empty: SELECT 1', 'file: SELECT 2']);
+    sqliteHeader(filename, 1); // done
+    await store.query('SELECT 3');
+    expect(calls).toEqual(['empty: SELECT 1', 'empty: SELECT 2', 'file: SELECT 3']);
   });
 
-  it('opens a file that exists at start right away, and a transaction opens it', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
-    const existing = join(dir, 'existing.db');
-    writeFileSync(existing, '');
+  it('opens a file with content at start, and leaves an empty one for the first store', () => {
+    const base = tmp();
+    sqliteHeader(join(base, 'full.db'), 1);
+    writeFileSync(join(base, 'zero.db'), '');
     const calls: string[] = [];
-    const store = new DeferredStore({ filename: existing, openFile: () => fakeAdapter('file', calls), openEmpty: () => fakeAdapter('empty', calls) });
-    expect(store.fileOpen).toBe(true);
+    expect(make(join(base, 'full.db'), calls).fileOpen).toBe(true);
+    expect(make(join(base, 'zero.db'), calls).fileOpen).toBe(false);
+  });
 
-    const fresh = new DeferredStore({ filename: join(dir, 'fresh.db'), openFile: () => fakeAdapter('file', calls), openEmpty: () => fakeAdapter('empty', calls) });
-    await fresh.transaction(async () => 1);
-    expect(fresh.fileOpen).toBe(true);
+  it('a transaction that only reads creates no file; one that writes runs again on the file', async () => {
+    const calls: string[] = [];
+    const store = make(join(tmp(), 'memory.db'), calls);
+    const read = await store.transaction(async (a) => (await a.query('SELECT 1')).rowCount);
+    expect(read).toBe(0);
+    expect(store.fileOpen).toBe(false);
+    let runs = 0;
+    await store.transaction(async (a) => {
+      runs++;
+      await a.query('SELECT 2');
+      await a.query('INSERT INTO t VALUES (1)');
+    });
+    expect(runs).toBe(2);
+    expect(store.fileOpen).toBe(true);
+    expect(calls).toEqual([
+      'empty: BEGIN', 'empty: SELECT 1', 'empty: COMMIT',
+      'empty: BEGIN', 'empty: SELECT 2', 'empty: ROLLBACK',
+      'file: BEGIN', 'file: SELECT 2', 'file: INSERT INTO t VALUES (1)', 'file: COMMIT',
+    ]);
+  });
+
+  it('a file that cannot be opened is an error, rejected not thrown, and not retried on every statement', async () => {
+    const filename = join(tmp(), 'memory.db');
+    sqliteHeader(filename, 1);
+    let clock = 1_000;
+    let attempts = 0;
+    const calls: string[] = [];
+    const broken = () => {
+      attempts++;
+      throw new Error('cannot open');
+    };
+    // At start an existing file is opened in the constructor, and its failure ends the start.
+    expect(() => make(filename, calls, broken, () => clock)).toThrow('cannot open');
+
+    // A file that appears while the server runs:
+    const later = join(tmp(), 'memory.db');
+    const store = make(later, calls, broken, () => clock);
+    attempts = 0;
+    sqliteHeader(later, 1);
+    const pending = store.query('SELECT 1');
+    expect(pending).toBeInstanceOf(Promise);
+    await expect(pending).rejects.toThrow('cannot open');
+    await expect(store.query('SELECT 2')).rejects.toThrow('cannot open');
+    expect(() => store.ensureReadable()).toThrow('cannot open');
+    expect(attempts).toBe(1);
+    clock += OPEN_RETRY_MS;
+    await expect(store.query('SELECT 3')).rejects.toThrow('cannot open');
+    expect(attempts).toBe(2);
   });
 });
