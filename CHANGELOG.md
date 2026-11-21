@@ -4,7 +4,7 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
-## [0.6.3] — 2026-11-23
+## [0.6.3] — 2026-11-21
 
 Only `@zensation/mcp` changes version. The other packages stay at the versions earlier releases published, and the
 publish job skips them; the dependency ranges that changed on `main` since then (`better-sqlite3` in
