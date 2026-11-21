@@ -118,8 +118,9 @@ export function createZenBrainServer(
       description:
         'Write something into long-term memory so it survives this conversation. ' +
         'Routing is automatic by default, first match wins: `steps`, or wording such as "How to", ' +
-        '"Steps:" or "workflow:", make a procedure; an emotional weight above 0.5 (detected, or ' +
-        'set via `emotionalWeight`) an episode; a `confidence` above 0.9 a pinned core memory; ' +
+        '"Steps:" or "workflow:", make a procedure; an emotional weight above 0.5 an episode ' +
+        '(set it via `emotionalWeight`: the detection from the content rates most clearly emotional ' +
+        'texts below 0.5); a `confidence` above 0.9 a pinned core memory; ' +
         'anything else a semantic fact. Set `type` only when you want to override that. Every ' +
         'call adds a new memory, except that storing the same core memory again only renews its ' +
         'timestamp. The content is also kept in working memory (the most recent seven) while the ' +
@@ -151,7 +152,8 @@ export function createZenBrainServer(
           .max(1)
           .optional()
           .describe(
-            'Emotional significance (0–1). Detected from the content when omitted. ' +
+            'Emotional significance (0–1). Detected from the content when omitted, but the detection ' +
+              'rates most clearly emotional texts below 0.5, so set it when a memory should be an episode. ' +
               'Above 0.5 routes to episodic memory unless steps or procedural wording matched first. ' +
               "With type 'fact' it is not stored, but lengthens the fact's first review interval (×(1 + weight)).",
           ),

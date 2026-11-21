@@ -23,6 +23,10 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 - `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called before each tool
   runs, and if it throws, the tool returns that error instead of running; the server uses it to report a store it cannot
   open.
+- CI job `node-floor`: builds the packages on Node 22.0.0 and 22.12.0, the lower bound of `engines` and the first
+  version whose `require()` loads ES modules, starts the MCP server there over stdio, and checks that `import` loads
+  `@zensation/mcp` on both, `require()` on 22.12.0, and that 22.0.0 refuses `require()` with `ERR_REQUIRE_ESM`, as the
+  README says. The publish job waits for it.
 - Install smoke test of the published packages (`.github/workflows/install-smoke.yml`, `scripts/install-smoke.mjs`).
   It installs `@zensation/core`, `@zensation/adapter-sqlite` and `@zensation/algorithms` from the npm registry into an
   empty directory on Linux, macOS and Windows with Node 22, 24 and 26, checks that npm picked the current release of
@@ -66,7 +70,12 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   forget, given a valid id in each long-term layer, and consolidate), at `~/.zenbrain/memory.db`, on a store this
   version created, with `ZENBRAIN_DB` ending in a space or a CRLF, with two servers on one store and two creating it
   at the same moment, where the store cannot be created (exit 1 and the path) or appears and cannot be opened (an
-  error from every tool), and on WAL stores, which pin the side files described above.
+  error from every tool), and on WAL stores, which pin the side files described above. The clients used were the MCP TypeScript SDK client 1.32.2 and the MCP Inspector 2.13.0 (CLI).
+- `@zensation/mcp`: the description of `zenbrain_store` and of its `emotionalWeight` input, and the package README, no
+  longer suggest that the emotional weight is found in the content reliably. Measured on 20 clearly emotional texts,
+  the detection gave 5 a weight above 0.5 (3 of 8 joyful ones, 2 of 12 sad, frightened or angry ones), and none of 20
+  neutral texts; the texts now say to set `emotionalWeight` when a memory should be an episode. The detection itself
+  is part of `@zensation/core` and changes with a version of its own.
 - `@zensation/mcp`: the description of `zenbrain_store` said both that storing the same core memory again "updates
   it" and that "long-term memory is never changed by a store". Measured: the same core memory stored again keeps its
   row and its content and only gets a new timestamp, and once seven working-memory slots are held a store drops the
@@ -78,10 +87,11 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 
 - `@zensation/mcp` README, three sentences checked against version 9 of the paper (arXiv:2604.23878v4): the memory
   layers are those of the open library the paper describes, without the claim that the benchmarks measured them (the
-  measured arm is not the seven-layer system); passing an `EmbeddingProvider` no longer claims to be "the configuration
-  the published benchmarks were measured with", since the published runs used several; and the embedders are named per
-  experiment: `nomic-embed-text` for ZenBrain's arm in the comparisons, OpenAI `text-embedding-3-small`,
-  `nomic-embed-text` or a placeholder embedder in the other retrieval experiments, depending on the run. The third
+  measured arm is not the seven-layer system); passing an `EmbeddingProvider` no longer claims to be "the
+  configuration the published benchmarks were measured with", since the published runs used several; and the embedders
+  are named per experiment: `nomic-embed-text` for ZenBrain's arm in the comparisons, OpenAI `text-embedding-3-small`,
+  `nomic-embed-text` or a placeholder embedder in the other retrieval experiments, depending on the run. "The
+  benchmark results, and the configurations they were measured in" is now plural, for the same reason. The third
   sentence also stands in the other five packages, and `@zensation/ai-sdk` carries the first two as well; they are
   corrected with their next versions.
 

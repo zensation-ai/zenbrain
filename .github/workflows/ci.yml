@@ -118,6 +118,40 @@ jobs:
           node scripts/extract-results.mjs run.log fresh/
           node scripts/verify-against-reference.mjs fresh/ results/
 
+  # `engines` says `node >=22`, and the mcp README says `require()` loads the package on
+  # Node 22.12 and later while 22.0 to 22.11 need `import`. The `test` job runs the newest
+  # 22, 24 and 26, so neither boundary was ever run. This job starts the built server on the
+  # two boundary versions (stdio, five tools, a memory stored and recalled) and checks how the
+  # package loads there: `import` on both, `require()` on 22.12.0, ERR_REQUIRE_ESM on 22.0.0.
+  node-floor:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['22.0.0', '22.12.0']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install --no-package-lock
+      - name: Build algorithms, core, adapter-sqlite and mcp
+        run: |
+          cd packages/algorithms && npm run build
+          cd ../core && npm run build
+          cd ../adapters/sqlite && npm run build
+          cd ../../mcp && npm run build
+      - name: MCP server smoke test
+        run: node scripts/smoke-mcp.mjs
+      - name: import() loads both entry points
+        run: node --input-type=module -e "await import('@zensation/mcp'); await import('@zensation/mcp/server'); console.log('import ok on', process.version)"
+      - name: require() loads both entry points (22.12 and later)
+        if: matrix.node-version == '22.12.0'
+        run: node -e "require('@zensation/mcp'); require('@zensation/mcp/server'); console.log('require ok on', process.version)"
+      - name: require() is refused with ERR_REQUIRE_ESM (before 22.12)
+        if: matrix.node-version == '22.0.0'
+        run: |
+          node -e "try { require('@zensation/mcp/server'); console.error('require unexpectedly loaded the package'); process.exit(1) } catch (e) { if (e.code !== 'ERR_REQUIRE_ESM') throw e; console.log('ERR_REQUIRE_ESM on', process.version) }"
+
   # The unit tests of adapter-postgres mock `pg`, so they never see what PostgreSQL itself
   # decides: the schema in sql/001_init.sql, uuid and JSONB columns, pgvector. Until this job
   # nothing in CI ran a single query against PostgreSQL, and procedures could not be stored
@@ -154,7 +188,7 @@ jobs:
         run: cd packages/adapters/postgres && npx vitest run __tests__/real-postgres.test.ts
 
   publish:
-    needs: [test, postgres]
+    needs: [test, node-floor, postgres]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
