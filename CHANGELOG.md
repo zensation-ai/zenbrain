@@ -72,19 +72,20 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   the start, which writes to it.
   The path in `ZENBRAIN_DB` is trimmed of surrounding spaces and line breaks before anything looks for the file, as
   the SQLite driver trims the name it opens. A start where the store could not be created still fails at once and
-  names the path, on every platform: when part of the path is a file or a link to nothing, when the store path is a
-  link to a file whose directory does not exist, or when a name is longer than 255 bytes (on Windows 255 UTF-16
-  units). On Windows it also fails at once for a name Windows refuses (CON, NUL, COM1, `<`, `|` and the like; checked
-  in the Windows CI job). On Linux and macOS it fails at once, too, when no directory on the path can be written, such
-  as the working directory `/`. On Windows, according to Node's documentation of `fs.access`, the write check cannot
-  see a directory's permissions, so there a directory that cannot be written is found only at the first store, with
-  the same message (not tested on Windows); so is anything else on every platform, a full disk for instance. A store
-  path that links to a file still to be created is accepted, through as many links in a row as SQLite follows (200),
-  and the first store creates the file it points to, as in 0.3.1. The message names the path and what it found there,
-  where 0.3.1 passed on SQLite's "unable to open database file", and it suggests checking the permissions only when
-  the cause is about permissions. A store file that appears while the server runs but cannot be opened makes every
-  tool return that message as an error, instead of recall and health reporting an empty memory, and the server tries
-  to open it again at most every 10 seconds.
+  names the path, on every platform: when part of the path is a file, or when a name is longer than 255 bytes (on
+  Windows 255 UTF-16 units); and when part of the path is a link to nothing, or the store path is a link to a file
+  whose directory does not exist (links: not tested on Windows). On Windows it also fails at once for a name Windows
+  refuses (CON, NUL, COM1, `<`, `|` and the like; checked in the Windows CI job). On Linux and macOS it fails at once,
+  too, when no directory on the path can be written, such as the working directory `/`. On Windows, according to
+  Node's documentation of `fs.access`, the write check cannot see a directory's permissions, so there a directory that
+  cannot be written is found only at the first store, with the same message (not tested on Windows); so is anything
+  else on every platform, a full disk for instance. A store path that links to a file still to be created is accepted,
+  through as many links in a row as SQLite follows (200), and the first store creates the file it points to, as in
+  0.3.1 (not tested on Windows). The message names the path and what it found there, where 0.3.1 passed on SQLite's
+  "unable to open database file", and it suggests checking the permissions only when the cause is about permissions. A
+  store file that appears while the server runs but cannot be opened makes every tool return that message as an error,
+  instead of recall and health reporting an empty memory, and the server tries to open it again at most every 10
+  seconds.
   A limit that stays: on a store with a rollback journal, a program that holds the store locked for longer than 5
   seconds makes `zenbrain_recall` return fewer results or none, without an error, after waiting about 5 seconds per
   query (measured: 0 results after 21 seconds), while `zenbrain_health` returns "database is locked" as an error. The
@@ -116,9 +117,9 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   configuration the published benchmarks were measured with", since the published runs used several; and the embedders
   are named per experiment: `nomic-embed-text` for ZenBrain's arm in the comparisons, OpenAI `text-embedding-3-small`,
   `nomic-embed-text` or a placeholder embedder in the other retrieval experiments, depending on the run. "The
-  benchmark results, and the configurations they were measured in" is now plural, for the same reason. The third
-  sentence also stands in the other five packages, and `@zensation/ai-sdk` carries the first two as well; they are
-  corrected with their next versions.
+  benchmark results, and the configurations they were measured in" is now plural, for the same reason. In the versions
+  on npm the third sentence still stands in the other five packages, and `@zensation/ai-sdk` still carries the first
+  two as well.
 
 ## [0.6.2] — 2026-11-15
 
