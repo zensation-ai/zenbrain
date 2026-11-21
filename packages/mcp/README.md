@@ -18,10 +18,11 @@ Five tools, one local SQLite file, no account and no network call.
 | `zenbrain_health` | How full each layer is: slots in use, episodes, facts and how many are due for review, procedures, core blocks. |
 
 Each tool also tells the client what it does to the store, through the MCP tool annotations: `zenbrain_recall` and
-`zenbrain_health` are read-only; `zenbrain_store` only adds (the same core memory stored again gets a new timestamp,
-and the oldest working-memory copy drops out of the server's memory); `zenbrain_forget` and `zenbrain_consolidate` are
-marked destructive (consolidation removes decayed working-memory slots), so a client that asks before destructive
-calls asks before these two. No tool reaches anything outside the local file.
+`zenbrain_health` are read-only; `zenbrain_store` adds and changes nothing else that is stored, except that the same
+core memory stored again gets a new timestamp; the oldest working-memory copy drops out of the server's memory;
+`zenbrain_forget` and `zenbrain_consolidate` are marked destructive (consolidation removes decayed working-memory
+slots), so a client that asks before destructive calls asks before these two. No tool reaches anything outside the
+local file.
 
 ## Install
 
@@ -121,8 +122,8 @@ Worth knowing before you wire it in:
   WAL mode: while a server has it open, SQLite keeps `-wal` and `-shm` files next to it, and
   a read can change the `-shm` file. The store file and the memories in it stay as they are,
   and both side files are gone once the last server exits. To switch such a store to the
-  single file, stop every server that uses it and run
-  `sqlite3 ~/.zenbrain/memory.db 'PRAGMA journal_mode=DELETE;'` with your store's path. It
+  single file, stop every server that uses it and run the `sqlite3` command-line tool on
+  your store's full path: `sqlite3 ~/.zenbrain/memory.db "PRAGMA journal_mode=DELETE;"`. It
   prints `delete`; a `-shm` file it leaves behind can be deleted. While a server still has
   the store open, it fails with "database is locked" and changes nothing.
 
