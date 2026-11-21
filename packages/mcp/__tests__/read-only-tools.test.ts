@@ -276,8 +276,16 @@ describe('a store that cannot be created or opened is reported, not shown as emp
     symlinkSync(join(base, 'real', 'sub'), join(base, 'lnk'));
     // Read as text, lnk/.. is base, and base/data is a plain file: the check would refuse the path.
     writeFileSync(join(base, 'data'), 'not a directory');
-    const client = await startServer(base, { ZENBRAIN_DB: `${join(base, 'lnk')}/../data/memory.db` });
+    const given = `${join(base, 'lnk')}/../data/memory.db`;
+    const transport = new StdioClientTransport({ command: process.execPath, args: [builtEntry], cwd: base, env: childEnv({ ZENBRAIN_DB: given }), stderr: 'pipe' });
+    let stderr = '';
+    transport.stderr?.on('data', (d) => { stderr += String(d); });
+    const client = new Client({ name: 'read-only-test', version: '0' });
+    await client.connect(transport);
     try {
+      // The start line names the path as given, not lnk/.. resolved as text (base/data, a file).
+      await new Promise((r) => setTimeout(r, 200));
+      expect(stderr).toContain(`store: ${given} (created when the first memory is stored)`);
       await ok(client, 'zenbrain_store', { content: 'Stored behind a linked directory.' });
       expect(readdirSync(join(base, 'real', 'data'))).toEqual(['memory.db']);
       expect(await recallCount(client, 'behind a linked directory')).toBe(1);

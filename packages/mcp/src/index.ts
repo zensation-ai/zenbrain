@@ -224,7 +224,9 @@ async function main(): Promise<void> {
   process.on('SIGTERM', () => void shutdown().finally(() => process.exit(0)));
 
   await server.connect(new StdioServerTransport());
-  const where = filename === ':memory:' ? filename : resolvePath(filename);
+  // A path with a `..` part is named as given: resolving it as text could name a place
+  // the system does not mean (see precheckApplies).
+  const where = filename === ':memory:' || !precheckApplies(filename) ? filename : resolvePath(filename);
   const pending = storage instanceof DeferredStore && !storage.fileOpen ? ' (created when the first memory is stored)' : '';
   process.stderr.write(`zenbrain-mcp ready — store: ${where}${pending}\n`);
 }
