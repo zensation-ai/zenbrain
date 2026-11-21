@@ -3,8 +3,10 @@
  *
  * This module builds the server around an already-constructed MemoryCoordinator
  * rather than constructing one itself. That is what makes it testable: the tests
- * drive the real protocol over an in-memory transport against an in-memory store,
- * and never touch a file or a database. `index.ts` does the wiring for real use.
+ * of this module (`server.test.ts`, `tool-definitions.test.ts`) drive the real
+ * protocol over an in-memory transport against an in-memory store, and never touch
+ * a file or a database. `index.ts` does the wiring for real use; its tests start
+ * the built server against real files.
  */
 import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';

@@ -15,6 +15,9 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 |---|---|---|---|
 | `@zensation/mcp` | 0.3.1 | 0.3.2 | without a store, starting the server and the read-only tools create no file; on a store this version created they change none (stores in WAL mode keep their side files) |
 
+`@zensation/mcp` 0.3.2 also requires `@modelcontextprotocol/sdk` ^1.32.2 (was ^1.32.1, #157) and `zod` ^4.6.7 (was
+^4.6.5, #147); both bumps were already on `main`.
+
 ### Added
 
 - `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called before each tool
@@ -53,7 +56,8 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   the SQLite driver trims the name it opens. A start where the store could not be created still fails at once and
   names the path: when no directory on the path can be written (such as the working directory `/`), when part of the
   path is a file or a link to nothing, or when a name is longer than 255 bytes or, on Windows, one that Windows
-  refuses. Anything else, a full disk for instance, surfaces at the first store, with the same message. A store file
+  refuses; the message names the path and what it found there, where 0.3.1 passed on SQLite's "unable to open database
+  file". Anything else, a full disk for instance, surfaces at the first store, with the same message. A store file
   that appears while the server runs but cannot be opened makes every tool return that message as an error, instead of
   recall and health reporting an empty memory, and the server tries to open it again at most every 10 seconds.
   Two servers on one store, as in two Claude Code windows, were checked with 2 × 1,000 stores and recalls at the same
