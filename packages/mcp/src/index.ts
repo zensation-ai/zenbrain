@@ -26,7 +26,7 @@ import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { StorageAdapter } from '@zensation/core';
 import { createZenBrainServer } from './server.js';
-import { DeferredStore, notSqliteReason, storeCreationProblem } from './store.js';
+import { DeferredStore, notSqliteReason, precheckApplies, storeCreationProblem } from './store.js';
 
 export { createZenBrainServer } from './server.js';
 export type { ZenBrainServerOptions } from './server.js';
@@ -173,8 +173,9 @@ async function main(): Promise<void> {
     storage = new SqliteAdapter({ filename, walMode: false });
   } else {
     // Nothing is created before the first memory is stored (see ./store.ts), so check now,
-    // without creating anything, that it could be created.
-    const problem = existsSync(filename) ? null : storeCreationProblem(filename);
+    // without creating anything, that it could be created — unless the check would read the
+    // path differently from SQLite (see precheckApplies).
+    const problem = existsSync(filename) || !precheckApplies(filename) ? null : storeCreationProblem(filename);
     if (problem !== null) {
       process.stderr.write(storeOpenFailureMessage(filename, process.cwd(), problem));
       process.exit(1);

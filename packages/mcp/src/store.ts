@@ -111,6 +111,20 @@ const NAME_UNIT: Partial<Record<NodeJS.Platform, { unit: string; length: (name: 
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 
 /**
+ * Whether the start checks `filename` in advance. Not on Linux and macOS when the
+ * path has a `..` part: the check works on the path as text (`path.resolve`), while
+ * the system, and so SQLite, reads `..` after a linked directory as the parent of
+ * where that directory really is. Rather than refuse a path SQLite would accept,
+ * the start then leaves the check out, as 0.3.1 did, and a store that cannot be
+ * created fails at the first store, with the message. On Windows Node and SQLite
+ * both read `..` as text, so the check stays.
+ */
+export function precheckApplies(filename: string, platform: NodeJS.Platform = process.platform): boolean {
+  if (platform === 'win32') return true;
+  return !filename.split(/[\\/]+/).includes('..');
+}
+
+/**
  * Why the store could not be created there later, or `null` if, as far as can be
  * told without creating anything, it can.
  *

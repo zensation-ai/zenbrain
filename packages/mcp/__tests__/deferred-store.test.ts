@@ -10,7 +10,7 @@ import { chmodSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { QueryResult, StorageAdapter } from '@zensation/core';
-import { DeferredStore, OPEN_RETRY_MS, nearestExisting, physicalTarget, statementKind, storeCreationProblem, storeFileReady } from '../src/store.js';
+import { DeferredStore, OPEN_RETRY_MS, nearestExisting, physicalTarget, precheckApplies, statementKind, storeCreationProblem, storeFileReady } from '../src/store.js';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
 
@@ -70,6 +70,14 @@ describe('what the start checks, creating nothing', () => {
     expect(nearestExisting(join(base, 'a', 'b', 'memory.db'))).toEqual({ path: base, kind: 'directory' });
     expect(nearestExisting('memory.db', base)).toEqual({ path: base, kind: 'directory' });
     expect(storeCreationProblem(join(base, 'a', 'b', 'memory.db'))).toBeNull();
+  });
+
+  it('leaves the check out for a path with a `..` part on Linux and macOS, not on Windows', () => {
+    expect(precheckApplies('/a/lnk/../data/memory.db', 'linux')).toBe(false);
+    expect(precheckApplies('../memory.db', 'darwin')).toBe(false);
+    expect(precheckApplies('/a/b..c/memory.db', 'linux')).toBe(true);
+    expect(precheckApplies('/a/data/memory.db', 'darwin')).toBe(true);
+    expect(precheckApplies('C:\\a\\lnk\\..\\data\\memory.db', 'win32')).toBe(true);
   });
 
   it('names a part of the path that is a file', () => {

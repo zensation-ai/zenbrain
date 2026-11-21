@@ -268,6 +268,24 @@ describe('a store that cannot be created or opened is reported, not shown as emp
     }
   }, 30_000);
 
+  // Symbolic links need developer mode or administrator rights on Windows; there Node and SQLite both read `..` as text.
+  it.skipIf(process.platform === 'win32')('a path with `..` after a linked directory: no false refusal at start, the first store lands where the system puts it', async () => {
+    const base = tmp('zenbrain-ro-dotdot-');
+    mkdirSync(join(base, 'real', 'sub'), { recursive: true });
+    mkdirSync(join(base, 'real', 'data'));
+    symlinkSync(join(base, 'real', 'sub'), join(base, 'lnk'));
+    // Read as text, lnk/.. is base, and base/data is a plain file: the check would refuse the path.
+    writeFileSync(join(base, 'data'), 'not a directory');
+    const client = await startServer(base, { ZENBRAIN_DB: `${join(base, 'lnk')}/../data/memory.db` });
+    try {
+      await ok(client, 'zenbrain_store', { content: 'Stored behind a linked directory.' });
+      expect(readdirSync(join(base, 'real', 'data'))).toEqual(['memory.db']);
+      expect(await recallCount(client, 'behind a linked directory')).toBe(1);
+    } finally {
+      await client.close();
+    }
+  }, 30_000);
+
   it('the start fails when part of the path is a file, and says so', () => {
     const dir = tmp('zenbrain-ro-file-');
     writeFileSync(join(dir, 'plain'), 'not a directory');
