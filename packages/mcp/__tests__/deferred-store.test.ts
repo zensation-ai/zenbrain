@@ -10,7 +10,7 @@ import { chmodSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { QueryResult, StorageAdapter } from '@zensation/core';
-import { DeferredStore, OPEN_RETRY_MS, nearestExisting, statementKind, storeCreationProblem, storeFileReady } from '../src/store.js';
+import { DeferredStore, OPEN_RETRY_MS, nearestExisting, physicalTarget, statementKind, storeCreationProblem, storeFileReady } from '../src/store.js';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'zenbrain-ds-'));
 
@@ -78,6 +78,7 @@ describe('what the start checks, creating nothing', () => {
     expect(storeCreationProblem(join(base, 'plain', 'sub', 'memory.db'))).toBe(`${join(base, 'plain')} is a file, not a directory`);
   });
 
+  // Symbolic links need developer mode or administrator rights on Windows.
   it.skipIf(process.platform === 'win32')('names a directory link to nothing on the path', () => {
     const base = tmp();
     symlinkSync(join(base, 'gone'), join(base, 'dir-link'));
@@ -105,17 +106,22 @@ describe('what the start checks, creating nothing', () => {
     symlinkSync(join(base, 'nowhere', 'memory.db'), join(base, 'bad-link.db'));
     expect(storeCreationProblem(join(base, 'bad-link.db'))).toMatch(/whose directory does not exist/);
     symlinkSync(join(base, 'loop.db'), join(base, 'loop.db'));
-    expect(storeCreationProblem(join(base, 'loop.db'))).toMatch(/more than 200 links in a row/);
+    expect(storeCreationProblem(join(base, 'loop.db'))).toMatch(/more than 32 links in a row/);
   });
 
-  it('names a name longer than 255 bytes (Linux), characters (macOS) or UTF-16 units (Windows)', () => {
+  it('names a name longer than 255 bytes (Linux) or 255 UTF-16 units (macOS, Windows)', () => {
     const base = tmp();
-    expect(storeCreationProblem(join(base, `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 (bytes|characters|UTF-16 units)/);
-    // 203 characters, 203 UTF-16 units, 403 bytes: too long only where bytes count.
+    expect(storeCreationProblem(join(base, `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 (bytes|UTF-16 units)/);
+    // 203 UTF-16 units, 403 bytes: too long only where bytes count.
     const umlauts = join(base, `${'ä'.repeat(200)}.db`);
     if (process.platform === 'linux') expect(storeCreationProblem(umlauts)).toMatch(/longer than 255 bytes/);
-    if (process.platform === 'darwin' || process.platform === 'win32') expect(storeCreationProblem(umlauts)).toBeNull();
-    if (process.platform === 'darwin') expect(storeCreationProblem(join(base, 'ä'.repeat(256)))).toMatch(/longer than 255 characters/);
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+      expect(storeCreationProblem(umlauts)).toBeNull();
+      expect(storeCreationProblem(join(base, 'ä'.repeat(256)))).toMatch(/longer than 255 UTF-16 units/);
+      // An emoji is one character but two UTF-16 units: APFS takes 127, not 128.
+      expect(storeCreationProblem(join(base, '😀'.repeat(127)))).toBeNull();
+      expect(storeCreationProblem(join(base, '😀'.repeat(128)))).toMatch(/longer than 255 UTF-16 units/);
+    }
   });
 
   // Node passes \\?\C:\… and keeps a trailing dot or space; SQLite drops it: two different files.
@@ -160,6 +166,7 @@ describe('storeFileReady: a file another server is still creating is not read', 
     expect(storeFileReady(f)).toBe(true);
   });
 
+  // Symbolic links need developer mode or administrator rights on Windows.
   it.skipIf(process.platform === 'win32')('looks for -wal next to the file a link points to, where SQLite keeps it', () => {
     const base = tmp();
     mkdirSync(join(base, 'target'));
@@ -168,6 +175,24 @@ describe('storeFileReady: a file another server is still creating is not read', 
     writeFileSync(`${target}-wal`, '');
     symlinkSync(target, join(base, 'store.db'));
     expect(storeFileReady(join(base, 'store.db'))).toBe(true);
+  });
+
+  // Symbolic links need developer mode or administrator rights on Windows.
+  it.skipIf(process.platform === 'win32')('a path with `..` after a linked directory is read the way the system reads it, without throwing', () => {
+    const base = tmp();
+    mkdirSync(join(base, 'real', 'sub'), { recursive: true });
+    mkdirSync(join(base, 'real', 'data'));
+    symlinkSync(join(base, 'real', 'sub'), join(base, 'lnk'));
+    sqliteHeader(join(base, 'real', 'data', 'memory.db'), 1);
+    // The system reads lnk/.. as real; as text it would be base, where data/ does not exist.
+    const path = `${join(base, 'lnk')}/../data/memory.db`;
+    expect(() => storeFileReady(path)).not.toThrow();
+    expect(storeFileReady(path)).toBe(true);
+    expect(physicalTarget(path)).toBe(physicalTarget(join(base, 'real', 'data', 'memory.db')));
+  });
+
+  it('physicalTarget never throws', () => {
+    expect(physicalTarget(join(tmp(), 'no', 'such', 'file.db'))).toBeUndefined();
   });
 
   it('reads a WAL store in use at once, and lets a file that is not SQLite fail on opening', () => {

@@ -73,20 +73,38 @@ export function nearestExisting(
   }
 }
 
-/** How many links in a row SQLite follows (SQLITE_MAX_SYMLINK in sqlite3.c); the check follows as many. */
-const SQLITE_MAX_SYMLINK = 200;
+/**
+ * How many links in a row the check follows. SQLite would follow 200
+ * (SQLITE_MAX_SYMLINK), but it opens the path through the system, and macOS stops
+ * after 32 links (Linux after 40), as does Node's existsSync. 32 is where all of
+ * them still agree.
+ */
+const LINK_LIMIT = 32;
+
+/**
+ * The file a path finally points to, resolved by the system (`realpathSync.native`)
+ * the way SQLite's open sees it: `..` in a link's target counts from where the
+ * link really is. `undefined` when it cannot be resolved; it never throws.
+ */
+export function physicalTarget(path: string): string | undefined {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Longest name one path component may have, and how it is counted: 255 bytes on
- * Linux (ext4 and most others), 255 characters on macOS (APFS; measured: 255 × "ä"
- * is created, 256 is not), 255 UTF-16 code units on Windows (NTFS). On any other
- * platform the length is not checked in advance; a name that is too long fails at
- * the first store instead.
+ * Linux (ext4 and most others), 255 UTF-16 code units on macOS (APFS; measured:
+ * 255 × "ä" and 127 emoji are created, 256 × "ä" and 128 emoji are not) and on
+ * Windows (NTFS). On any other platform the length is not checked in advance; a
+ * name that is too long fails at the first store instead.
  */
 const NAME_MAX = 255;
 const NAME_UNIT: Partial<Record<NodeJS.Platform, { unit: string; length: (name: string) => number }>> = {
   linux: { unit: 'bytes', length: (name) => Buffer.byteLength(name) },
-  darwin: { unit: 'characters', length: (name) => [...name].length },
+  darwin: { unit: 'UTF-16 units', length: (name) => name.length },
   win32: { unit: 'UTF-16 units', length: (name) => name.length },
 };
 /** Names Windows refuses for a file in any directory. */
@@ -100,11 +118,11 @@ const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
  * working directory `/` that some clients choose — still says so at once instead
  * of failing on its first `zenbrain_store`. It finds: no writable directory on
  * the path, a part of the path that is a file or a link to nothing, a name
- * longer than 255 bytes, characters or UTF-16 units (see NAME_UNIT), and on
+ * longer than 255 bytes or UTF-16 units (see NAME_UNIT), and on
  * Windows a name Windows refuses or one that ends in a dot or a space. The store path
  * itself may be a link to a file that does not exist yet: SQLite follows the link
  * and creates the file it points to, as 0.3.1 did, so then the link's target is
- * checked instead, through as many links in a row as SQLite follows (200). Anything else (a full disk, a quota, a file system that
+ * checked instead, through up to 32 links in a row (see LINK_LIMIT). Anything else (a full disk, a quota, a file system that
  * refuses the name for its own reasons) surfaces at the first store. On Windows
  * the write check passes for every directory (Node does not read ACLs there).
  */
@@ -112,9 +130,9 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
   const full = resolvePath(cwd, filename);
   try {
     if (lstatSync(full).isSymbolicLink() && !existsSync(full)) {
-      if (links >= SQLITE_MAX_SYMLINK) return `${full} is one of more than ${SQLITE_MAX_SYMLINK} links in a row`;
+      if (links >= LINK_LIMIT) return `${full} is one of more than ${LINK_LIMIT} links in a row`;
       // Against the real directory of the link, as SQLite resolves it (`..` included).
-      const target = resolvePath(realpathSync(dirname(full)), readlinkSync(full));
+      const target = resolvePath(physicalTarget(dirname(full)) ?? dirname(full), readlinkSync(full));
       if (!existsSync(dirname(target))) return `${full} is a link to ${target}, whose directory does not exist`;
       return storeCreationProblem(target, cwd, links + 1);
     }
@@ -165,8 +183,11 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
  */
 export function storeFileReady(filename: string): boolean {
   if (!existsSync(filename)) return false;
-  // SQLite keeps `-wal` next to the file a link points to, not next to the link.
-  if (existsSync(`${realpathSync(filename)}-wal`)) return true;
+  // Where SQLite keeps `-wal` for a linked store depends on the system: next to the
+  // file the link points to on Linux and macOS, next to the link itself on Windows
+  // (GetFullPathNameW does not resolve links). Look in both places.
+  const target = physicalTarget(filename);
+  if (existsSync(`${filename}-wal`) || (target !== undefined && existsSync(`${target}-wal`))) return true;
   const header = Buffer.alloc(100);
   let read = 0;
   try {

@@ -119,14 +119,16 @@ jobs:
           node scripts/verify-against-reference.mjs fresh/ results/
 
   # Every other job runs on Linux, and install-smoke tests what npm already ships, so the mcp
-  # package was never built and tested on Windows before a release. This job does that, with
-  # the Node versions of `test`. Tests that cannot run on Windows (unwritable directories made
-  # with chmod, symbolic links) skip themselves there; the reason stands next to each skipIf.
-  mcp-windows:
-    runs-on: windows-latest
+  # package was never built and tested on Windows or macOS before a release. This job does
+  # that, with the Node versions of `test`. Tests that cannot run on Windows (unwritable
+  # directories made with chmod, symbolic links) skip themselves there; the reason stands next
+  # to each skipIf. Tests with a branch per platform (name lengths) run their macOS branch here.
+  mcp-windows-macos:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-latest, macos-latest]
         node-version: [22, 24, 26]
     defaults:
       run:
@@ -240,7 +242,7 @@ jobs:
         run: cd packages/adapters/postgres && npx vitest run __tests__/real-postgres.test.ts
 
   publish:
-    needs: [test, node-floor, mcp-windows, postgres]
+    needs: [test, node-floor, mcp-windows-macos, postgres]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
