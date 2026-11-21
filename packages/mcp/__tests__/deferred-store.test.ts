@@ -96,8 +96,16 @@ describe('what the start checks, creating nothing', () => {
     expect(storeCreationProblem(join(base, 'loop.db'))).toMatch(/too many links/);
   });
 
-  it('names a name longer than 255 bytes', () => {
-    expect(storeCreationProblem(join(tmp(), `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 bytes/);
+  it('names a name longer than 255 bytes (255 characters on Windows)', () => {
+    expect(storeCreationProblem(join(tmp(), `${'x'.repeat(300)}.db`))).toMatch(/longer than 255 (bytes|characters)/);
+  });
+
+  it.runIf(process.platform === 'win32')('on Windows, names a name Windows refuses', () => {
+    const base = tmp();
+    for (const name of ['CON', 'nul.db', 'COM1.db', 'a<b.db', 'a|b.db']) {
+      expect(storeCreationProblem(join(base, name)), name).toMatch(/Windows does not allow the name/);
+    }
+    expect(storeCreationProblem(join(base, 'memory.db'))).toBeNull();
   });
 
   it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)('names a directory this user cannot write to', () => {

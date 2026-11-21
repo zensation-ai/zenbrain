@@ -23,6 +23,10 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 - `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called and awaited before
   each tool runs; if it throws or its promise is rejected, the tool returns that error instead of running. The server
   uses it to report a store it cannot open.
+- CI job `mcp-windows`: builds `@zensation/mcp` and the packages it depends on on Windows with Node 22, 24 and 26,
+  runs its type check, its tests and the MCP smoke test. Until now every CI job ran on Linux, and the Windows run of
+  the install smoke test checks only what npm already ships. Tests that need chmod or symbolic links skip themselves
+  on Windows; one test of names Windows refuses runs only there. The publish job waits for it.
 - CI job `node-floor`: on both sides of the Node floor of `@zensation/mcp`, 22.13.0 and 22.14.0, it rebuilds
   better-sqlite3 on that version, then checks that the server built with the newest Node 22 refuses to start on
   22.13.0 with a message and serves on 22.14.0 (stdio, five tools, a memory stored and recalled), where `import` and
@@ -70,14 +74,16 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
   the SQLite driver trims the name it opens. On Linux and macOS a start where the store could not be created still
   fails at once and names the path: when no directory on the path can be written (such as the working directory `/`),
   when part of the path is a file or a link to nothing, when the store path is a link to a file whose directory does
-  not exist, or when a name is longer than 255 bytes or one that Windows refuses. A store path that links to a file
-  still to be created is accepted, and the first store creates the file it points to, as in 0.3.1. The message names
-  the path and what it found there, where 0.3.1 passed on SQLite's "unable to open database file", and it suggests
-  checking the permissions only when the cause is about permissions. On Windows Node cannot tell whether a directory
-  is writable, so there such a store fails at its first store, with the same message, and so does anything else, a
-  full disk for instance. A store file that appears while the server runs but cannot be opened makes every tool return
-  that message as an error, instead of recall and health reporting an empty memory, and the server tries to open it
-  again at most every 10 seconds.
+  not exist, or when a name is longer than 255 bytes (on Windows 255 characters) or one that Windows refuses (CON,
+  NUL, COM1, `<`, `|` and the like; checked in the Windows CI job). A store path that links to a file still to be
+  created is accepted, and the first store creates the file it points to, as in 0.3.1. The message names the path and
+  what it found there, where 0.3.1 passed on SQLite's "unable to open database file", and it suggests checking the
+  permissions only when the cause is about permissions. On Windows, according to Node's documentation of `fs.access`,
+  the write check cannot see a directory's permissions, so a directory that cannot be written is found only at the
+  first store, with the same message (not tested on Windows); so is anything else, a full disk for instance. A store
+  file that appears while the server runs but cannot be opened makes every tool return that message as an error,
+  instead of recall and health reporting an empty memory, and the server tries to open it again at most every 10
+  seconds.
   A limit that stays: on a store with a rollback journal, a program that holds the store locked for longer than 5
   seconds makes `zenbrain_recall` return fewer results or none, without an error, after waiting about 5 seconds per
   query (measured: 0 results after 21 seconds), while `zenbrain_health` returns "database is locked" as an error. The

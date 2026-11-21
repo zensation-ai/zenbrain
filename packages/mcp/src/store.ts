@@ -71,9 +71,16 @@ export function nearestExisting(
   }
 }
 
-/** Longest name one path component may have on the file systems this runs on. */
+/**
+ * Longest name one path component may have: 255 bytes on the file systems of
+ * Linux and macOS, 255 UTF-16 code units on NTFS.
+ */
 const NAME_MAX = 255;
-/** Names Windows refuses for a file in any directory. */
+const nameLength = (name: string): number => (process.platform === 'win32' ? name.length : Buffer.byteLength(name));
+/**
+ * Names Windows refuses for a file in any directory. (A trailing dot or space is
+ * not refused but dropped by Windows, so it is not checked.)
+ */
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 
 /**
@@ -110,8 +117,10 @@ export function storeCreationProblem(filename: string, cwd: string = process.cwd
 
   const missing = full.slice(found.path.length).split(/[\\/]+/).filter(Boolean);
   for (const name of missing) {
-    if (Buffer.byteLength(name) > NAME_MAX) return `the name ${name.slice(0, 40)}… is longer than ${NAME_MAX} bytes`;
-    if (process.platform === 'win32' && (/[<>:"|?*\x00-\x1f]/.test(name) || WINDOWS_RESERVED.test(name) || /[. ]$/.test(name))) {
+    if (nameLength(name) > NAME_MAX) {
+      return `the name ${name.slice(0, 40)}… is longer than ${NAME_MAX} ${process.platform === 'win32' ? 'characters' : 'bytes'}`;
+    }
+    if (process.platform === 'win32' && (/[<>:"|?*\x00-\x1f]/.test(name) || WINDOWS_RESERVED.test(name))) {
       return `Windows does not allow the name ${name}`;
     }
   }
