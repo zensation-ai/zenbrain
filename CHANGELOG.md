@@ -23,10 +23,10 @@ Code plugin still runs 0.3.1 and moves to 0.3.2 in a release of its own, once np
 - `@zensation/mcp`: `createZenBrainServer` takes an optional `checkStorage` callback. It is called before each tool
   runs, and if it throws, the tool returns that error instead of running; the server uses it to report a store it cannot
   open.
-- CI job `node-floor`: builds the packages on Node 22.0.0 and 22.12.0, the lower bound of `engines` and the first
-  version whose `require()` loads ES modules, starts the MCP server there over stdio, and checks that `import` loads
-  `@zensation/mcp` on both, `require()` on 22.12.0, and that 22.0.0 refuses `require()` with `ERR_REQUIRE_ESM`, as the
-  README says. The publish job waits for it.
+- CI job `node-floor`: on Node 22.0.0 and 22.12.0, the lower bound of `engines` and the first version whose
+  `require()` loads ES modules, it starts the MCP server built with the newest Node 22 over stdio, and checks that
+  `import` loads `@zensation/mcp` on both, `require()` on 22.12.0, and that 22.0.0 refuses `require()` with
+  `ERR_REQUIRE_ESM`, as the README says. The build tools themselves need a newer 22. The publish job waits for it.
 - Install smoke test of the published packages (`.github/workflows/install-smoke.yml`, `scripts/install-smoke.mjs`).
   It installs `@zensation/core`, `@zensation/adapter-sqlite` and `@zensation/algorithms` from the npm registry into an
   empty directory on Linux, macOS and Windows with Node 22, 24 and 26, checks that npm picked the current release of
