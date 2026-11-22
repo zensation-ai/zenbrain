@@ -183,7 +183,7 @@ open('the middleware over a real SQLite store', () => {
   });
 
   it('in a follow-up step, leaves out the turn also when it was stored as a procedure', async () => {
-    // With the filter on the text (FP650) this turn came back as "How to renew … Steps: … Outcome: "
+    // With the filter on the text this turn came back as "How to renew … Steps: … Outcome: "
     // and stayed among the second call's memories. The ids store() returned leave it out.
     coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
     await coordinator.store('The parking permit office is in the town hall.');
