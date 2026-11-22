@@ -139,7 +139,7 @@ export class EpisodicMemory {
   /**
    * The episodes a consolidation pass promoted into this fact: those whose metadata says
    * `consolidatedInto: <factId>`. Works on databases written before 0.6.0 — the mark is the
-   * one record of the edge, and both adapters have stored it since 0.4.8.
+   * one record of the edge, and both adapters have stored it since release v0.4.8 (core 0.3.4).
    *
    * The database narrows the rows by text (`metadata::text LIKE`, which the SQLite adapter
    * reads as `metadata LIKE`); every row is then checked on its parsed metadata, so a fact id

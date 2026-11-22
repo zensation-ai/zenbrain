@@ -12,8 +12,8 @@
  * dependency-free: installing core pulls in nothing beyond @zensation/algorithms.
  *
  * WHAT IT IS NOT. This is a lexical heuristic, not semantic search. It cannot match
- * "car" to "automobile". An EmbeddingProvider remains the configuration the published
- * benchmarks were measured with, and the READMEs say so.
+ * "car" to "automobile"; matching by meaning needs an EmbeddingProvider, and the READMEs
+ * say so.
  */
 
 /**

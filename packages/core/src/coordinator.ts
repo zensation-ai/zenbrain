@@ -56,8 +56,10 @@ export interface StoreOptions {
   /** Context domain (e.g., 'work', 'personal'). Episodes keep it; facts, procedures and core blocks do not. */
   context?: string;
   /**
-   * Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing,
-   * above 0.5 makes the memory an episode. Stored with episodes; for a fact, a weight given here
+   * Emotional weight override (0-1). If not provided, it is detected from the content by keywords,
+   * and most clearly emotional texts stay at 0.5 or below (measured on 2026-11-22: 15 of 20), so
+   * set it when a memory should be an episode. In auto routing, above 0.5 makes the memory an
+   * episode. Stored with episodes; for a fact, a weight given here
    * multiplies its starting FSRS stability by `1 + weight` (7 at 0, 14 at 1; the first review
    * comes after about 0.105 × stability days) and is not stored.
    */
@@ -134,7 +136,8 @@ export interface RecallOptions {
   /**
    * Which core blocks a recall considers. `'always'` (default) adds every core block to the
    * candidates of every recall; the blocks then compete for `limit` like any other result
-   * (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). `'matching'` adds only
+   * (measured: 12 blocks and `limit: 10` gave 9 blocks and the 1 hit when the hit scored 0.8,
+   * but 10 blocks and no hit when it scored 0.13, below the blocks' 0.5). `'matching'` adds only
    * the blocks that share a content word with the query (stopwords such as "the" do not
    * count), so a large core memory cannot push the actual hits out of `limit`; a `limit` of
    * at least the number of blocks plus the hits you want does the same.
@@ -530,10 +533,10 @@ export class MemoryCoordinator {
    *   and forgetting a copy does not reach into long-term memory.
    *
    * The edge between an episode and its fact is the episode's `consolidatedInto` mark, which
-   * `consolidate()` has written since 0.4.8; it is found in existing databases without a
-   * schema change. An episode promoted before 0.4.8 is linked only once a later
-   * `consolidate()` finds its verbatim fact (among the 100 most recent episodes); one an LLM
-   * distilled before 0.4.8 has no edge. A fact distilled by an LLM since then is linked like
+   * `consolidate()` has written since release v0.4.8 (core 0.3.4); it is found in existing
+   * databases without a schema change. An episode promoted before that release is linked only
+   * once a later `consolidate()` finds its verbatim fact (among the 100 most recent episodes);
+   * one an LLM distilled before it has no edge. A fact distilled by an LLM since then is linked like
    * any other: the cascade follows the recorded edge, it does not search for memories that say
    * something similar. `consolidate()` links a second episode with the same text to the fact
    * the first one became instead of copying it again (also a fact stored with source
