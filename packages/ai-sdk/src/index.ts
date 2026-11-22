@@ -134,6 +134,16 @@ function lastUserText(prompt: readonly LanguageModelV4Message[]): string {
 }
 
 /**
+ * Whether this model call is a follow-up step of the user's turn: tool results came after the
+ * user's last message, and the AI SDK calls the model again with them. The middleware runs on
+ * every model call, and until 0.4.1 it stored the user's turn after each step, so a call with
+ * one tool call put it into memory twice (measured on 2026-11-22 against 0.4.0).
+ */
+function isFollowUpStep(prompt: readonly LanguageModelV4Message[]): boolean {
+  return prompt.slice(lastUserIndex(prompt) + 1).some((message) => message.role === 'tool');
+}
+
+/**
  * Builds the middleware.
  *
  * ```ts
@@ -154,9 +164,13 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
     if (onError) onError(err, phase);
   };
 
-  /** Writes one turn back into memory. Never throws into the caller's request. */
-  const remember = async (userText: string, assistantText: string): Promise<void> => {
+  /**
+   * Writes one turn back into memory. Never throws into the caller's request. In a follow-up
+   * step the user's turn is already stored, after the first step; only a reply can be new.
+   */
+  const remember = async (userText: string, assistantText: string, followUp: boolean): Promise<void> => {
     if (storeOpts === false) return;
+    if (followUp && !(storeOpts.assistant === true && assistantText)) return;
     const base: StoreOptions = {};
     if (storeOpts.context !== undefined) base.context = storeOpts.context;
 
@@ -164,7 +178,7 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
       if (storeOpts.shouldStore && !(await storeOpts.shouldStore({ user: userText, assistant: assistantText }))) {
         return;
       }
-      if (storeOpts.user !== false && userText) {
+      if (!followUp && storeOpts.user !== false && userText) {
         await coordinator.store(userText, { ...base, source: storeOpts.source ?? 'user' });
       }
       if (storeOpts.assistant === true && assistantText) {
@@ -238,13 +252,14 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         .join('')
         .trim();
 
-      await remember(userText, assistantText);
+      await remember(userText, assistantText, isFollowUpStep(params.prompt));
       return result;
     },
 
     async wrapStream({ doStream, params }) {
       const result = await doStream();
       const userText = lastUserText(params.prompt);
+      const followUp = isFollowUpStep(params.prompt);
 
       // The reply only exists once the stream has run, so accumulate the deltas and
       // write on flush. The stream is passed through unchanged — a memory layer must
@@ -267,10 +282,10 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
           controller.enqueue(chunk);
         },
         async flush() {
-          await remember(userText, aborted() ? '' : assistantText.trim());
+          await remember(userText, aborted() ? '' : assistantText.trim(), followUp);
         },
         async cancel() {
-          if (aborted()) await remember(userText, '');
+          if (aborted()) await remember(userText, '', followUp);
         },
       };
       const capture = new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(transformer);
