@@ -21,7 +21,10 @@ The orchestration layer that turns [`@zensation/algorithms`](https://www.npmjs.c
 npm install @zensation/core @zensation/adapter-sqlite
 ```
 
-> **Requires Node.js 22 or newer.** On Node 20 or older, npm silently installs the last release that
+> **Requires Node.js 22 or newer, and 22.14 or newer with `@zensation/adapter-sqlite`** as installed
+> above (on Node 23, 23.6 or newer): its SQLite driver, better-sqlite3 13, is built for Node-API 10, which Node has
+> from 22.14 and 23.6 on.
+> On Node 20 or older, npm silently installs the last release that
 > allowed older Node (`@zensation/core@0.2.2` with `@zensation/algorithms@0.3.4`) instead of the current
 > one, and the example below stops at `forget()`. That looks like a broken package but is a platform
 > mismatch; see the [CHANGELOG](../../CHANGELOG.md#040--2026-08-05).
@@ -34,10 +37,13 @@ import { SqliteAdapter } from '@zensation/adapter-sqlite';
 // by wording; pass `embedding: yourProvider` for semantic matching.
 const memory = new MemoryCoordinator({ storage: new SqliteAdapter({ filename: './memory.db' }) });
 
-// Auto-routes to the right layer (semantic, episodic, procedural, or core)
+// Auto-routes to the right layer (semantic, episodic, procedural, or core). An episode needs an
+// emotional weight above 0.5; it is detected by keywords, and most clearly emotional texts stay
+// below, so pass `emotionalWeight` when a memory should be an episode
 await memory.store('User prefers TypeScript', { type: 'auto' });
 
-// Cross-layer search: deduplicated results, sorted by score (0 to 1; 0 = nothing matched)
+// Cross-layer search: deduplicated results, sorted by score (0 to 1; 0 = nothing matched);
+// a layer that cannot read the storage makes it throw an AggregateError
 const results = await memory.recall('Which language does the user prefer?');
 
 // Forget a memory by the id and layer of a recall result (a fact consolidated from it goes too)
@@ -95,12 +101,14 @@ Apache 2.0 — see [LICENSE](../../LICENSE).
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
 TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
 dependencies. The benchmark results, and the
-configuration they were measured in, are reported in the paper; the reproduction packages
+configurations they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
-provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
+to install. In the paper ([arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)), ZenBrain's arm in the comparisons
+with other systems embedded with `nomic-embed-text`. The paper's other retrieval experiments ran with OpenAI
+`text-embedding-3-small`, with `nomic-embed-text` or with a placeholder embedder, depending on the run; the Protocol
+paragraph of the paper's setup section says which.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

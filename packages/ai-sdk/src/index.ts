@@ -14,7 +14,7 @@ import type {
   LanguageModelV4Middleware,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
-import type { MemoryCoordinator, RecallOptions, StoreOptions } from '@zensation/core';
+import type { MemoryCoordinator, RecallOptions, RecallResult, StoreOptions } from '@zensation/core';
 
 /** Layers the coordinator understands, repeated here so callers get completion. */
 export type MemoryLayer = 'working' | 'episodic' | 'semantic' | 'procedural' | 'core';
@@ -103,6 +103,25 @@ type CancellableTransformer<I, O> = Transformer<I, O> & { cancel?: (reason: unkn
 
 const DEFAULT_HEADER = 'Relevant memories from earlier sessions:';
 const DEFAULT_LIMIT = 5;
+/** How many turns the middleware remembers what it stored for (see `ownTurns` below). */
+const TURNS_KEPT = 100;
+
+/** What one turn stored: the ids `store()` returned, and the texts. */
+interface StoredTurn {
+  ids: Set<string>;
+  texts: Set<string>;
+}
+
+/**
+ * Whether a recall result is something the current turn stored itself: every long-term memory
+ * in it, the result and the twins deduplication folded into it, has an id the turn stored. An
+ * earlier memory with the same text keeps the result in. A working-memory copy with no
+ * long-term twin counts when it holds a text the turn stored, since it has an id of its own.
+ */
+function storedByTurn(result: RecallResult, turn: StoredTurn): boolean {
+  const longTerm = [result, ...(result.duplicates ?? [])].filter((m) => m.layer !== 'working');
+  return longTerm.length > 0 ? longTerm.every((m) => turn.ids.has(m.id)) : turn.texts.has(result.content);
+}
 
 /** Pulls the plain text out of one prompt message, ignoring files and tool parts. */
 function messageText(message: LanguageModelV4Message | undefined): string {
@@ -134,6 +153,16 @@ function lastUserText(prompt: readonly LanguageModelV4Message[]): string {
 }
 
 /**
+ * Whether this model call is a follow-up step of the user's turn: tool results came after the
+ * user's last message, and the AI SDK calls the model again with them. The middleware runs on
+ * every model call, and until 0.4.1 it stored the user's turn after each step, so a call with
+ * one tool call put it into memory twice (measured on 2026-11-22 against 0.4.0).
+ */
+function isFollowUpStep(prompt: readonly LanguageModelV4Message[]): boolean {
+  return prompt.slice(lastUserIndex(prompt) + 1).some((message) => message.role === 'tool');
+}
+
+/**
  * Builds the middleware.
  *
  * ```ts
@@ -154,9 +183,34 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
     if (onError) onError(err, phase);
   };
 
-  /** Writes one turn back into memory. Never throws into the caller's request. */
-  const remember = async (userText: string, assistantText: string): Promise<void> => {
+  /**
+   * What each turn of a call with tool steps stored, by the text of the user's message, so that
+   * its follow-up steps can leave it out of their memories: it is the turn itself, not a memory
+   * from an earlier session. The first step of a turn starts its entry afresh. Keyed by the
+   * text, because the steps of one call share nothing else the middleware sees; two calls with
+   * the same message at the same time therefore share an entry. The oldest entries go first.
+   */
+  const ownTurns = new Map<string, StoredTurn>();
+  const noteStored = (userText: string, id: unknown, text: string): void => {
+    const turn = ownTurns.get(userText);
+    if (turn && typeof id === 'string') {
+      turn.ids.add(id);
+      turn.texts.add(text);
+    }
+  };
+
+  /**
+   * Writes one turn back into memory. Never throws into the caller's request. In a follow-up
+   * step the user's turn is already stored, after the first step; only a reply can be new.
+   */
+  const remember = async (userText: string, assistantText: string, followUp: boolean): Promise<void> => {
     if (storeOpts === false) return;
+    if (!followUp) {
+      ownTurns.delete(userText);
+      ownTurns.set(userText, { ids: new Set(), texts: new Set() });
+      if (ownTurns.size > TURNS_KEPT) ownTurns.delete(ownTurns.keys().next().value!);
+    }
+    if (followUp && !(storeOpts.assistant === true && assistantText)) return;
     const base: StoreOptions = {};
     if (storeOpts.context !== undefined) base.context = storeOpts.context;
 
@@ -164,11 +218,11 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
       if (storeOpts.shouldStore && !(await storeOpts.shouldStore({ user: userText, assistant: assistantText }))) {
         return;
       }
-      if (storeOpts.user !== false && userText) {
-        await coordinator.store(userText, { ...base, source: storeOpts.source ?? 'user' });
+      if (!followUp && storeOpts.user !== false && userText) {
+        noteStored(userText, await coordinator.store(userText, { ...base, source: storeOpts.source ?? 'user' }), userText);
       }
       if (storeOpts.assistant === true && assistantText) {
-        await coordinator.store(assistantText, { ...base, source: storeOpts.source ?? 'ai' });
+        noteStored(userText, await coordinator.store(assistantText, { ...base, source: storeOpts.source ?? 'ai' }), assistantText);
       }
     } catch (err) {
       report(err, 'store');
@@ -184,9 +238,21 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
       const query = lastUserText(params.prompt);
       if (!query) return params;
 
+      // In a follow-up step the turn was stored after the first step, and the recall finds it:
+      // the question being asked, not a memory from an earlier session (measured on 2026-11-22,
+      // it came first among the memories of the second model call). What the turn stored is left
+      // out by its ids, and the recall asks for that many more, so `limit` still holds. A follow-up
+      // step this instance has no record for (another instance or process, a client-side tool
+      // whose result comes as a request of its own, an entry pushed out) falls back to leaving out
+      // a memory whose text is exactly the user's message; that misses a turn stored as a
+      // procedure, which comes back as its trigger, steps and outcome.
+      const followUp = isFollowUpStep(params.prompt);
+      const turn = followUp ? ownTurns.get(query) : undefined;
+      const limit = recallOpts.limit ?? DEFAULT_LIMIT;
+
       let memories: string[];
       try {
-        const search: RecallOptions = { limit: recallOpts.limit ?? DEFAULT_LIMIT };
+        const search: RecallOptions = { limit: limit + (turn ? turn.ids.size : followUp ? 1 : 0) };
         if (recallOpts.layers) search.layers = recallOpts.layers;
         if (recallOpts.minConfidence !== undefined) search.minConfidence = recallOpts.minConfidence;
         if (recallOpts.core !== undefined) search.core = recallOpts.core;
@@ -201,6 +267,8 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         // adapter returned. A row that lost it must not produce a blank bullet.
         memories = results
           .filter((r) => relevant(r.score) && typeof r.content === 'string' && r.content.length > 0)
+          .filter((r) => !(turn ? storedByTurn(r, turn) : followUp && r.content === query))
+          .slice(0, limit)
           .map((r) => `- ${r.content}`);
       } catch (err) {
         report(err, 'recall');
@@ -238,13 +306,14 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         .join('')
         .trim();
 
-      await remember(userText, assistantText);
+      await remember(userText, assistantText, isFollowUpStep(params.prompt));
       return result;
     },
 
     async wrapStream({ doStream, params }) {
       const result = await doStream();
       const userText = lastUserText(params.prompt);
+      const followUp = isFollowUpStep(params.prompt);
 
       // The reply only exists once the stream has run, so accumulate the deltas and
       // write on flush. The stream is passed through unchanged — a memory layer must
@@ -267,10 +336,10 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
           controller.enqueue(chunk);
         },
         async flush() {
-          await remember(userText, aborted() ? '' : assistantText.trim());
+          await remember(userText, aborted() ? '' : assistantText.trim(), followUp);
         },
         async cancel() {
-          if (aborted()) await remember(userText, '');
+          if (aborted()) await remember(userText, '', followUp);
         },
       };
       const capture = new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(transformer);

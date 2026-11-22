@@ -9,7 +9,7 @@
 
 ## What's Inside
 
-**20 algorithm modules** (10 core + 10 advanced), extracted from ZenAI, our first product and the AI platform we ran in our own operation, and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 539 tests.
+**20 algorithm modules** (10 core + 10 advanced), extracted from ZenAI, our first product and the AI platform we ran in our own operation, and published as standalone, dependency-free modules. Pure TypeScript, zero runtime dependencies, tree-shakeable subpath exports, 540 tests.
 
 > ZenBrain's full architecture is **seven memory layers, a MemoryCoordinator and nine foundational algorithms, plus six Predictive Memory Architecture (PMA) components** ([paper](https://arxiv.org/abs/2604.23878), version 9). The six PMA components themselves are proprietary and not in this package; it ships the algorithm library described below, including the hooks they plug into (the emotional replay term of `sleep-simulation-selection`, the natural-recall coupling of `fsrs-vmPFC`, the lock-score gate of `hebbian-two-factor`).
 
@@ -259,12 +259,14 @@ Apache 2.0 — see [LICENSE](../../LICENSE).
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
 TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
 dependencies. The benchmark results, and the
-configuration they were measured in, are reported in the paper; the reproduction packages
+configurations they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
-provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
+to install. In the paper ([arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)), ZenBrain's arm in the comparisons
+with other systems embedded with `nomic-embed-text`. The paper's other retrieval experiments ran with OpenAI
+`text-embedding-3-small`, with `nomic-embed-text` or with a placeholder embedder, depending on the run; the Protocol
+paragraph of the paper's setup section says which.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

@@ -22,6 +22,18 @@ const RETRYABLE_ERRORS = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EPIPE', '5
  */
 const RETRYABLE_MESSAGES = ['timeout exceeded when trying to connect', 'Connection terminated due to connection timeout'];
 
+/** Error codes that mean the server ended the connection or the socket broke. */
+const CONNECTION_LOST = ['57P01', '57P02', '57P03', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT'];
+
+/** A client borrowed from the pool, given back exactly once (see `PostgresAdapter.borrow`). */
+interface Borrowed {
+  client: PoolClient;
+  /** The error the client emitted while it was borrowed, if any: its connection is gone. */
+  readonly lost: Error | undefined;
+  /** Gives the client back; with an error (or after `lost`) the pool destroys it. */
+  release(err?: Error): void;
+}
+
 /**
  * Render a schema name for `SET search_path`.
  *
@@ -139,18 +151,15 @@ export class PostgresAdapter implements StorageAdapter {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       // Connecting is inside the try: a refused or reset connection is exactly the
       // transient error this loop exists for.
-      let client: PoolClient | undefined;
-      // A client that hit a transient error may hold a dead connection; releasing it
-      // with the error makes pg destroy it instead of handing it to the next query.
-      let broken: Error | undefined;
+      let borrowed: Borrowed | undefined;
       try {
-        client = await this.pool.connect();
+        borrowed = await this.borrow();
         // Set search_path for schema isolation
         if (this.searchPathSql) {
-          await client.query(this.searchPathSql);
+          await borrowed.client.query(this.searchPathSql);
         }
 
-        const result = await client.query(sql, params);
+        const result = await borrowed.client.query(sql, params);
 
         if (attempt > 0) {
           this.log.info(`Query succeeded after ${attempt} retries`);
@@ -162,9 +171,15 @@ export class PostgresAdapter implements StorageAdapter {
         };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
-        if (this.isRetryable(lastError)) broken = lastError;
+        const retryable = this.isRetryable(lastError);
+        // Given back before any waiting. A client that hit a transient error, or whose connection
+        // is gone (also 57P02 or "Connection terminated unexpectedly", which are not retried), may
+        // hold a dead connection; releasing it with the error makes pg destroy it instead of
+        // handing it to the next query. Until 0.2.10 it was given back only after the wait, and a
+        // connection that died meanwhile ended the process (see `borrow`).
+        borrowed?.release(retryable || this.isConnectionLost(lastError) ? lastError : undefined);
 
-        if (this.isRetryable(lastError) && attempt < this.maxRetries) {
+        if (retryable && attempt < this.maxRetries) {
           const delay = Math.min(100 * Math.pow(2, attempt) + Math.random() * 50, 2000);
           this.log.warn(`Retryable error (attempt ${attempt + 1}/${this.maxRetries}): ${lastError.message}`);
           await new Promise(r => setTimeout(r, delay));
@@ -173,7 +188,7 @@ export class PostgresAdapter implements StorageAdapter {
 
         throw lastError;
       } finally {
-        client?.release(broken);
+        borrowed?.release();
       }
     }
 
@@ -185,7 +200,8 @@ export class PostgresAdapter implements StorageAdapter {
    * Automatically rolls back on error.
    */
   async transaction<T>(fn: (adapter: StorageAdapter) => Promise<T>): Promise<T> {
-    const client = await this.pool.connect();
+    const borrowed = await this.borrow();
+    const { client } = borrowed;
     try {
       if (this.searchPathSql) {
         await client.query(this.searchPathSql);
@@ -216,10 +232,18 @@ export class PostgresAdapter implements StorageAdapter {
       await client.query('COMMIT');
       return result;
     } catch (err) {
-      await client.query('ROLLBACK').catch(() => {});
+      const error = err instanceof Error ? err : new Error(String(err));
+      const lost = borrowed.lost ?? (this.isConnectionLost(error) ? error : undefined);
+      if (lost) {
+        // The server ended the transaction with the connection; a ROLLBACK on the dead client
+        // would only fail again. The client goes back with the error, so the pool destroys it.
+        borrowed.release(lost);
+      } else {
+        await client.query('ROLLBACK').catch(() => {});
+      }
       throw err;
     } finally {
-      client.release();
+      borrowed.release();
     }
   }
 
@@ -232,6 +256,46 @@ export class PostgresAdapter implements StorageAdapter {
   /** Get the underlying pg Pool (for advanced use cases). */
   getPool(): Pool {
     return this.pool;
+  }
+
+  /**
+   * A client from the pool, with an `error` listener for as long as it is borrowed.
+   *
+   * pg-pool listens for errors only on idle clients. When the connection of a borrowed client
+   * dies (a server restart, `pg_terminate_backend`), the running query fails with 57P01 and the
+   * client then emits "Connection terminated unexpectedly"; with no listener that is an
+   * unhandled `error` event, which ends the process. Measured on 2026-11-22 against 0.2.9: a
+   * server restart during `pg_sleep` ended the process in 4 of 4 `query()` runs. The listener
+   * notes the error, and `release` hands the client back with it, so the pool destroys it.
+   */
+  private async borrow(): Promise<Borrowed> {
+    const client = await this.pool.connect();
+    let lost: Error | undefined;
+    let released = false;
+    const onError = (err: Error): void => {
+      lost ??= err;
+      this.log.warn(`Connection lost while in use: ${err.message}`);
+    };
+    client.on('error', onError);
+    return {
+      client,
+      get lost() {
+        return lost;
+      },
+      release(err?: Error): void {
+        if (released) return;
+        released = true;
+        // pg-pool attaches its own listener again in release(), synchronously.
+        client.removeListener('error', onError);
+        client.release(err ?? lost);
+      },
+    };
+  }
+
+  /** Whether an error means that the connection is gone. */
+  private isConnectionLost(err: Error): boolean {
+    const code = (err as { code?: string }).code;
+    return (code !== undefined && CONNECTION_LOST.includes(code)) || err.message.includes('Connection terminated');
   }
 
   private isRetryable(err: Error): boolean {

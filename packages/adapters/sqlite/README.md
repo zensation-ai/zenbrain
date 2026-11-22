@@ -8,7 +8,10 @@
 npm install @zensation/core @zensation/adapter-sqlite
 ```
 
-This package is ESM. `require()` loads it on Node 22.12 and later; on Node 22.0–22.11, use `import`.
+Requires **Node.js 22.14 or newer** (on Node 23, 23.6 or newer). The SQLite driver underneath, better-sqlite3 13, is
+built for Node-API 10, which Node has from 22.14 and 23.6 on; on an older Node it crashes the process, so the adapter
+checks the version when it is constructed and stops there with a message. The package is ESM; `require()` loads it as well, on every
+Node it supports.
 
 ```typescript
 import { SemanticMemory } from '@zensation/core';
@@ -75,6 +78,7 @@ that writes these tables directly should use the same format — in SQL,
 const storage = new SqliteAdapter({
   filename: './data/memory.db', // default: './zenbrain.db'
   walMode: true,                // default: true (better read concurrency)
+  busyTimeoutMs: 5000,          // default: 5000; how long a query waits for another connection's lock
   logger: console,              // optional
 });
 ```
@@ -88,12 +92,14 @@ Apache 2.0
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
 TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
 dependencies. The benchmark results, and the
-configuration they were measured in, are reported in the paper; the reproduction packages
+configurations they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
-provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
+to install. In the paper ([arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)), ZenBrain's arm in the comparisons
+with other systems embedded with `nomic-embed-text`. The paper's other retrieval experiments ran with OpenAI
+`text-embedding-3-small`, with `nomic-embed-text` or with a placeholder embedder, depending on the run; the Protocol
+paragraph of the paper's setup section says which.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

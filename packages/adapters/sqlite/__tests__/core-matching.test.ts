@@ -68,3 +68,30 @@ describe("RecallOptions.core: 'matching'", () => {
     await c.close();
   });
 });
+
+describe("RecallOptions.core: 'always' and limit", () => {
+  // The example in the docs of RecallOptions.core. A query of four content words, none of them in
+  // any block, so every block scores 0.5; the fact scores by its words.
+  const query = 'beech planks thursday sawmill';
+  const twelve = BLOCKS.slice(0, 12);
+
+  async function recallWith(fact: string) {
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    for (const b of twelve) await c.store(b, { type: 'core' });
+    await c.store(fact, { type: 'fact' });
+    const results = await c.recall(query, { limit: 10 });
+    await c.close();
+    return {
+      blocks: results.filter((r) => r.layer === 'core').length,
+      hits: results.filter((r) => r.layer === 'semantic').map((r) => Math.round(r.score * 100) / 100),
+    };
+  }
+
+  it('12 blocks and limit 10 give 9 blocks and the hit when the hit scores above the blocks', async () => {
+    expect(await recallWith(FACT)).toEqual({ blocks: 9, hits: [0.8] });
+  });
+
+  it('12 blocks and limit 10 give 10 blocks and no hit when the hit scores below 0.5', async () => {
+    expect(await recallWith('The sawmill closes in winter.')).toEqual({ blocks: 10, hits: [] });
+  });
+});

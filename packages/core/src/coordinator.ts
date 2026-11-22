@@ -56,8 +56,10 @@ export interface StoreOptions {
   /** Context domain (e.g., 'work', 'personal'). Episodes keep it; facts, procedures and core blocks do not. */
   context?: string;
   /**
-   * Emotional weight override (0-1). If not provided, auto-detected from content. In auto routing,
-   * above 0.5 makes the memory an episode. Stored with episodes; for a fact, a weight given here
+   * Emotional weight override (0-1). If not provided, it is detected from the content by keywords,
+   * and most clearly emotional texts stay at 0.5 or below (measured on 2026-11-22: 15 of 20), so
+   * set it when a memory should be an episode. In auto routing, above 0.5 makes the memory an
+   * episode. Stored with episodes; for a fact, a weight given here
    * multiplies its starting FSRS stability by `1 + weight` (7 at 0, 14 at 1; the first review
    * comes after about 0.105 × stability days) and is not stored.
    */
@@ -87,6 +89,36 @@ const LAYER_ORDER: Record<RecallLayer, number> = { episodic: 0, semantic: 1, pro
 /** Matches the UUIDs the layers write; anything else cannot be a stored id. */
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * The storage the coordinator hands its layers: every call goes to `storage` unchanged, and
+ * every error a query throws is noted in `failed`, so `recall()` can tell a storage that
+ * failed, which it reports, from an embedding provider that failed, which it tolerates. A
+ * thrown value that is not an object is wrapped in an Error first, because only objects can
+ * be noted.
+ */
+function noteStorageErrors(storage: StorageAdapter, failed: WeakSet<object>): StorageAdapter {
+  const noted: StorageAdapter = {
+    async query<T = Record<string, unknown>>(sql: string, params?: unknown[]) {
+      try {
+        return await storage.query<T>(sql, params);
+      } catch (err) {
+        const error = typeof err === 'object' && err !== null ? err : new Error(String(err), { cause: err });
+        failed.add(error);
+        throw error;
+      }
+    },
+    transaction: (fn) => storage.transaction(fn),
+  };
+  if (storage.close) noted.close = () => storage.close!();
+  return noted;
+}
+
+/** A layer whose search failed at the storage during one `recall()`. */
+interface LayerFailure {
+  layer: RecallLayer;
+  error: unknown;
+}
+
 export interface RecallOptions {
   /** Which layers to search. Defaults to all except working. */
   layers?: RecallLayer[];
@@ -104,7 +136,8 @@ export interface RecallOptions {
   /**
    * Which core blocks a recall considers. `'always'` (default) adds every core block to the
    * candidates of every recall; the blocks then compete for `limit` like any other result
-   * (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). `'matching'` adds only
+   * (measured: 12 blocks and `limit: 10` gave 9 blocks and the 1 hit when the hit scored 0.8,
+   * but 10 blocks and no hit when it scored 0.13, below the blocks' 0.5). `'matching'` adds only
    * the blocks that share a content word with the query (stopwords such as "the" do not
    * count), so a large core memory cannot push the actual hits out of `limit`; a `limit` of
    * at least the number of blocks plus the hits you want does the same.
@@ -246,6 +279,8 @@ export class MemoryCoordinator {
   private readonly log: Logger;
   /** The working-memory slot each `store()` in this process created, by the stored memory's id. */
   private readonly workingCopyOf = new Map<string, string>();
+  /** Errors the storage threw to a layer (see `noteStorageErrors`). */
+  private readonly storageErrors = new WeakSet<object>();
 
   constructor(config: CoordinatorConfig) {
     this.storage = config.storage;
@@ -254,6 +289,7 @@ export class MemoryCoordinator {
     this.log = config.logger ?? noopLogger;
 
     const contexts = config.contexts ?? ['personal', 'work', 'learning', 'creative'];
+    const storage = noteStorageErrors(config.storage, this.storageErrors);
 
     // Initialize all 7 layers
     this.working = new WorkingMemory({
@@ -265,36 +301,36 @@ export class MemoryCoordinator {
     });
 
     this.shortTerm = new ShortTermMemory({
-      storage: config.storage,
+      storage,
       maxInteractions: 50,
       logger: config.logger,
     });
 
     this.episodic = new EpisodicMemory({
-      storage: config.storage,
+      storage,
       embedding: config.embedding,
       logger: config.logger,
     });
 
     this.semantic = new SemanticMemory({
-      storage: config.storage,
+      storage,
       embedding: config.embedding,
       logger: config.logger,
     });
 
     this.procedural = new ProceduralMemory({
-      storage: config.storage,
+      storage,
       embedding: config.embedding,
       logger: config.logger,
     });
 
     this.core = new CoreMemory({
-      storage: config.storage,
+      storage,
       logger: config.logger,
     });
 
     this.crossContext = new CrossContextMemory({
-      storage: config.storage,
+      storage,
       contexts,
       logger: config.logger,
     });
@@ -402,9 +438,23 @@ export class MemoryCoordinator {
    * top N results sorted by score (0 to 1 in every layer, see `RecallResult.score`).
    * Results that match nothing score 0 and come after every real hit.
    *
+   * A layer whose search fails at the storage (a locked database, a missing table, a lost
+   * connection) makes recall throw, after every requested layer has been searched: an
+   * `AggregateError` whose `errors` hold the error of each such layer, in the order
+   * episodic, semantic, procedural, core, and whose message names those layers and the first
+   * error. So an empty result no longer hides a storage that could not be read; it can still
+   * mean that nothing matched the query (or passed `minScore`), or that a failing embedding
+   * provider kept the layers that need it from searching. Until
+   * 0.7.0 each layer caught its error and logged a warning, and recall returned what the other
+   * layers found, or nothing (measured on 2026-11-22 against 0.6.1: an empty list after 20.9
+   * seconds on a store another connection held locked). A failing embedding provider is still
+   * tolerated: the layers that need the query's embedding contribute nothing, with a warning.
+   *
    * @param query - The search query
    * @param options - Layer selection and limits
    * @returns Ranked recall results from across layers
+   * @throws AggregateError if the search of a requested layer failed at the storage
+   * @throws RangeError if options.minScore is not a number from 0 to 1
    */
   async recall(query: string, options: RecallOptions = {}): Promise<RecallResult[]> {
     const layers = options.layers ?? ['episodic', 'semantic', 'procedural', 'core'];
@@ -416,6 +466,7 @@ export class MemoryCoordinator {
     }
 
     const results: RecallResult[] = [];
+    const failures: LayerFailure[] = [];
 
     // Search each requested layer in parallel
     const searches: Promise<void>[] = [];
@@ -424,19 +475,29 @@ export class MemoryCoordinator {
       searches.push(this.recallFromWorking(query, results));
     }
     if (layers.includes('episodic')) {
-      searches.push(this.recallFromEpisodic(query, limit, results));
+      searches.push(this.recallFromEpisodic(query, limit, results, failures));
     }
     if (layers.includes('semantic')) {
-      searches.push(this.recallFromSemantic(query, limit, results));
+      searches.push(this.recallFromSemantic(query, limit, results, failures));
     }
     if (layers.includes('procedural')) {
-      searches.push(this.recallFromProcedural(query, limit, results));
+      searches.push(this.recallFromProcedural(query, limit, results, failures));
     }
     if (layers.includes('core')) {
-      searches.push(this.recallFromCore(query, results, options.core ?? 'always'));
+      searches.push(this.recallFromCore(query, results, options.core ?? 'always', failures));
     }
 
     await Promise.all(searches);
+
+    if (failures.length > 0) {
+      failures.sort((a, b) => LAYER_ORDER[a.layer] - LAYER_ORDER[b.layer]);
+      const first = failures[0].error;
+      const reason = (first instanceof Error ? first.message : String(first)).split('\n')[0];
+      throw new AggregateError(
+        failures.map(f => f.error),
+        `recall could not search ${failures.map(f => f.layer).join(', ')}: ${reason}`
+      );
+    }
 
     // Filter by minimum confidence
     const filtered = minConfidence > 0
@@ -474,10 +535,10 @@ export class MemoryCoordinator {
    *   and forgetting a copy does not reach into long-term memory.
    *
    * The edge between an episode and its fact is the episode's `consolidatedInto` mark, which
-   * `consolidate()` has written since 0.4.8; it is found in existing databases without a
-   * schema change. An episode promoted before 0.4.8 is linked only once a later
-   * `consolidate()` finds its verbatim fact (among the 100 most recent episodes); one an LLM
-   * distilled before 0.4.8 has no edge. A fact distilled by an LLM since then is linked like
+   * `consolidate()` has written since release v0.4.8 (core 0.3.4); it is found in existing
+   * databases without a schema change. An episode promoted before that release is linked only
+   * once a later `consolidate()` finds its verbatim fact (among the 100 most recent episodes);
+   * one an LLM distilled before it has no edge. A fact distilled by an LLM since then is linked like
    * any other: the cascade follows the recorded edge, it does not search for memories that say
    * something similar. `consolidate()` links a second episode with the same text to the fact
    * the first one became instead of copying it again (also a fact stored with source
@@ -883,10 +944,19 @@ export class MemoryCoordinator {
    * first; two English sentences sharing their first 50 characters did the
    * same; "Über" became "ber". A block written under such a label and stored
    * again verbatim keeps its label instead of gaining a twin.
+   *
+   * The hash has 32 bits, so two different memories with the same first words
+   * can share it: measured on 2026-11-22 against 0.6.1, a pair found among
+   * 64,207 random endings got one label, and the second store overwrote the
+   * first. So the label is checked against the blocks already stored: a block
+   * with this content keeps the label it has, under the plain label or one with
+   * a suffix; otherwise the memory takes the plain label, or `-2`, `-3` … after
+   * it while a different memory holds the label.
    */
   private async coreLabelFor(content: string): Promise<string> {
+    const blocks = await this.core.getBlocks();
     const legacy = content.substring(0, 50).replace(/[^a-zA-Z0-9_ -]/g, '').trim();
-    if ((await this.core.getBlock(legacy))?.content === content) return legacy;
+    if (blocks.some(b => b.label === legacy && b.content === content)) return legacy;
 
     const words = content
       .normalize('NFC')
@@ -895,7 +965,16 @@ export class MemoryCoordinator {
       .trim()
       .slice(0, 40)
       .trim();
-    return `${words} #${fnv1a(content)}`;
+    const base = `${words} #${fnv1a(content)}`;
+    const isOwn = (label: string) =>
+      label === base || (label.startsWith(`${base}-`) && /^[1-9][0-9]*$/.test(label.slice(base.length + 1)));
+    const same = blocks.find(b => b.content === content && isOwn(b.label));
+    if (same) return same.label;
+
+    const taken = new Set(blocks.map(b => b.label));
+    let label = base;
+    for (let n = 2; taken.has(label); n++) label = `${base}-${n}`;
+    return label;
   }
 
   /**
@@ -961,6 +1040,20 @@ export class MemoryCoordinator {
     return steps.length > 0 ? steps : lines;
   }
 
+  /**
+   * A layer's search threw. An error of the storage is kept, and `recall()` throws it; anything
+   * else, a failing embedding provider above all, is tolerated as before: the layer contributes
+   * nothing, and a warning is logged.
+   */
+  private searchFailed(layer: Exclude<RecallLayer, 'working'>, err: unknown, failures: LayerFailure[]): void {
+    if (typeof err === 'object' && err !== null && this.storageErrors.has(err)) {
+      failures.push({ layer, error: err });
+      return;
+    }
+    const name = layer[0].toUpperCase() + layer.slice(1);
+    this.log.warn(`${name} memory recall failed`);
+  }
+
   /** Recall from working memory and push results. */
   private async recallFromWorking(query: string, results: RecallResult[]): Promise<void> {
     try {
@@ -980,7 +1073,7 @@ export class MemoryCoordinator {
   }
 
   /** Recall from episodic memory and push results. */
-  private async recallFromEpisodic(query: string, limit: number, results: RecallResult[]): Promise<void> {
+  private async recallFromEpisodic(query: string, limit: number, results: RecallResult[], failures: LayerFailure[]): Promise<void> {
     try {
       const episodes = await this.episodic.search(query, limit);
       for (const ep of episodes) {
@@ -993,13 +1086,13 @@ export class MemoryCoordinator {
           metadata: { context: ep.context, timestamp: ep.timestamp },
         });
       }
-    } catch {
-      this.log.warn('Episodic memory recall failed');
+    } catch (err) {
+      this.searchFailed('episodic', err, failures);
     }
   }
 
   /** Recall from semantic memory and push results. */
-  private async recallFromSemantic(query: string, limit: number, results: RecallResult[]): Promise<void> {
+  private async recallFromSemantic(query: string, limit: number, results: RecallResult[], failures: LayerFailure[]): Promise<void> {
     try {
       const facts = await this.semantic.search(query, limit);
       for (const fact of facts) {
@@ -1012,13 +1105,13 @@ export class MemoryCoordinator {
           metadata: { source: fact.source, accessCount: fact.accessCount },
         });
       }
-    } catch {
-      this.log.warn('Semantic memory recall failed');
+    } catch (err) {
+      this.searchFailed('semantic', err, failures);
     }
   }
 
   /** Recall from procedural memory and push results. */
-  private async recallFromProcedural(query: string, limit: number, results: RecallResult[]): Promise<void> {
+  private async recallFromProcedural(query: string, limit: number, results: RecallResult[], failures: LayerFailure[]): Promise<void> {
     try {
       const procs = await this.procedural.recall(query, limit);
       for (const proc of procs) {
@@ -1031,13 +1124,18 @@ export class MemoryCoordinator {
           metadata: { tools: proc.tools, executionCount: proc.executionCount },
         });
       }
-    } catch {
-      this.log.warn('Procedural memory recall failed');
+    } catch (err) {
+      this.searchFailed('procedural', err, failures);
     }
   }
 
   /** Recall from core memory: every block, or with `'matching'` only blocks sharing a content word. */
-  private async recallFromCore(query: string, results: RecallResult[], mode: 'always' | 'matching'): Promise<void> {
+  private async recallFromCore(
+    query: string,
+    results: RecallResult[],
+    mode: 'always' | 'matching',
+    failures: LayerFailure[]
+  ): Promise<void> {
     try {
       const blocks = await this.core.getBlocks();
       const queryLower = query.toLowerCase();
@@ -1066,8 +1164,8 @@ export class MemoryCoordinator {
           metadata: { label: block.label, pinned: block.pinned },
         });
       }
-    } catch {
-      this.log.warn('Core memory recall failed');
+    } catch (err) {
+      this.searchFailed('core', err, failures);
     }
   }
 

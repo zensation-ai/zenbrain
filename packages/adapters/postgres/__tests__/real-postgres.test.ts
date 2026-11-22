@@ -12,7 +12,9 @@
  * Each run works in a schema of its own and drops it afterwards.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { MemoryCoordinator, FakeEmbeddingProvider } from '@zensation/core';
 import { PostgresAdapter } from '../src/index.js';
@@ -224,4 +226,30 @@ open('PostgreSQL with pgvector, through the coordinator', () => {
     expect(h.procedural.count).toBeGreaterThanOrEqual(1);
     expect(h.core.blocks).toBeGreaterThanOrEqual(1);
   });
+});
+
+open('a connection that dies while the adapter uses it', () => {
+  // Measured on 2026-11-22 against 0.2.9, with a server restart during `pg_sleep`: the Node
+  // process ended in 4 of 4 query() runs, right after the warning "Retryable error (attempt
+  // 1/3): terminating connection due to administrator command", with "Connection terminated
+  // unexpectedly" as an unhandled `error` event: query() waited before retrying while it still
+  // held the dead client, which pg-pool does not listen on while it is borrowed. transaction()
+  // sent ROLLBACK on the dead client. Here `pg_terminate_backend` gives the same 57P01 without
+  // a restart, in a process of its own, since what is checked is whether that process lives.
+  it('query() retries and answers, transaction() rejects with 57P01, and the process lives', () => {
+    const fixture = fileURLToPath(new URL('./fixtures/terminated-backend.mjs', import.meta.url));
+    const r = spawnSync(process.execPath, [fixture], {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+      env: { ...process.env, ZENBRAIN_TEST_PG_URL: PG_URL },
+      encoding: 'utf-8',
+      timeout: 60_000,
+    });
+    expect(r.stderr).not.toMatch(/Connection terminated unexpectedly/);
+    expect(r.status, r.stderr).toBe(0);
+    const out = JSON.parse(r.stdout.trim().split('\n').pop()!);
+    expect(out.query.value.rows).toEqual([expect.objectContaining({ one: 1 })]);
+    expect(out.warnings.some((w: string) => /Retryable error \(attempt 1\/3\).*administrator command/.test(w))).toBe(true);
+    expect(out.transaction.code).toBe('57P01');
+    expect(out.afterwards).toEqual([{ two: 2 }]);
+  }, 60_000);
 });

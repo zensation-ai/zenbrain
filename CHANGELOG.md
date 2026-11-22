@@ -4,6 +4,167 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-11-22
+
+**`@zensation/core` 0.7.0: `recall()` reports a storage it cannot read instead of returning less (breaking).** The
+round fixes what the package audit of 22 November 2026 found in the five library packages, each fix with a test that
+fails on the published version, and moves `@zensation/mcp` to core 0.7. Under 1.0 a behaviour change goes into a
+minor version (see *Compatibility history* in `docs/ROADMAP.md`). The Claude Code plugin stays at 0.1.4, which runs
+`@zensation/mcp` 0.3.1, and moves in a release of its own once npm serves 0.3.3.
+
+| Package | From | To | Why |
+|---|---|---|---|
+| `@zensation/core` | 0.6.1 | 0.7.0 | `recall()` throws an `AggregateError` when a layer cannot read the storage (breaking); core memories whose labels collide; episode metadata as an object on SQLite |
+| `@zensation/algorithms` | 0.6.1 | 0.6.2 | the archive and review thresholds documented as "at or below"; README |
+| `@zensation/adapter-sqlite` | 0.2.8 | 0.2.9 | `transaction()` on its one connection; Node 22.14 or newer (23.6 on Node 23), checked with a message; `busyTimeoutMs`; peer range admits core 0.7 |
+| `@zensation/adapter-postgres` | 0.2.9 | 0.2.10 | a connection that dies while in use no longer ends the process; README; peer range admits core 0.7 |
+| `@zensation/ai-sdk` | 0.4.0 | 0.4.1 | a call with tool steps stores the user's turn once and keeps it out of the later steps' memories, by its ids within one middleware instance, by its text otherwise; README; peer range admits core 0.7 |
+| `@zensation/mcp` | 0.3.2 | 0.3.3 | core `^0.7.0`, so `zenbrain_recall` reports a locked store as an error; adapter-sqlite `^0.2.9`; Node 23.0 to 23.5 refused like 22.0 to 22.13 |
+
+### Breaking — `recall()` throws when a layer cannot read the storage (`@zensation/core`)
+
+Measured on 22 November 2026 against core 0.6.1 and adapter-sqlite 0.2.8: on a store with a rollback journal
+(`walMode: false`) that a second connection held with `BEGIN EXCLUSIVE`, `recall()` returned an empty list without an
+error after 20.9 seconds, about 5 seconds of busy timeout per layer, while `getHealth()` reported "database is
+locked". Every layer caught its error and only logged a warning, so a store that could not be read looked like one in
+which nothing matched, and a layer whose table was missing dropped out of every result without a word.
+
+Now `recall()` searches every requested layer as before and then, if the search of a layer failed at the storage,
+throws an `AggregateError`. Its `errors` hold the error of each such layer, in the order episodic, semantic,
+procedural, core, and its message names those layers and the first error, for instance "recall could not search
+episodic, semantic, procedural, core: SQLite query error: database is locked". The results of the other layers are not
+returned. A failing embedding provider is still tolerated, as before: the layers that need the query's embedding
+contribute nothing, with a warning. Working memory lives in the process and does not fail this way. An empty result
+no longer hides a storage that could not be read; it can still mean that nothing matched the query, or passed
+`minScore`, or that a failing embedding provider kept the layers that need it from searching.
+
+Code that calls `recall()` catches the error where an empty result was enough before and decides there: retry when
+the storage is busy, report it, or search the other layers by passing `layers` without the one that fails.
+`@zensation/ai-sdk` already catches it (its `onError` sees it, and the call goes through without memories), and the
+MCP server returns it as the tool's error. The published `@zensation/adapter-sqlite` 0.2.8,
+`@zensation/adapter-postgres` 0.2.9 and `@zensation/ai-sdk` 0.4.0 admit core only up to 0.6 in their peer ranges, so
+they move together with core, to 0.2.9, 0.2.10 and 0.4.1.
+
+Tests on SQLite: a locked store gives an `AggregateError` with the four errors, and recall works again once the lock
+is gone (a new adapter option, `busyTimeoutMs`, keeps the test fast); a missing table fails the recall for that one
+layer; a failing embedding provider still gives the core block. End to end, the built MCP server over stdio returns
+`isError` with "database is locked" from `zenbrain_recall` on a locked store, where 0.3.2 returned `count: 0`
+without an error (measured on 21 November 2026, after 20.8 seconds); 0.3.3 returns the error after the same wait
+(measured on 22 November 2026, after 21.5 seconds), about 5 seconds of busy timeout per query.
+
+### Fixed
+
+- `@zensation/core`: two different core memories whose labels collided overwrote each other. A label is the first 40
+  characters of the content plus a 32-bit FNV-1a of it, so two memories that start alike can share it. Measured on 22
+  November 2026 against 0.6.1: a pair found among 64,207 random endings got one label, and the second `store()`
+  replaced the first. Now a label that a different memory holds gets `-2`, `-3` … after it, and a memory stored again
+  keeps the label it has, with or without a suffix, also after the memory before it was forgotten.
+- `@zensation/core`: `Episode.metadata` is declared as an object, but on SQLite `getById()` and `getRecent()` returned
+  the JSON text and `store()` returned no metadata (measured against 0.6.1; recall and PostgreSQL were right). Every
+  read path of the episodic layer returns an object now, or `undefined` for an episode without metadata: `getById`,
+  `getRecent`, `getByTimeRange`, which now selects the column, and `findConsolidatedInto`. `store()` returns the
+  metadata it was given.
+- `@zensation/adapter-sqlite`: `transaction()` ran BEGIN and COMMIT by hand on the adapter's one connection around the
+  asynchronous callback. Measured against 0.2.8: a `store()` that came while the callback awaited ran inside the
+  transaction, reported success and was rolled back with it, and a second `transaction()` failed with "cannot start a
+  transaction within a transaction". Now queries and transactions from elsewhere wait until the open transaction has
+  ended, in the order they came. The callback gets an adapter of its own, whose queries run in the transaction at once;
+  a `transaction()` on it is nested through a SAVEPOINT and rolled back alone when its callback throws, and nested
+  transactions started together run one after the other. Code in the callback that calls the adapter itself still
+  reaches the transaction instead of waiting for it, as `@zensation/mcp`'s deferred store does. When its callback
+  ends, a transaction still waits for what is queued on it at that moment, such as a nested transaction the callback
+  did not wait for; what the callback issues later is no longer part of the transaction.
+- `@zensation/adapter-sqlite` needs Node 22.14 or newer, and on Node 23 23.6 or newer: `engines` says
+  `^22.14.0 || >=23.6.0`. better-sqlite3 13 is built for Node-API 10, which Node has from 22.14.0 and 23.6.0 on (the
+  Node-API version matrix of the Node.js documentation); on 22.0.0, 22.12.0 and 22.13.0 its first `new Database()`
+  ended in a segmentation fault (CI job `node-floor`, 21 November 2026). The adapter imported better-sqlite3 when it
+  was imported itself, before any check could run. It now loads it in its constructor, after a check of the Node
+  version, and below the floor the constructor throws "@zensation/adapter-sqlite needs Node 22.14 or newer (on Node
+  23, 23.6 or newer) — this is Node v22.13.0. …" instead; importing the adapter loads no native code. Tested with the
+  version set in a child process: refused for 20.20.2, 22.0.0, 22.12.0, 22.13.0, 23.0.0 and 23.5.0, accepted for
+  22.14.0, 23.6.0 and 24.3.1. The CI job `node-floor` now also runs the adapter
+  on 22.13.0 (the message) and on 22.14.0 (`import` and `require()`).
+- `@zensation/mcp` 0.3.2 let Node 23.0 to 23.5 through its start check, although Node-API 10 came only with 23.6.0.
+  Its check and its `engines` now say `^22.14.0 || >=23.6.0`, like the SQLite adapter's, with tests for 23.0, 23.5
+  and 23.6.
+- `@zensation/adapter-postgres`: a connection that died while the adapter used it ended the Node process. Measured on
+  22 November 2026 against 0.2.9: a server restart during `pg_sleep` ended the process in 4 of 4 `query()` runs, with
+  "Connection terminated unexpectedly" as an unhandled `error` event. `query()` waited before retrying while it still
+  held the dead client, and pg-pool listens for errors only on idle clients; `transaction()` sent ROLLBACK on the dead
+  client. Now the adapter listens for errors on every client it borrows, gives a client back before it waits to
+  retry, and `transaction()` gives a client whose connection is gone back with the error instead of sending ROLLBACK.
+  A new test in the job `postgres` ends the adapter's backend with `pg_terminate_backend` during `pg_sleep`, which
+  fails the query with the same 57P01 as a restart: `query()` retries and answers, `transaction()` rejects with
+  57P01, and the process lives. `query()` also gives a client back with the error when its connection is gone but the
+  error is not one it retries (57P02, or "Connection terminated unexpectedly"), so the pool does not hand the dead
+  client to the next query; a unit test pins it.
+- `@zensation/ai-sdk`: the middleware runs on every model call. In a call with tool steps, where the AI SDK calls the
+  model again with the tool results, it stored the user's turn after each step; measured against 0.4.0, one tool call
+  put it into memory twice. A step whose prompt has tool results after the user's last message is now a follow-up of
+  the same turn: the turn is stored once, after the first step, and with `store: { assistant: true }` the reply of a
+  later step is stored too. Each step still recalls, so every model call has the memories. From the second step on,
+  what the call stored is left out of them by the ids `store()` returned (measured with the turn stored once: it came
+  first among the memories of the second call, and a turn stored as a procedure came back as its trigger, steps and
+  outcome), and the recall of that step asks for as many more, so `limit` still holds. An earlier memory with the
+  same words stays, in the first step and after it. That works within one middleware instance in one process. A
+  follow-up step that another instance or process runs, as when the result of a client-side tool comes as a request
+  of its own, falls back to leaving out a memory whose text is exactly the user's message, which does not catch a
+  turn stored as a procedure and does take out an earlier memory with the same words.
+  Two calls running at the same time with exactly the same user message share what the middleware keeps for it: in a
+  follow-up step one of them can then miss a memory the other stored, or get back what it stored itself.
+- `@zensation/adapter-sqlite`, `@zensation/adapter-postgres`, `@zensation/ai-sdk` and `@zensation/mcp` name their issue
+  tracker (`bugs`) in `package.json`, as `@zensation/algorithms` and `@zensation/core` did.
+
+### Added
+
+- `@zensation/adapter-sqlite`: option `busyTimeoutMs`, how long a query waits for a lock another connection holds
+  before it fails with "database is locked". The default is 5000, better-sqlite3's own, so nothing changes without it.
+- CI: `scripts/verify-package-metadata.mjs` runs in the job `test` and checks that every published package names its
+  licence, its repository with its directory, its homepage, its issue tracker and its author. It found the four
+  missing `bugs`.
+- CI: the job `node-floor` runs `@zensation/adapter-sqlite` on both sides of its floor (see Fixed).
+- `publish-mcp-registry.yml` skips the publish when the registry already lists the version in `server.json`, as on a
+  tag whose release leaves `@zensation/mcp` as it was: at v0.6.2 the job went red in "Log in via DNS and publish"
+  although nothing was wrong. `scripts/mcp-registry-lists.mjs` reads the registry page by page and answers
+  `listed=true` only for an exact match of name and version; when the registry cannot be read, the job publishes as
+  before. Run against a local server with two pages, not yet on a release tag.
+
+### Documentation
+
+- `@zensation/algorithms`: the declarations said that a fact is archived when its retention is "below threshold",
+  while the code compares `<=` (measured: `shouldArchive(0.1)` is true). The archive and the review thresholds now say
+  "at or below"; the behaviour stays. The built JavaScript differs from 0.6.1 only in two such comments.
+- `@zensation/core` and `@zensation/ai-sdk` READMEs, and `StoreOptions.emotionalWeight`: the emotional weight is
+  detected by keywords, and most clearly emotional texts stay at 0.5 or below (measured on 22 November 2026: 15 of
+  20), so `emotionalWeight` is the way to make a memory an episode; through the ai-sdk middleware, such a memory is
+  stored with `coordinator.store()`. Improving the detection is a decision of its own.
+- `@zensation/core`: "written since 0.4.8" named a release, not a core version, and now says "since release v0.4.8
+  (core 0.3.4)". The example in `RecallOptions.core` gives the scores it depends on: 12 blocks and `limit: 10` gave 9
+  blocks and the hit when the hit scored 0.8, and 10 blocks and no hit when it scored 0.13, below the blocks' 0.5. The
+  core README says that the pair with `@zensation/adapter-sqlite` needs Node 22.14 and that recall throws when a layer
+  cannot read the storage.
+- `@zensation/adapter-sqlite`: the description says "suited to development and single-user deployments"; the README
+  says "Requires Node.js 22.14 or newer" instead of the advice to use `import` on Node 22.0 to 22.11, and lists
+  `busyTimeoutMs`.
+- `@zensation/adapter-postgres` README: the Quick Start ends with `await storage.close()`, since the pool keeps idle
+  connections up to `minConnections` and the process does not end while it is open (measured: with it, the block ends
+  after 104 ms; without it, it was still running after 8 seconds). The `psql` commands carry `-v ON_ERROR_STOP=1`, so
+  a failed migration ends with a status other than 0 (measured: exit 3 at the first error; without it, psql ended
+  with 0 and 2 of 6 tables).
+- `@zensation/ai-sdk` README: the `minScore` example is 0.1, which the README's own question passes without an
+  embedding provider (it scores 0.131; with 0.2 the memory was left out), with a comment that 0.2 suits an embedding
+  provider and lexical scores are lower. Routing is described as core does it: content starting with "How to", "Step
+  1" or "Steps:", or containing "workflow:" and the like. The README describes the recall per model call and the one
+  store per turn, says that the example's `@zensation/adapter-sqlite` needs Node 22.14, and that a recall which cannot
+  read the storage reaches `onError` as an `AggregateError` with core 0.7.0.
+- Three sentences checked against version 9 of the paper, as in `@zensation/mcp` 0.3.2: `@zensation/ai-sdk` no longer
+  says that the benchmarks measure its memory layers or that an `EmbeddingProvider` is "the configuration the published
+  benchmarks were measured with", and all five library READMEs name the embedders per experiment and say "the
+  configurations they were measured in". A comment in core's `lexical.ts` made the same claim and no longer does.
+- `@zensation/mcp` README: a locked store makes recall wait, then fail, as `zenbrain_health` does.
+- `docs/getting-started.md`, `docs/recipes.md` and `docs/FAQ.md` say that `@zensation/adapter-sqlite` and
+  `@zensation/mcp` need Node 22.14 or newer and stop with a message below it.
+
 ## [0.6.3] — 2026-11-21
 
 Only `@zensation/mcp` changes version. The other packages stay at the versions earlier releases published, and the

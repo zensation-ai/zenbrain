@@ -1,6 +1,6 @@
 {
   "name": "@zensation/mcp",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "MCP memory server for ZenBrain: agent memory for any Model Context Protocol client — store, recall, forget, consolidate, health. Local SQLite file, no account.",
   "mcpName": "ai.zensation/zenbrain",
   "type": "module",
@@ -56,13 +56,16 @@
     "directory": "packages/mcp"
   },
   "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/zensation-ai/zenbrain/issues"
+  },
   "engines": {
-    "node": ">=22.14"
+    "node": "^22.14.0 || >=23.6.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "@zensation/adapter-sqlite": "^0.2.8",
-    "@zensation/core": "^0.6.0",
+    "@zensation/adapter-sqlite": "^0.2.9",
+    "@zensation/core": "^0.7.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

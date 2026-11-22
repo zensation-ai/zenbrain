@@ -31,9 +31,8 @@ import { DeferredStore, notSqliteReason, precheckApplies, storeCreationProblem }
 export { createZenBrainServer } from './server.js';
 export type { ZenBrainServerOptions } from './server.js';
 
-/** Lowest Node this package supports, mirroring `engines.node` in package.json. */
-const MIN_NODE = { major: 22, minor: 14 } as const;
-const MIN_NODE_LABEL = `${MIN_NODE.major}.${MIN_NODE.minor}`;
+/** Lowest Node this package supports, mirroring `engines.node` in package.json (`^22.14.0 || >=23.6.0`). */
+const MIN_NODE_LABEL = '22.14';
 
 /**
  * `engines` only makes npm print a warning, and an MCP client shows the user
@@ -45,7 +44,9 @@ const MIN_NODE_LABEL = `${MIN_NODE.major}.${MIN_NODE.minor}`;
  * crash on Node 22.0.0, 22.12.0 and 22.13.0, also after `npm rebuild` on that
  * version, and none on 22.14.0, 22.16.0, 22.18.0, 22.20.0 and 22.22.0:
  * better-sqlite3 13 is built against Node-API 10 (`NAPI_VERSION=10` in its
- * binding.gyp), which Node 22 has from 22.14.0 on. The floor was `>=22` until then.
+ * binding.gyp), which Node has from 22.14.0 and, on Node 23, from 23.6.0 on (Node-API
+ * version matrix in the Node.js documentation, nodejs.org/api/n-api.html). The floor was
+ * `>=22` until 0.3.2, and 0.3.2 let 23.0 to 23.5 through.
  *
  * So check before anything native is reachable, and say what is wrong.
  */
@@ -54,14 +55,14 @@ export function unsupportedNodeMessage(version: string): string | null {
   const supported =
     Number.isFinite(major) &&
     Number.isFinite(minor) &&
-    (major > MIN_NODE.major || (major === MIN_NODE.major && minor >= MIN_NODE.minor));
+    (major > 23 || (major === 23 && minor >= 6) || (major === 22 && minor >= 14));
   if (supported) return null;
 
   return (
-    `zenbrain-mcp needs Node ${MIN_NODE_LABEL} or newer — this is Node ${version}.\n` +
+    `zenbrain-mcp needs Node ${MIN_NODE_LABEL} or newer (on Node 23, 23.6 or newer) — this is Node ${version}.\n` +
     `Its SQLite storage uses better-sqlite3, whose native module crashes on older\n` +
     `runtimes instead of failing cleanly. Upgrade Node, or point your MCP client at a\n` +
-    `Node ${MIN_NODE_LABEL}+ binary:\n\n` +
+    `Node ${MIN_NODE_LABEL} binary or newer (on Node 23, 23.6 or newer):\n\n` +
     `  { "command": "/path/to/node22/bin/node",\n` +
     `    "args": ["/path/to/node_modules/@zensation/mcp/dist/index.js"] }\n`
   );
@@ -207,7 +208,8 @@ async function main(): Promise<void> {
   });
 
   // A store file that exists but cannot be opened must not look like an empty
-  // memory: the coordinator's recall paths catch storage errors, so check first.
+  // memory, so every tool checks it before it runs. Since core 0.7.0 recall throws a
+  // storage error itself; before, its recall paths caught it and answered from nothing.
   const server = createZenBrainServer(
     coordinator,
     storage instanceof DeferredStore ? { checkStorage: () => (storage as DeferredStore).ensureReadable() } : {},

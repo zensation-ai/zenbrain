@@ -27,6 +27,16 @@ function readMetadata(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
 }
 
+/**
+ * A row as an Episode: `metadata` an object, as the type says, or absent when the row has none.
+ * Until 0.7.0 the read paths handed SQLite's JSON text back as it was (measured on 2026-11-22
+ * against 0.6.1: `getById` and `getRecent` returned a string); PostgreSQL already parsed it.
+ */
+function toEpisode<T extends Episode>(row: T): T {
+  const raw: unknown = row.metadata;
+  return { ...row, metadata: raw == null ? undefined : readMetadata(raw) };
+}
+
 export interface EpisodicMemoryConfig {
   storage: StorageAdapter;
   embedding?: EmbeddingProvider;
@@ -47,7 +57,7 @@ export class EpisodicMemory {
     this.log = config.logger ?? noopLogger;
   }
 
-  /** Store a new episode. */
+  /** Store a new episode. The returned episode carries the metadata it was given. */
   async store(content: string, context?: string, emotionalWeight?: number, metadata?: Record<string, unknown>): Promise<Episode> {
     let embedding: number[] | undefined;
     if (this.embedding) {
@@ -68,10 +78,10 @@ export class EpisodicMemory {
     );
 
     this.log.debug(`Stored episode: ${content.substring(0, 60)}`);
-    return { ...result.rows[0], embedding };
+    return { ...result.rows[0], metadata, embedding };
   }
 
-  /** Retrieve recent episodes, optionally filtered by context. */
+  /** Retrieve recent episodes, optionally filtered by context, with their metadata. */
   async getRecent(limit = 10, context?: string): Promise<Episode[]> {
     const params: unknown[] = [limit];
     let whereClause = '';
@@ -86,7 +96,7 @@ export class EpisodicMemory {
        ORDER BY created_at DESC LIMIT $1`,
       params
     );
-    return result.rows;
+    return result.rows.map(toEpisode);
   }
 
   /** Whether a consolidation pass has already promoted this episode (see `markConsolidated`). */
@@ -122,13 +132,14 @@ export class EpisodicMemory {
     );
     // Checked again here, so a storage that does not evaluate WHERE cannot return another episode
     // (case ignored: PostgreSQL compares uuids that way and returns them in lower case).
-    return result.rows.find(r => String(r.id).toLowerCase() === id.toLowerCase()) ?? null;
+    const row = result.rows.find(r => String(r.id).toLowerCase() === id.toLowerCase());
+    return row ? toEpisode(row) : null;
   }
 
   /**
    * The episodes a consolidation pass promoted into this fact: those whose metadata says
    * `consolidatedInto: <factId>`. Works on databases written before 0.6.0 — the mark is the
-   * one record of the edge, and both adapters have stored it since 0.4.8.
+   * one record of the edge, and both adapters have stored it since release v0.4.8 (core 0.3.4).
    *
    * The database narrows the rows by text (`metadata::text LIKE`, which the SQLite adapter
    * reads as `metadata LIKE`); every row is then checked on its parsed metadata, so a fact id
@@ -148,7 +159,7 @@ export class EpisodicMemory {
         `SELECT ${columns} FROM ${this.table} WHERE metadata IS NOT NULL`
       )).rows;
     }
-    return rows.filter(r => this.consolidatedInto(r)?.toLowerCase() === factId.toLowerCase());
+    return rows.filter(r => this.consolidatedInto(r)?.toLowerCase() === factId.toLowerCase()).map(toEpisode);
   }
 
   /** Search episodes: by vector similarity with an embedding provider, by wording (lexical ranking) without one. */
@@ -182,16 +193,16 @@ export class EpisodicMemory {
     return result.rows.map(r => ({ ...r, score: toUnitScore(r.score) }));
   }
 
-  /** Get episodes within a time range. */
+  /** Get episodes within a time range, with their metadata. */
   async getByTimeRange(start: Date, end: Date, limit = 50): Promise<Episode[]> {
     const result = await this.storage.query<Episode>(
-      `SELECT id, content, context, created_at as "timestamp", emotional_weight as "emotionalWeight"
+      `SELECT id, content, context, created_at as "timestamp", emotional_weight as "emotionalWeight", metadata
        FROM ${this.table}
        WHERE created_at >= $1 AND created_at <= $2
        ORDER BY created_at DESC LIMIT $3`,
       [start, end, limit]
     );
-    return result.rows;
+    return result.rows.map(toEpisode);
   }
 
   /** Count total episodes. */

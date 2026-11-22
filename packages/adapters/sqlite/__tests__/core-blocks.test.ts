@@ -45,6 +45,36 @@ describe('core memory on SQLite', () => {
     await c.close();
   });
 
+  it('keeps two different memories apart when the hash in their label collides', async () => {
+    // A label is the first 40 characters plus a 32-bit FNV-1a of the content. Measured on
+    // 2026-11-22 against the published 0.6.1: these two contents share their first 40
+    // characters and the hash d895cb40 (found among 64,207 random endings), and the second
+    // store overwrote the first, leaving one block.
+    const pair = [
+      'The user keeps their project notes here and the tag is hfeompmhjmcu',
+      'The user keeps their project notes here and the tag is twqxhqwagswc',
+    ];
+    const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
+    await c.store(pair[0], { confidence: 0.95 });
+    await c.store(pair[1], { confidence: 0.95 });
+    const contents = async () => (await c.getCoreMemory().getBlocks()).map((b) => b.content).sort();
+    expect(await contents()).toEqual([...pair].sort());
+    const labels = (await c.getCoreMemory().getBlocks()).map((b) => b.label).sort();
+    expect(labels).toEqual(['The user keeps their project notes here #d895cb40', 'The user keeps their project notes here #d895cb40-2']);
+
+    // Each stored again updates its own block.
+    await c.store(pair[1], { confidence: 0.95 });
+    await c.store(pair[0], { confidence: 0.95 });
+    expect(await contents()).toEqual([...pair].sort());
+
+    // With the first one forgotten, the second keeps its label rather than gaining a twin.
+    const first = (await c.getCoreMemory().getBlocks()).find((b) => b.content === pair[0])!;
+    expect(await c.forget(first.id, 'core')).toBe(true);
+    await c.store(pair[1], { confidence: 0.95 });
+    expect(await contents()).toEqual([pair[1]]);
+    await c.close();
+  });
+
   it('keeps the words of a label readable, umlauts included', async () => {
     const c = new MemoryCoordinator({ storage: createMemoryAdapter() });
     await c.store('Über die Präferenzen: kurz antworten.', { type: 'core' });

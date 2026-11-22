@@ -8,7 +8,7 @@
  * injection. The real round trip is covered in `sqlite-integration.test.ts`.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { generateText, streamText, wrapLanguageModel } from 'ai';
+import { generateText, jsonSchema, stepCountIs, streamText, tool, wrapLanguageModel } from 'ai';
 import { MockLanguageModelV4, simulateReadableStream } from 'ai/test';
 import type { MemoryCoordinator, RecallResult } from '@zensation/core';
 import { zenbrainMemory } from '../src/index.js';
@@ -306,6 +306,83 @@ describe('storing the turn', () => {
     });
 
     expect(stored).toHaveLength(0);
+  });
+});
+
+describe('a call with tool steps', () => {
+  // Measured on 2026-11-22 against 0.4.0: with one tool call, generateText called the model twice,
+  // the middleware recalled before each model call and stored the user's turn after each, so the
+  // turn was in memory twice. A step whose prompt has tool results after the user's last message
+  // is a follow-up of the same turn: the turn is stored after the first step only, and a reply in
+  // a follow-up step is stored when replies are. Each step still recalls, so the second model
+  // call has the memories too.
+  const lookup = tool({
+    description: 'Look something up.',
+    inputSchema: jsonSchema<{ q: string }>({ type: 'object', properties: { q: { type: 'string' } } }),
+    execute: async () => 'Hamburg',
+  });
+  function twoSteps() {
+    let calls = 0;
+    return new MockLanguageModelV4({
+      doGenerate: async () =>
+        ++calls === 1
+          ? {
+              content: [{ type: 'tool-call' as const, toolCallId: 'c1', toolName: 'lookup', input: '{"q":"Anna"}' }],
+              finishReason: { unified: 'tool-calls' as const, raw: 'tool_calls' },
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+              warnings: [],
+            }
+          : reply('Anna lives in Hamburg.'),
+    });
+  }
+  const memory = [{ content: 'Anna moved to Hamburg in March.', layer: 'semantic' as const, score: 0.6 }];
+
+  it('stores the user turn once, not once per model call', async () => {
+    const { coordinator, stored, recalls } = stubCoordinator(memory);
+    const model = twoSteps();
+
+    const { text } = await generateText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator }) }),
+      prompt: 'Where does Anna live?',
+      tools: { lookup },
+      stopWhen: stepCountIs(3),
+    });
+
+    expect(text).toBe('Anna lives in Hamburg.');
+    expect(model.doGenerateCalls).toHaveLength(2);
+    expect(stored.map((s) => s.content)).toEqual(['Where does Anna live?']);
+    // One recall per model call, the same query, and the memories once in each prompt.
+    expect(recalls.map((r) => r.query)).toEqual(['Where does Anna live?', 'Where does Anna live?']);
+    for (const call of model.doGenerateCalls) {
+      expect(systemTexts(call.prompt).filter((t) => t.includes('Anna moved to Hamburg'))).toHaveLength(1);
+    }
+  });
+
+  it('stores the reply of the last step when replies are stored', async () => {
+    const { coordinator, stored } = stubCoordinator(memory);
+    await generateText({
+      model: wrapLanguageModel({ model: twoSteps(), middleware: zenbrainMemory({ coordinator, store: { assistant: true } }) }),
+      prompt: 'Where does Anna live?',
+      tools: { lookup },
+      stopWhen: stepCountIs(3),
+    });
+    expect(stored.map((s) => s.content)).toEqual(['Where does Anna live?', 'Anna lives in Hamburg.']);
+  });
+
+  it('stores the latest user turn of a conversation whose earlier turn used a tool', async () => {
+    const { coordinator, stored } = stubCoordinator();
+    const model = new MockLanguageModelV4({ doGenerate: async () => reply('In Hamburg.') });
+    await generateText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator }) }),
+      messages: [
+        { role: 'user', content: 'Look up Anna.' },
+        { role: 'assistant', content: [{ type: 'tool-call', toolCallId: 'c0', toolName: 'lookup', input: { q: 'Anna' } }] },
+        { role: 'tool', content: [{ type: 'tool-result', toolCallId: 'c0', toolName: 'lookup', output: { type: 'text', value: 'Hamburg' } }] },
+        { role: 'user', content: 'Where does she live?' },
+      ],
+      tools: { lookup },
+    });
+    expect(stored.map((s) => s.content)).toEqual(['Where does she live?']);
   });
 });
 

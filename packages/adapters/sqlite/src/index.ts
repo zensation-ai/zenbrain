@@ -2,7 +2,7 @@
  * @zensation/adapter-sqlite
  *
  * SQLite storage adapter for ZenBrain.
- * Zero-config, file-based. Perfect for development, testing, and single-user deployments.
+ * Zero-config, file-based. Suited to development, testing and single-user deployments.
  *
  * Uses better-sqlite3 for synchronous, fast SQLite access.
  * Translates PostgreSQL-style $1/$2 placeholders to SQLite ?1/?2 placeholders.
@@ -13,10 +13,50 @@
  * scan per query (no ANN index) — fine for development, testing and single-user
  * data volumes; use the PostgreSQL adapter for large production workloads.
  */
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import type { StorageAdapter, QueryResult } from '@zensation/core';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { createRequire } from 'node:module';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
+
+/**
+ * Why the running Node cannot load the SQLite driver, or undefined when it can. Mirrors
+ * `engines.node` in package.json, `^22.14.0 || >=23.6.0`.
+ *
+ * better-sqlite3 13 is built against Node-API 10 (`NAPI_VERSION=10` in its binding.gyp), which
+ * Node has from 22.14.0 and, on Node 23, from 23.6.0 on (Node-API version matrix in the Node.js
+ * documentation, nodejs.org/api/n-api.html). Measured in the CI job `node-floor` on 2026-11-21:
+ * on 22.0.0, 22.12.0 and 22.13.0 its native module loaded and the first `new Database()` ended in
+ * a segmentation fault, also after `npm rebuild` on that version, with no message at all.
+ */
+function unsupportedNodeMessage(version: string): string | undefined {
+  const [major, minor] = version.replace(/^v/, '').split('.').map(Number);
+  const supported =
+    Number.isFinite(major) &&
+    Number.isFinite(minor) &&
+    (major > 23 || (major === 23 && minor >= 6) || (major === 22 && minor >= 14));
+  if (supported) return undefined;
+  return (
+    `@zensation/adapter-sqlite needs Node 22.14 or newer (on Node 23, 23.6 or newer) — this is Node ${version}. ` +
+    `Its SQLite driver, better-sqlite3 13, is built for Node-API 10, which Node has from 22.14 and 23.6 on; ` +
+    `on an older Node it crashes the process instead of failing. Upgrade Node.`
+  );
+}
+
+let driver: typeof Database | undefined;
+
+/**
+ * better-sqlite3, loaded the first time an adapter is constructed, after the Node check. A
+ * static import would load its native module when this package is imported, before any check
+ * in this file could run: in ES modules the imports are evaluated before the module body.
+ */
+function sqliteDriver(): typeof Database {
+  const problem = unsupportedNodeMessage(process.version);
+  if (problem !== undefined) throw new Error(problem);
+  driver ??= createRequire(import.meta.url)('better-sqlite3') as typeof Database;
+  return driver;
+}
 
 export interface SqliteAdapterConfig {
   /**
@@ -28,6 +68,12 @@ export interface SqliteAdapterConfig {
 
   /** Enable WAL mode for better concurrent read performance. Default: true. */
   walMode?: boolean;
+
+  /**
+   * How long a query waits for a lock another connection holds before it fails with
+   * "database is locked", in milliseconds. Default: 5000, better-sqlite3's own default.
+   */
+  busyTimeoutMs?: number;
 
   /** Optional logger. */
   logger?: { info: (...args: unknown[]) => void; warn: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
@@ -134,13 +180,58 @@ function parseVector(value: unknown): number[] | null {
   }
 }
 
+/** A first-in, first-out lock: whoever asks first gets it next. */
+class Turns {
+  private held = false;
+  private readonly waiting: Array<() => void> = [];
+
+  /** Takes the lock: at once (undefined) when it is free and nobody waits, else when it is this caller's turn. */
+  take(): Promise<void> | undefined {
+    if (!this.held && this.waiting.length === 0) {
+      this.held = true;
+      return undefined;
+    }
+    return new Promise<void>((resolve) => this.waiting.push(resolve));
+  }
+
+  /** Hands the lock to the next caller in line, or frees it. */
+  give(): void {
+    const next = this.waiting.shift();
+    if (next) next();
+    else this.held = false;
+  }
+}
+
+/**
+ * The connection outside any transaction (the root), or one open transaction on it: the
+ * outermost one runs between BEGIN and COMMIT, one opened inside it between SAVEPOINT and
+ * RELEASE. While a transaction is open in a scope, the scope's `turns` are taken, so its other
+ * queries and transactions wait.
+ */
+interface Scope {
+  readonly parent?: Scope;
+  readonly savepoint?: string;
+  readonly turns: Turns;
+  open: boolean;
+}
+
 export class SqliteAdapter implements StorageAdapter {
   private db: Database.Database;
   private readonly log: { info: (...args: unknown[]) => void; warn: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
+  /** The connection outside any transaction. */
+  private readonly root: Scope = { turns: new Turns(), open: true };
+  /** The innermost transaction the running code is inside, if any (see `scopeFor`). */
+  private readonly inside = new AsyncLocalStorage<Scope>();
+  private savepoints = 0;
 
   constructor(config: SqliteAdapterConfig = {}) {
+    const Driver = sqliteDriver();
     const filename = config.filename ?? './zenbrain.db';
     this.log = config.logger ?? { info() {}, warn() {}, error() {} };
+    const busyTimeoutMs = config.busyTimeoutMs ?? 5000;
+    if (!Number.isInteger(busyTimeoutMs) || busyTimeoutMs < 0) {
+      throw new RangeError(`SqliteAdapter: busyTimeoutMs must be a whole number of milliseconds, 0 or more, got ${config.busyTimeoutMs}`);
+    }
 
     // Ensure parent directory exists
     if (filename !== ':memory:') {
@@ -150,7 +241,7 @@ export class SqliteAdapter implements StorageAdapter {
       }
     }
 
-    this.db = new Database(filename);
+    this.db = new Driver(filename, { timeout: busyTimeoutMs });
 
     // Cosine distance over pgvector-style string embeddings ("[0.1,...]").
     // translateQuery rewrites `embedding <=> $1` to this UDF, giving SQLite real
@@ -187,7 +278,110 @@ export class SqliteAdapter implements StorageAdapter {
     this.log.info(`SQLite adapter initialized: ${filename}`);
   }
 
+  /**
+   * Run a query. While a transaction is open on this adapter, a query from anywhere else waits
+   * until it has ended, so it neither becomes part of the transaction nor is rolled back with
+   * it. A query from inside the transaction's callback, which should use the adapter the
+   * callback gets, runs in the transaction even when it goes through this adapter itself.
+   */
   async query<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<QueryResult<T>> {
+    return this.queryIn<T>(this.root, sql, params);
+  }
+
+  /**
+   * Run `fn` in a transaction: committed when it resolves, rolled back when it throws.
+   *
+   * `fn` gets an adapter of its own; its queries run in the transaction at once, and a
+   * `transaction()` on it is nested through a SAVEPOINT, rolled back alone when its callback
+   * throws. Queries and transactions from elsewhere wait until this one has ended, in the order
+   * they came. Until 0.2.9 the adapter ran BEGIN and COMMIT by hand around the asynchronous `fn`
+   * on its one connection: measured on 2026-11-22 against 0.2.8, a `store()` that came while
+   * `fn` awaited ran inside the transaction, reported success and was rolled back with it, and a
+   * second `transaction()` failed with "cannot start a transaction within a transaction".
+   */
+  async transaction<T>(fn: (adapter: StorageAdapter) => Promise<T>): Promise<T> {
+    return this.transactionIn(this.root, fn);
+  }
+
+  /**
+   * The scope a call made on `scope` runs in. That is the innermost open transaction the caller
+   * is inside, if it lies within `scope`: code inside a callback reaches its own transaction
+   * through any adapter of this connection. Otherwise it is `scope` itself, or, when `scope` is
+   * a transaction that has ended, the nearest open scope around it.
+   */
+  private scopeFor(scope: Scope): Scope {
+    let base = scope;
+    while (!base.open) base = base.parent!;
+    let current = this.inside.getStore();
+    while (current && !current.open) current = current.parent;
+    for (let s = current; s; s = s.parent) if (s === base) return current!;
+    return base;
+  }
+
+  /** The adapter a transaction's callback gets. */
+  private adapterFor(scope: Scope): StorageAdapter {
+    return {
+      query: <R = Record<string, unknown>>(sql: string, params?: unknown[]) => this.queryIn<R>(scope, sql, params),
+      transaction: <R>(fn: (adapter: StorageAdapter) => Promise<R>) => this.transactionIn(scope, fn),
+    };
+  }
+
+  private async queryIn<T>(scope: Scope, sql: string, params?: unknown[]): Promise<QueryResult<T>> {
+    const target = this.scopeFor(scope);
+    const turn = target.turns.take();
+    if (turn) await turn;
+    try {
+      return this.execute<T>(sql, params);
+    } finally {
+      target.turns.give();
+    }
+  }
+
+  private async transactionIn<T>(scope: Scope, fn: (adapter: StorageAdapter) => Promise<T>): Promise<T> {
+    const parent = this.scopeFor(scope);
+    const turn = parent.turns.take();
+    if (turn) await turn;
+    const tx: Scope = {
+      parent,
+      savepoint: parent === this.root ? undefined : `zenbrain_${++this.savepoints}`,
+      turns: new Turns(),
+      open: true,
+    };
+    // What is queued on this transaction when `fn` ends, such as a nested transaction `fn` did not
+    // wait for, runs before it ends; what `fn` issues later is no longer part of it.
+    let settled = false;
+    const settle = async () => {
+      if (settled) return;
+      settled = true;
+      const inner = tx.turns.take();
+      if (inner) await inner;
+    };
+    try {
+      this.db.exec(tx.savepoint ? `SAVEPOINT ${tx.savepoint}` : 'BEGIN');
+      try {
+        const result = await this.inside.run(tx, () => fn(this.adapterFor(tx)));
+        await settle();
+        this.db.exec(tx.savepoint ? `RELEASE ${tx.savepoint}` : 'COMMIT');
+        return result;
+      } catch (err) {
+        await settle();
+        try {
+          if (tx.savepoint) this.db.exec(`ROLLBACK TO ${tx.savepoint}; RELEASE ${tx.savepoint}`);
+          else if (this.db.inTransaction) this.db.exec('ROLLBACK');
+        } catch {
+          // SQLite already ended the transaction; the error that ended it is the one to report.
+        }
+        throw err;
+      }
+    } finally {
+      tx.open = false;
+      tx.turns.give();
+      parent.turns.give();
+    }
+  }
+
+  /** One statement on the connection, at once. */
+  private execute<T>(sql: string, params?: unknown[]): QueryResult<T> {
     const translated = translateQuery(sql);
     const normalized = translated.trim().toUpperCase();
 
@@ -243,20 +437,6 @@ export class SqliteAdapter implements StorageAdapter {
       // Re-throw with context
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(`SQLite query error: ${msg}\nQuery: ${translated.substring(0, 200)}`);
-    }
-  }
-
-  async transaction<T>(fn: (adapter: StorageAdapter) => Promise<T>): Promise<T> {
-    const txn = this.db.transaction(() => {});
-    // We need async support, so we manage BEGIN/COMMIT manually
-    this.db.exec('BEGIN');
-    try {
-      const result = await fn(this);
-      this.db.exec('COMMIT');
-      return result;
-    } catch (err) {
-      this.db.exec('ROLLBACK');
-      throw err;
     }
   }
 

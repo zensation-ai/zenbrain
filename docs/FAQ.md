@@ -19,7 +19,7 @@ Most algorithm modules name the work they follow in their source (not yet `bayes
 
 ### Is ZenBrain production-ready?
 
-The algorithms and core layers were extracted from ZenAI, our first product, which ran in production in our own operation. As of v0.6.3, the repository's 988 tests pass in CI: 976 on each of Node 22, 24 and 26, and 12 more against a real PostgreSQL with pgvector.
+The algorithms and core layers were extracted from ZenAI, our first product, which ran in production in our own operation. As of v0.7.0, the repository's 1020 tests pass in CI: 1007 on each of Node 22, 24 and 26, and 13 more against a real PostgreSQL with pgvector.
 
 That said, ZenBrain is still pre-1.0 — expect API changes before v1.0. We follow semver, and the [CHANGELOG](../CHANGELOG.md) records what changed in each release.
 
@@ -29,7 +29,7 @@ Apache 2.0 — use it in commercial products, modify it, distribute it. When you
 
 ### Which Node.js versions are supported?
 
-ZenBrain requires Node.js 22 or newer. The supported versions are Node.js 22, 24, and 26, matching the CI matrix. The SQLite adapter and the MCP server need 22.14 or newer: better-sqlite3 13, which they use, is built against Node-API 10 and crashes on Node 22.0 to 22.13.
+ZenBrain requires Node.js 22 or newer. The supported versions are Node.js 22, 24, and 26, matching the CI matrix. The SQLite adapter and the MCP server need 22.14 or newer, on Node 23 23.6 or newer: better-sqlite3 13, which they use, is built against Node-API 10 and crashes on Node 22.0 to 22.13 and 23.0 to 23.5, so both check the version first and stop there with a message.
 
 If you use Node.js 20 or older, npm may silently install the last compatible package versions instead of showing an error:
 

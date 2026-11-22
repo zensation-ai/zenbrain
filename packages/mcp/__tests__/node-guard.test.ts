@@ -15,14 +15,15 @@ import { unsupportedNodeMessage } from '../src/index.js';
 
 describe('the Node version guard', () => {
   it('passes every supported runtime', () => {
-    for (const v of ['v22.14.0', 'v22.23.3', 'v23.0.0', 'v24.3.1', 'v26.0.0', 'v30.1.2', '22.14.0']) {
+    for (const v of ['v22.14.0', 'v22.23.3', 'v23.6.0', 'v24.3.1', 'v26.0.0', 'v30.1.2', '22.14.0']) {
       expect(unsupportedNodeMessage(v), `${v} should be accepted`).toBeNull();
     }
   });
 
   it('rejects every runtime below the engines floor', () => {
     // 22.0 to 22.13: better-sqlite3 13 needs Node-API 10 and segfaults below it (CI job node-floor, 2026-11-21).
-    for (const v of ['v18.20.4', 'v20.20.2', 'v21.7.3', '20.0.0', 'v22.0.0', 'v22.12.0', 'v22.13.1', '22.13.0']) {
+    // On Node 23, Node-API 10 came with 23.6.0 (Node-API version matrix, nodejs.org/api/n-api.html).
+    for (const v of ['v18.20.4', 'v20.20.2', 'v21.7.3', '20.0.0', 'v22.0.0', 'v22.12.0', 'v22.13.1', '22.13.0', 'v23.0.0', 'v23.5.1']) {
       expect(unsupportedNodeMessage(v), `${v} should be rejected`).not.toBeNull();
     }
   });

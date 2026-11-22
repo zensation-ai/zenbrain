@@ -309,8 +309,9 @@ export class DeferredStore implements StorageAdapter {
 
   /**
    * Throws if a store file exists but cannot be opened. Called before each tool
-   * runs: the recall paths of the coordinator catch storage errors and would
-   * otherwise answer "nothing stored" for a store that is there.
+   * runs. With core before 0.7.0 it was what made recall report such a store: the
+   * recall paths of the coordinator caught storage errors and answered "nothing
+   * stored". Since core 0.7.0 recall throws them itself.
    */
   ensureReadable(): void {
     this.target(false);

@@ -26,8 +26,9 @@ local file.
 
 ## Install
 
-Requires **Node.js 22.14 or newer**. On Node 22.0 to 22.13 the SQLite driver underneath (better-sqlite3 13, built
-for Node-API 10) crashes, so the server refuses to start there and says why.
+Requires **Node.js 22.14 or newer** (on Node 23, 23.6 or newer). On Node 22.0 to 22.13 and 23.0 to 23.5 the SQLite
+driver underneath (better-sqlite3 13, built for Node-API 10) crashes, so the server refuses to start there and says
+why.
 
 ```bash
 npm install -g @zensation/mcp
@@ -131,10 +132,11 @@ Worth knowing before you wire it in:
   your store's full path: `sqlite3 ~/.zenbrain/memory.db "PRAGMA journal_mode=DELETE;"`. It
   prints `delete`; a `-shm` file it leaves behind can be deleted. While a server still has the
   store open, it fails with "database is locked" and changes nothing.
-- **A locked store makes recall come back short.** If another program holds a store with a
+- **A locked store makes recall wait, then fail.** If another program holds a store with a
   rollback journal locked for longer than 5 seconds, `zenbrain_recall` waits about 5 seconds
-  per query and then returns fewer results or none, without an error; `zenbrain_health`
-  reports "database is locked". On a WAL store readers do not wait.
+  per query and then returns an error that names the lock ("database is locked"), as
+  `zenbrain_health` does; 0.3.2 returned fewer results or none, without an error. On a WAL
+  store readers do not wait.
 
 ## Using it as a library
 
