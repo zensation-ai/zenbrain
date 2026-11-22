@@ -203,6 +203,26 @@ describe('PostgresAdapter.query()', () => {
     expect(mockRelease).toHaveBeenCalledOnce();
   });
 
+  it('gives a client whose connection is gone back with the error, also when the error is not retried', async () => {
+    // 57P02 (the server shut down after a crash) and "Connection terminated unexpectedly" are not in
+    // the retried codes. Released without the error, pg-pool could hand the dead client to the next query.
+    const crashed = Object.assign(new Error('terminating connection because of crash of another server process'), { code: '57P02' });
+    const terminated = new Error('Connection terminated unexpectedly');
+    const adapter = new PostgresAdapter({ maxRetries: 0 });
+    for (const lost of [crashed, terminated]) {
+      mockRelease.mockClear();
+      mockClientQuery.mockRejectedValueOnce(lost);
+      await expect(adapter.query('SELECT 1')).rejects.toBe(lost);
+      expect(mockRelease).toHaveBeenCalledOnce();
+      expect(mockRelease).toHaveBeenCalledWith(lost);
+    }
+    // A plain SQL error leaves the connection healthy: the client goes back without one.
+    mockRelease.mockClear();
+    mockClientQuery.mockRejectedValueOnce(new Error('syntax error'));
+    await expect(adapter.query('BAD SQL')).rejects.toThrow('syntax error');
+    expect(mockRelease).toHaveBeenCalledWith(undefined);
+  });
+
   it('retries on transient ECONNRESET error', async () => {
     const transientError = new Error('connection reset');
     (transientError as any).code = 'ECONNRESET';

@@ -172,11 +172,12 @@ export class PostgresAdapter implements StorageAdapter {
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
         const retryable = this.isRetryable(lastError);
-        // Given back before any waiting. A client that hit a transient error may hold a dead
-        // connection; releasing it with the error makes pg destroy it instead of handing it to
-        // the next query. Until 0.2.10 it was given back only after the wait, and a connection
-        // that died meanwhile ended the process (see `borrow`).
-        borrowed?.release(retryable ? lastError : undefined);
+        // Given back before any waiting. A client that hit a transient error, or whose connection
+        // is gone (also 57P02 or "Connection terminated unexpectedly", which are not retried), may
+        // hold a dead connection; releasing it with the error makes pg destroy it instead of
+        // handing it to the next query. Until 0.2.10 it was given back only after the wait, and a
+        // connection that died meanwhile ended the process (see `borrow`).
+        borrowed?.release(retryable || this.isConnectionLost(lastError) ? lastError : undefined);
 
         if (retryable && attempt < this.maxRetries) {
           const delay = Math.min(100 * Math.pow(2, attempt) + Math.random() * 50, 2000);
