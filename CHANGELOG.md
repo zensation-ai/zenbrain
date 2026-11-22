@@ -4,7 +4,7 @@ All notable changes to ZenBrain are documented in this file. The format is based
 
 ## [Unreleased]
 
-## [0.7.0] — 2026-11-XX
+## [0.7.0] — 2026-11-22
 
 **`@zensation/core` 0.7.0: `recall()` reports a storage it cannot read instead of returning less (breaking).** The
 round fixes what the package audit of 22 November 2026 found in the five library packages, each fix with a test that
