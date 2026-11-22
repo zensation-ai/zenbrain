@@ -78,6 +78,7 @@ that writes these tables directly should use the same format — in SQL,
 const storage = new SqliteAdapter({
   filename: './data/memory.db', // default: './zenbrain.db'
   walMode: true,                // default: true (better read concurrency)
+  busyTimeoutMs: 5000,          // default: 5000; how long a query waits for another connection's lock
   logger: console,              // optional
 });
 ```
@@ -91,12 +92,14 @@ Apache 2.0
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
 TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
 dependencies. The benchmark results, and the
-configuration they were measured in, are reported in the paper; the reproduction packages
+configurations they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
-provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
+to install. In the paper ([arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)), ZenBrain's arm in the comparisons
+with other systems embedded with `nomic-embed-text`. The paper's other retrieval experiments ran with OpenAI
+`text-embedding-3-small`, with `nomic-embed-text` or with a placeholder embedder, depending on the run; the Protocol
+paragraph of the paper's setup section says which.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)
