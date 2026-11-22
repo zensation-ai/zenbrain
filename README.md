@@ -108,8 +108,8 @@ competitors x three LLM judges, Bonferroni-corrected (alpha = 0.05/18) and versi
 
 Agreement between LLM judges is not the same as independent confirmation: the paper counts three
 repetitions of one model as one rater. Our separate package [voteworth](https://github.com/zensation-ai/voteworth)
-measures how many independent votes a judge or voter panel is actually worth; in its bundled screen,
-ten LLM voters from four model families count as about 1.5.
+measures how often two voters of a judge or voter panel pick the same answer when both break from
+the plurality, and corrects the vote for voters that do, naming the panel shape where it cannot.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
 to install. `nomic-embed-text` can be added as the embedding provider; it was the embedder of the
