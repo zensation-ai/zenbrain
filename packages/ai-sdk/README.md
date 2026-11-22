@@ -1,9 +1,8 @@
 # @zensation/ai-sdk
 
 **Status: early release.** The option shape may still change before 1.0. The memory
-layers underneath are the ones the [ZenBrain paper](https://arxiv.org/abs/2604.23878)
-describes and the
-[benchmarks](https://github.com/zensation-ai/zenbrain/blob/main/docs/benchmarks.md) measure.
+layers underneath are those of the open library the
+[ZenBrain paper](https://arxiv.org/abs/2604.23878v4) describes.
 
 ZenBrain as [Vercel AI SDK](https://ai-sdk.dev) middleware. Recall what is relevant before
 the model call, store the turn after it. Works with any provider the AI SDK supports,
@@ -14,6 +13,7 @@ npm install @zensation/ai-sdk @zensation/core @zensation/adapter-sqlite ai @ai-s
 ```
 
 This package is ESM. `require()` loads it on Node 22.12 and later; on Node 22.0–22.11, use `import`.
+`@zensation/adapter-sqlite`, which the example uses, needs Node 22.14 or newer.
 
 ```typescript
 import { generateText, wrapLanguageModel } from 'ai';
@@ -71,7 +71,8 @@ zenbrainMemory({
     limit: 5,                      // how many memories to inject
     layers: ['semantic', 'core'],  // which layers to search
     minConfidence: 0.6,            // drop anything below this
-    minScore: 0.2,                 // default: only memories scoring above 0
+    minScore: 0.1,                 // default: above 0; with an embedding provider, for example 0.2;
+                                   // without one, lexical scores are lower
   },
 
   store: {                         // or false to switch writing off
@@ -112,14 +113,19 @@ carries information the question does not.
 
 **Failures are swallowed.** If recall or store throws, the call goes through anyway,
 unmodified. A memory layer that breaks a chat is worse than one that forgets. Pass
-`onError` to see what is being hidden — without it, failures are silent by design.
+`onError` to see what is being hidden — without it, failures are silent by design. With
+`@zensation/core` 0.7.0 or later, a recall that cannot read the storage throws (an
+`AggregateError`) instead of finding nothing, so `onError` sees it.
 
 ## Where the memory lands
 
-Routing on store is automatic, first match wins: wording such as "How to", "Steps:" or
-"workflow:" makes a procedure, an emotional weight above 0.5 (detected from the text) an
-episode, anything else a semantic fact. A plain narrated event with little emotion is a fact,
-and a numbered list without such wording is too. Which layer a memory lands in decides how it
+Routing on store is automatic, first match wins: content starting with "How to", "Step 1" or
+"Steps:", or containing "workflow:", "recipe:", "procedure:", "instructions:" or "step-by-step",
+makes a procedure; an emotional weight above 0.5 an episode; anything else a semantic fact. The
+weight is detected from the text by keywords, and most clearly emotional texts stay below 0.5, so a
+turn the middleware stores rarely becomes an episode; to store one, call
+`coordinator.store(text, { emotionalWeight })` yourself. A plain narrated event with little emotion
+is a fact, and a numbered list without such wording is too. Which layer a memory lands in decides how it
 is searched; when you consolidate, episodes with an emotional weight above 0.5, among the
 100 most recent, become facts. The seven layers and the algorithms behind them are documented in the
 [main README](https://github.com/zensation-ai/zenbrain#readme).
@@ -132,8 +138,7 @@ suits your application.
 - **No embedding provider is configured unless you pass one.** Recall then ranks
   lexically rather than semantically: folded token overlap, rarer words weighted higher,
   a bonus for an adjacent phrase, over the most recent 500 episodes and facts. It matches
-  wording, not meaning — synonyms need an `EmbeddingProvider`, which is also the
-  configuration the published benchmarks were measured with.
+  wording, not meaning — synonyms need an `EmbeddingProvider`.
 - **Streaming stores on flush.** The turn is written once the stream completes. A stream
   aborted through `abortSignal` stores the user's turn but not the partial reply; a stream
   that errors for any other reason stores nothing. A provider that reports a failure as an
@@ -143,7 +148,10 @@ suits your application.
   `recall: { core: 'matching' }` to inject only blocks that share a word with the message.
 - **Only text is read.** File and tool parts of a message are ignored when building the
   recall query and when storing.
-- **One recall per call.** There is no re-retrieval mid-generation.
+- **One recall per model call.** There is no re-retrieval mid-generation. With tools, the AI SDK
+  calls the model once per step; each step recalls with the user's last message, so every step
+  has the memories, and the user's turn is stored once, after the first step. From the second
+  step on, that recall also finds the stored turn and injects it among the memories.
 
 ## Streaming
 
@@ -166,12 +174,14 @@ for await (const chunk of result.textStream) process.stdout.write(chunk);
 ZenBrain is a seven-layer, neuroscience-derived memory architecture for LLM agents, built in
 TypeScript and published under Apache-2.0; `@zensation/algorithms` and `@zensation/core` have no third-party
 dependencies. The benchmark results, and the
-configuration they were measured in, are reported in the paper; the reproduction packages
+configurations they were measured in, are reported in the paper; the reproduction packages
 are on Zenodo.
 
 Works out of the box without an embedding provider — lexical ranking, nothing extra
-to install. In the paper, ZenBrain's benchmark runs against other systems used `nomic-embed-text` as the embedding
-provider; the retrieval ablations used OpenAI `text-embedding-3-small`.
+to install. In the paper ([arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4)), ZenBrain's arm in the comparisons
+with other systems embedded with `nomic-embed-text`. The paper's other retrieval experiments ran with OpenAI
+`text-embedding-3-small`, with `nomic-embed-text` or with a placeholder embedder, depending on the run; the Protocol
+paragraph of the paper's setup section says which.
 
 - Source and issues: [github.com/zensation-ai/zenbrain](https://github.com/zensation-ai/zenbrain)
 - Paper: [arXiv:2604.23878](https://arxiv.org/abs/2604.23878) · Open-access archive: [10.5281/zenodo.19353663](https://doi.org/10.5281/zenodo.19353663)

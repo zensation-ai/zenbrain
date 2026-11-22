@@ -54,13 +54,13 @@
   },
   "peerDependencies": {
     "@ai-sdk/provider": "^4.0.0",
-    "@zensation/core": "^0.6.0",
+    "@zensation/core": "^0.6.0 || ^0.7.0",
     "ai": "^7.0.0"
   },
   "devDependencies": {
     "@ai-sdk/provider": "^4.0.38",
     "@zensation/adapter-sqlite": "^0.2.8",
-    "@zensation/core": "^0.6.0",
+    "@zensation/core": "^0.7.0",
     "ai": "^7.0.172",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
