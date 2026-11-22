@@ -30,6 +30,40 @@ if (SUPPORTED) {
 
 const open: typeof describe.skip = sqlite ? describe : describe.skip;
 
+/** One generateText call in which the model asks for a tool, then answers: two model calls. */
+async function callWithOneTool(c: MemoryCoordinator, prompt: string, options: Partial<Parameters<typeof zenbrainMemory>[0]> = {}) {
+  const lookup = tool({
+    description: 'Look something up.',
+    inputSchema: jsonSchema<{ q: string }>({ type: 'object', properties: { q: { type: 'string' } } }),
+    execute: async () => 'found',
+  });
+  let calls = 0;
+  const model = new MockLanguageModelV4({
+    doGenerate: async () =>
+      ++calls === 1
+        ? {
+            content: [{ type: 'tool-call' as const, toolCallId: 'c1', toolName: 'lookup', input: '{"q":"x"}' }],
+            finishReason: { unified: 'tool-calls' as const, raw: 'tool_calls' },
+            usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            warnings: [],
+          }
+        : reply('Done.'),
+  });
+  await generateText({
+    model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator: c, ...options }) }),
+    prompt,
+    tools: { lookup },
+    stopWhen: stepCountIs(3),
+  });
+  expect(model.doGenerateCalls).toHaveLength(2);
+  return model;
+}
+
+/** The system messages the model got in one of its calls. */
+function memoriesOf(model: MockLanguageModelV4, call: number): string[] {
+  return model.doGenerateCalls[call].prompt.filter((m) => m.role === 'system').map((m) => String(m.content));
+}
+
 let coordinator: MemoryCoordinator | undefined;
 afterEach(async () => {
   await coordinator?.close();
@@ -146,6 +180,42 @@ open('the middleware over a real SQLite store', () => {
 
     const injected = model.doGenerateCalls[0].prompt.filter((m) => m.role === 'system').map((m) => String(m.content));
     expect(injected).toEqual(['Relevant memories from earlier sessions:\n- Where does Anna live?']);
+  });
+
+  it('in a follow-up step, leaves out the turn also when it was stored as a procedure', async () => {
+    // With the filter on the text (FP650) this turn came back as "How to renew … Steps: … Outcome: "
+    // and stayed among the second call's memories. The ids store() returned leave it out.
+    coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
+    await coordinator.store('The parking permit office is in the town hall.');
+    const model = await callWithOneTool(coordinator, 'How to renew the parking permit for Anna?');
+
+    expect(memoriesOf(model, 1)).toEqual(['Relevant memories from earlier sessions:\n- The parking permit office is in the town hall.']);
+    expect((await coordinator.getProceduralMemory().list()).map((p) => p.trigger)).toEqual(['How to renew the parking permit for Anna?']);
+  });
+
+  it('in a follow-up step, still brings limit memories when there are enough', async () => {
+    // The turn stored after the first step is one of the recall's hits; leaving it out of `limit`
+    // results gave one memory fewer. The follow-up step asks for one more per memory the call stored.
+    coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
+    for (const fact of ['Anna moved to Hamburg in March.', 'Anna works at the harbour office.', 'Anna has a red bicycle.']) {
+      await coordinator.store(fact);
+    }
+    const model = await callWithOneTool(coordinator, 'Where does Anna live?', { recall: { limit: 2 } });
+
+    const lines = (step: number) => memoriesOf(model, step)[0]?.split('\n').slice(1) ?? [];
+    expect(lines(0)).toHaveLength(2);
+    expect(lines(1)).toHaveLength(2);
+    expect(lines(1)).not.toContain('- Where does Anna live?');
+  });
+
+  it('in a follow-up step, keeps an earlier memory with the same words as the question', async () => {
+    // Only what this call stored is left out: the same question stored in an earlier session is a memory.
+    coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
+    await coordinator.store('Where does Anna live?');
+    const model = await callWithOneTool(coordinator, 'Where does Anna live?');
+
+    expect(memoriesOf(model, 0)).toEqual(['Relevant memories from earlier sessions:\n- Where does Anna live?']);
+    expect(memoriesOf(model, 1)).toEqual(['Relevant memories from earlier sessions:\n- Where does Anna live?']);
   });
 
   it('actually persists the turn, not just the prompt', async () => {

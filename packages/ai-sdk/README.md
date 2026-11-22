@@ -151,9 +151,10 @@ suits your application.
 - **One recall per model call.** There is no re-retrieval mid-generation. With tools, the AI SDK
   calls the model once per step; each step recalls with the user's last message, so every step
   has the memories, and the user's turn is stored once, after the first step. From the second
-  step on, a memory whose content is exactly the user's message is left out, since it is that
-  turn; in the first step it is an earlier memory and stays. A turn stored as a procedure comes
-  back as its trigger, steps and outcome, so it is not left out.
+  step on, what the call stored (the turn, and replies when they are stored) is left out of the
+  memories by the ids `store()` returned, also when it comes back in another form, such as a
+  procedure's trigger, steps and outcome; the recall asks for that many more, so `limit`
+  memories still come in when there are enough. An earlier memory with the same words stays.
 
 ## Streaming
 

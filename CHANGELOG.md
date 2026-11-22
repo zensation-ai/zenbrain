@@ -90,11 +90,11 @@ layer; a failing embedding provider still gives the core block. End to end, the 
   model again with the tool results, it stored the user's turn after each step; measured against 0.4.0, one tool call
   put it into memory twice. A step whose prompt has tool results after the user's last message is now a follow-up of
   the same turn: the turn is stored once, after the first step, and with `store: { assistant: true }` the reply of a
-  later step is stored too. Each step still recalls, so every model call has the memories. From the second step on, a
-  memory whose content is exactly the user's message is left out, since it is the turn just stored (measured with the
-  turn stored once: it came first among the memories of the second call); in the first step such a memory is an
-  earlier one and stays. A turn stored as a procedure comes back as its trigger, steps and outcome, and is not left
-  out.
+  later step is stored too. Each step still recalls, so every model call has the memories. From the second step on,
+  what the call stored is left out of them by the ids `store()` returned (measured with the turn stored once: it came
+  first among the memories of the second call, and a turn stored as a procedure came back as its trigger, steps and
+  outcome), and the recall of that step asks for as many more, so `limit` still holds. An earlier memory with the
+  same words stays, in the first step and after it.
 - `@zensation/adapter-sqlite`, `@zensation/adapter-postgres`, `@zensation/ai-sdk` and `@zensation/mcp` name their issue
   tracker (`bugs`) in `package.json`, as `@zensation/algorithms` and `@zensation/core` did.
 
