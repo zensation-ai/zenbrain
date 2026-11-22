@@ -30,9 +30,9 @@ export interface RetentionResult {
   daysSinceAccess: number;
   /** Current stability value in days */
   stability: number;
-  /** Whether this fact is a candidate for spaced repetition review */
+  /** Whether this fact is a candidate for spaced repetition review (retention at or below the review threshold and above the archive threshold) */
   needsReview: boolean;
-  /** Whether this fact should be archived (retention below threshold) */
+  /** Whether this fact should be archived (retention at or below the archive threshold) */
   shouldArchive: boolean;
 }
 
@@ -89,9 +89,9 @@ export const EBBINGHAUS_CONFIG = {
   SUCCESS_MULTIPLIER: 2.5,
   /** SM-2 failure multiplier. Kept for compatibility; updateStability uses the FSRS update instead. */
   FAILURE_MULTIPLIER: 0.5,
-  /** Retention threshold below which facts need review */
+  /** Facts need review at or below this retention (unless they are at or below the archive threshold) */
   REVIEW_THRESHOLD: 0.3,
-  /** Retention threshold below which facts should be archived */
+  /** Facts should be archived at or below this retention */
   ARCHIVE_THRESHOLD: 0.1,
   /** Emotional decay multiplier cap (from emotional-tagger) */
   MAX_EMOTIONAL_MULTIPLIER: 3.0,
@@ -229,7 +229,7 @@ export function getRepetitionCandidates(
  * Determine whether a fact should be archived (effectively forgotten).
  *
  * @param retention - Current retention probability
- * @returns true if the fact should be archived
+ * @returns true if the retention is at or below the archive threshold (0.1)
  */
 export function shouldArchive(retention: number): boolean {
   return retention <= EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD;

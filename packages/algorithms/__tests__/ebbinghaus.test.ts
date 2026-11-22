@@ -5,6 +5,7 @@
  * batchCalculateRetention disagreed with calculateRetention for the same fact.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   EBBINGHAUS_CONFIG,
   calculateRetention,
@@ -99,6 +100,18 @@ describe('shouldArchive and calculateOptimalInterval', () => {
   it('archives at or below the archive threshold', () => {
     expect(shouldArchive(EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD)).toBe(true);
     expect(shouldArchive(EBBINGHAUS_CONFIG.ARCHIVE_THRESHOLD + 0.01)).toBe(false);
+  });
+
+  it('documents both thresholds as "at or below", as the code compares', () => {
+    // Measured on 2026-11-22 against 0.6.1: shouldArchive(0.1) is true and shouldArchive(0.1 + 1e-9)
+    // false, while the declarations said "below threshold". The comparison stays `<=`; the words
+    // the declarations are built from now say what it does.
+    expect(shouldArchive(0.1)).toBe(true);
+    expect(shouldArchive(0.1 - 1e-9)).toBe(true);
+    expect(shouldArchive(0.1 + 1e-9)).toBe(false);
+    const source = readFileSync(new URL('../src/ebbinghaus.ts', import.meta.url), 'utf8');
+    expect(source).not.toMatch(/below threshold|threshold below which/);
+    expect(source.match(/at or below the (archive|review) threshold/g)?.length).toBeGreaterThanOrEqual(3);
   });
 
   it('solves R = e^(-t/S) for t, with a floor of 0.1 days', () => {
