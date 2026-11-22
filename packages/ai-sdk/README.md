@@ -157,7 +157,9 @@ suits your application.
   memories still come in when there are enough. An earlier memory with the same words stays.
   Two calls running at the same time with exactly the same user message share what the
   middleware keeps for it: in a follow-up step one of them can then miss a memory the other
-  stored, or get back what it stored itself.
+  stored, or get back what it stored itself. A first model call whose prompt already has tool
+  results after the user's last message, for instance results the application added itself,
+  counts as a follow-up step too, so the user's turn is not stored for it.
 
 ## Streaming
 
