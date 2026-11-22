@@ -348,7 +348,8 @@ export class SqliteAdapter implements StorageAdapter {
       turns: new Turns(),
       open: true,
     };
-    // Whatever `fn` started inside the transaction and did not wait for ends before it does.
+    // What is queued on this transaction when `fn` ends, such as a nested transaction `fn` did not
+    // wait for, runs before it ends; what `fn` issues later is no longer part of it.
     let settled = false;
     const settle = async () => {
       if (settled) return;

@@ -68,8 +68,9 @@ layer; a failing embedding provider still gives the core block. End to end, the 
   ended, in the order they came. The callback gets an adapter of its own, whose queries run in the transaction at once;
   a `transaction()` on it is nested through a SAVEPOINT and rolled back alone when its callback throws, and nested
   transactions started together run one after the other. Code in the callback that calls the adapter itself still
-  reaches the transaction instead of waiting for it, as `@zensation/mcp`'s deferred store does. A transaction ends
-  after whatever its callback started inside it and did not wait for.
+  reaches the transaction instead of waiting for it, as `@zensation/mcp`'s deferred store does. When its callback
+  ends, a transaction still waits for what is queued on it at that moment, such as a nested transaction the callback
+  did not wait for; what the callback issues later is no longer part of the transaction.
 - `@zensation/adapter-sqlite` needs Node 22.14 or newer, as `@zensation/mcp` has since 0.3.2: `engines` says
   `>=22.14`. better-sqlite3 13 is built for Node-API 10, which Node 22 has from 22.14 on; on 22.0.0, 22.12.0 and
   22.13.0 its first `new Database()` ended in a segmentation fault (CI job `node-floor`, 21 November 2026). The adapter
