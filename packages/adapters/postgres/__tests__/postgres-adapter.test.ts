@@ -19,9 +19,10 @@ vi.mock('pg', () => {
 import { PostgresAdapter, createPostgresAdapter } from '../src/index.js';
 import { Pool } from 'pg';
 
-// Helper: create a mock client
+// Helper: create a mock client. A pg PoolClient is an EventEmitter; the adapter listens on it
+// for `error` while it is borrowed.
 function makeMockClient(queryFn = mockClientQuery) {
-  return { query: queryFn, release: mockRelease };
+  return { query: queryFn, release: mockRelease, on: vi.fn(), removeListener: vi.fn() };
 }
 
 beforeEach(() => {
@@ -385,6 +386,37 @@ describe('PostgresAdapter.transaction()', () => {
     expect(calls).toContain('BEGIN');
     expect(calls).toContain('ROLLBACK');
     expect(calls).not.toContain('COMMIT');
+  });
+
+  it('sends no ROLLBACK on a connection the server ended, and gives the client back with the error', async () => {
+    // A terminated backend fails the running query with 57P01 and closes the connection; a
+    // ROLLBACK there only fails again. Until 0.2.10 it was sent, and the client went back as healthy.
+    const terminated = Object.assign(new Error('terminating connection due to administrator command'), { code: '57P01' });
+    mockClientQuery.mockImplementation(async (sql: string) => {
+      if (sql === 'SELECT pg_sleep(1)') throw terminated;
+      return { rows: [], rowCount: 0 };
+    });
+
+    const adapter = new PostgresAdapter({});
+    await expect(adapter.transaction(async (tx) => tx.query('SELECT pg_sleep(1)'))).rejects.toBe(terminated);
+
+    const calls = mockClientQuery.mock.calls.map((c: unknown[]) => c[0]);
+    expect(calls).not.toContain('ROLLBACK');
+    expect(mockRelease).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledWith(terminated);
+  });
+
+  it('listens for errors on the client while it is borrowed, and stops when it gives it back', async () => {
+    const client = makeMockClient();
+    mockConnect.mockResolvedValue(client);
+    const adapter = new PostgresAdapter({});
+    await adapter.query('SELECT 1');
+    await adapter.transaction(async (tx) => tx.query('SELECT 2'));
+
+    const added = client.on.mock.calls.filter((c: unknown[]) => c[0] === 'error');
+    const removed = client.removeListener.mock.calls.filter((c: unknown[]) => c[0] === 'error');
+    expect(added).toHaveLength(2);
+    expect(removed.map((c: unknown[]) => c[1])).toEqual(added.map((c: unknown[]) => c[1]));
   });
 
   it('sets search_path in transaction when schema configured', async () => {
