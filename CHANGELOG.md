@@ -35,7 +35,8 @@ procedural, core, and its message names those layers and the first error, for in
 episodic, semantic, procedural, core: SQLite query error: database is locked". The results of the other layers are not
 returned. A failing embedding provider is still tolerated, as before: the layers that need the query's embedding
 contribute nothing, with a warning. Working memory lives in the process and does not fail this way. An empty result
-now means that nothing is stored in the requested layers.
+no longer hides a storage that could not be read; it can still mean that nothing matched the query, or passed
+`minScore`, or that a failing embedding provider kept the layers that need it from searching.
 
 Code that calls `recall()` catches the error where an empty result was enough before and decides there: retry when
 the storage is busy, report it, or search the other layers by passing `layers` without the one that fails.

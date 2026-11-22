@@ -442,7 +442,9 @@ export class MemoryCoordinator {
    * connection) makes recall throw, after every requested layer has been searched: an
    * `AggregateError` whose `errors` hold the error of each such layer, in the order
    * episodic, semantic, procedural, core, and whose message names those layers and the first
-   * error. So an empty result means that nothing is stored in the requested layers. Until
+   * error. So an empty result no longer hides a storage that could not be read; it can still
+   * mean that nothing matched the query (or passed `minScore`), or that a failing embedding
+   * provider kept the layers that need it from searching. Until
    * 0.7.0 each layer caught its error and logged a warning, and recall returned what the other
    * layers found, or nothing (measured on 2026-11-22 against 0.6.1: an empty list after 20.9
    * seconds on a store another connection held locked). A failing embedding provider is still
