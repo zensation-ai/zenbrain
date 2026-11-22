@@ -56,6 +56,15 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      # Every release tag runs this workflow, also one whose release leaves @zensation/mcp as it
+      # was. Its version is then already in the registry, and publishing it again fails: at tag
+      # v0.6.2 (2026-11-15) this job went red in "Log in via DNS and publish" although nothing was
+      # wrong. The steps below run only when the registry does not list the version; when it
+      # cannot be read, they run as before.
+      - name: Is this version already in the registry?
+        id: listed
+        run: node scripts/mcp-registry-lists.mjs ai.zensation/zenbrain "${{ steps.v.outputs.version }}" >> "$GITHUB_OUTPUT"
+
       # The registry validates ownership by reading `mcpName` from the PUBLISHED npm package.
       # A fresh publish needs time to propagate — the same trap that turned the cli release job
       # red on 2026-09-22 while the publish had actually succeeded. Poll, do not assume.
@@ -66,6 +75,7 @@ jobs:
       # that; the old two-minute wait ran out five seconds before the publish, and the registry
       # step had to be re-run by hand. Twenty minutes covers the CI run and the propagation.
       - name: Wait for the npm version to be visible
+        if: steps.listed.outputs.listed != 'true'
         run: |
           VERSION="${{ steps.v.outputs.version }}"
           for attempt in $(seq 1 60); do
@@ -85,6 +95,7 @@ jobs:
       # is on the day. v1.8.8 (2026-11-06) supports the server.json schema 2025-12-11
       # (CurrentSchemaVersion in pkg/model/constants.go at that tag).
       - name: Install mcp-publisher v1.8.8 (sha256 checked)
+        if: steps.listed.outputs.listed != 'true'
         run: |
           curl -fsSL -o mcp-publisher.tar.gz \
             "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.8/mcp-publisher_linux_amd64.tar.gz"
@@ -94,6 +105,7 @@ jobs:
           ./mcp-publisher --help >/dev/null && echo "mcp-publisher installed."
 
       - name: Log in via DNS and publish
+        if: steps.listed.outputs.listed != 'true'
         env:
           KEY: ${{ secrets.MCP_REGISTRY_DNS_KEY }}
         run: |
@@ -109,6 +121,7 @@ jobs:
       # sent us looking for a five-version gap on 2026-09-26 when the real gap was three.
       # The selector below filters on isLatest, which is the only field that answers "current".
       - name: Confirm the registry serves the new version
+        if: steps.listed.outputs.listed != 'true'
         run: |
           VERSION="${{ steps.v.outputs.version }}"
           SELECT='.servers[] | select(.server.name=="ai.zensation/zenbrain") | select(._meta["io.modelcontextprotocol.registry/official"].isLatest==true) | .server.version'

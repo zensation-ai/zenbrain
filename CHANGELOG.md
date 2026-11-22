@@ -106,6 +106,11 @@ layer; a failing embedding provider still gives the core block. End to end, the 
   licence, its repository with its directory, its homepage, its issue tracker and its author. It found the four
   missing `bugs`.
 - CI: the job `node-floor` runs `@zensation/adapter-sqlite` on both sides of its floor (see Fixed).
+- `publish-mcp-registry.yml` skips the publish when the registry already lists the version in `server.json`, as on a
+  tag whose release leaves `@zensation/mcp` as it was: at v0.6.2 the job went red in "Log in via DNS and publish"
+  although nothing was wrong. `scripts/mcp-registry-lists.mjs` reads the registry page by page and answers
+  `listed=true` only for an exact match of name and version; when the registry cannot be read, the job publishes as
+  before. Run against a local server with two pages, not yet on a release tag.
 
 ### Documentation
 
