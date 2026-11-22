@@ -47,6 +47,9 @@
     "directory": "packages/adapters/postgres"
   },
   "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/adapters/postgres#readme",
+  "bugs": {
+    "url": "https://github.com/zensation-ai/zenbrain/issues"
+  },
   "engines": {
     "node": ">=22"
   },

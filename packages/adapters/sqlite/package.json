@@ -46,6 +46,9 @@
     "directory": "packages/adapters/sqlite"
   },
   "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/adapters/sqlite#readme",
+  "bugs": {
+    "url": "https://github.com/zensation-ai/zenbrain/issues"
+  },
   "engines": {
     "node": ">=22.14"
   },

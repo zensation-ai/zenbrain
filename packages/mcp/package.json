@@ -56,6 +56,9 @@
     "directory": "packages/mcp"
   },
   "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/zensation-ai/zenbrain/issues"
+  },
   "engines": {
     "node": ">=22.14"
   },

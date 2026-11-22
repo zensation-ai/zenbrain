@@ -87,6 +87,12 @@ jobs:
       - name: Verify every package ships what it promises
         run: bash scripts/verify-package-contents.sh
 
+      # npm shows the licence, repository, homepage, issue tracker and author on every package
+      # page. Until this check, adapter-sqlite, adapter-postgres, ai-sdk and mcp named no issue
+      # tracker (`bugs`), and nothing noticed.
+      - name: Package metadata names licence, repository, homepage, issue tracker and author
+        run: node scripts/verify-package-metadata.mjs
+
       # A code block in a README is a claim that this code works. Until 0.5.2 nothing checked it:
       # the PostgreSQL quick start called three methods the adapter does not have, for months.
       # Compile every TypeScript block in the docs against the built packages, and type-check the
