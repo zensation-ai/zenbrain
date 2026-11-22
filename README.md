@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">ZenBrain</h1>
   <p align="center"><strong>The neuroscience-inspired memory system for AI agents.</strong></p>
-  <p align="center">Memory for agents that lasts across sessions: seven layers, from working memory to long-term facts and procedures, and 20 tested algorithm modules for what memory research describes, such as spaced repetition, Hebbian strengthening, sleep replay and emotional tagging.<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 988 tests as of v0.6.3. Extracted from ZenAI, the AI platform we ran in our own operation.</p>
+  <p align="center">Memory for agents that lasts across sessions: seven layers, from working memory to long-term facts and procedures, and 20 tested algorithm modules for what memory research describes, such as spaced repetition, Hebbian strengthening, sleep replay and emotional tagging.<br/>Pure TypeScript. No third-party dependencies in algorithms and core. 1015 tests as of v0.7.0. Extracted from ZenAI, the AI platform we ran in our own operation.</p>
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@ claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx
 
 <p align="center">
   <sub><strong>Status:</strong> pre-1.0, semver — the public API can still change before <code>1.0</code>.<br/>
-  988 tests green in CI as of v0.6.3: 976 on each of Node 22, 24 and 26, and 12 more against PostgreSQL with pgvector · the current version of every package published to npm with build provenance ·
+  1015 tests green in CI as of v0.7.0: 1002 on each of Node 22, 24 and 26, and 13 more against PostgreSQL with pgvector · the current version of every package published to npm with build provenance ·
   every change recorded in the <a href="./CHANGELOG.md">CHANGELOG</a> · issues and pull requests are answered; replications and counter-results are especially welcome.</sub>
 </p>
 
@@ -36,8 +36,8 @@ claude mcp add --scope user zenbrain -e ZENBRAIN_DB=~/.zenbrain/memory.db -- npx
 
 | | |
 |---|---|
-| **Repository release** | [v0.6.3](https://github.com/zensation-ai/zenbrain/releases/tag/v0.6.3), 21 November 2026. |
-| **Packages** | `@zensation/algorithms` 0.6.1 · `@zensation/core` 0.6.1 · `@zensation/mcp` 0.3.2 · Claude Code plugin 0.1.4 ([manifest](./plugins/zenbrain/.claude-plugin/plugin.json)) |
+| **Repository release** | [v0.7.0](https://github.com/zensation-ai/zenbrain/releases/tag/v0.7.0), XX November 2026. |
+| **Packages** | `@zensation/algorithms` 0.6.2 · `@zensation/core` 0.7.0 · `@zensation/mcp` 0.3.3 · Claude Code plugin 0.1.4 ([manifest](./plugins/zenbrain/.claude-plugin/plugin.json)) |
 | **Research records** | Software: Zenodo [10.5281/zenodo.24426158](https://doi.org/10.5281/zenodo.24426158) (v0.6.3; all versions under [10.5281/zenodo.22260018](https://doi.org/10.5281/zenodo.22260018)) · Paper: version 9, Zenodo [10.5281/zenodo.23832288](https://doi.org/10.5281/zenodo.23832288) and [arXiv:2604.23878v4](https://arxiv.org/abs/2604.23878v4) |
 
 ---
@@ -516,9 +516,9 @@ function updateConfidenceGraph(relations: Relation[]) {
 
 These aren't toy implementations — ZenBrain's algorithms are extracted from [ZenAI](https://zensation.ai/?utm_source=github&utm_medium=readme&utm_campaign=evergreen), our first product, which ran in production in our own operation. Everything claimed here is verifiable in this repository:
 
-- **988 tests** as of v0.6.3 (539 algorithms · 164 core · 88 adapter-sqlite · 65 adapter-postgres, 12 of them against a real PostgreSQL · 104 mcp · 28 ai-sdk), all passing
+- **1015 tests** as of v0.7.0 (540 algorithms · 164 core · 105 adapter-sqlite · 68 adapter-postgres, 13 of them against a real PostgreSQL · 105 mcp · 33 ai-sdk), all passing
 - **Zero runtime dependencies** in `@zensation/algorithms` and `@zensation/core` (core depends only on algorithms) — pure TypeScript, dual ESM + CJS, tree-shakeable subpath exports
-- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.6.1` tarball published on npm
+- **Reproducible** — building from this source produces the same 153-file `@zensation/algorithms@0.6.2` tarball published on npm
 - **7-layer** memory architecture grounded in published neuroscience
 
 ## Contributing
