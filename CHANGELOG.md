@@ -95,6 +95,8 @@ layer; a failing embedding provider still gives the core block. End to end, the 
   first among the memories of the second call, and a turn stored as a procedure came back as its trigger, steps and
   outcome), and the recall of that step asks for as many more, so `limit` still holds. An earlier memory with the
   same words stays, in the first step and after it.
+  Two calls running at the same time with exactly the same user message share what the middleware keeps for it: in a
+  follow-up step one of them can then miss a memory the other stored, or get back what it stored itself.
 - `@zensation/adapter-sqlite`, `@zensation/adapter-postgres`, `@zensation/ai-sdk` and `@zensation/mcp` name their issue
   tracker (`bugs`) in `package.json`, as `@zensation/algorithms` and `@zensation/core` did.
 
