@@ -29,6 +29,12 @@ export interface SqliteAdapterConfig {
   /** Enable WAL mode for better concurrent read performance. Default: true. */
   walMode?: boolean;
 
+  /**
+   * How long a query waits for a lock another connection holds before it fails with
+   * "database is locked", in milliseconds. Default: 5000, better-sqlite3's own default.
+   */
+  busyTimeoutMs?: number;
+
   /** Optional logger. */
   logger?: { info: (...args: unknown[]) => void; warn: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
@@ -141,6 +147,10 @@ export class SqliteAdapter implements StorageAdapter {
   constructor(config: SqliteAdapterConfig = {}) {
     const filename = config.filename ?? './zenbrain.db';
     this.log = config.logger ?? { info() {}, warn() {}, error() {} };
+    const busyTimeoutMs = config.busyTimeoutMs ?? 5000;
+    if (!Number.isInteger(busyTimeoutMs) || busyTimeoutMs < 0) {
+      throw new RangeError(`SqliteAdapter: busyTimeoutMs must be a whole number of milliseconds, 0 or more, got ${config.busyTimeoutMs}`);
+    }
 
     // Ensure parent directory exists
     if (filename !== ':memory:') {
@@ -150,7 +160,7 @@ export class SqliteAdapter implements StorageAdapter {
       }
     }
 
-    this.db = new Database(filename);
+    this.db = new Database(filename, { timeout: busyTimeoutMs });
 
     // Cosine distance over pgvector-style string embeddings ("[0.1,...]").
     // translateQuery rewrites `embedding <=> $1` to this UDF, giving SQLite real
