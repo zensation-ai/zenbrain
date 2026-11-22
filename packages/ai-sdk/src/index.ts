@@ -211,10 +211,17 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         const relevant = (score: unknown) =>
           typeof score === 'number' &&
           (recallOpts.minScore === undefined ? score > 0 : score >= recallOpts.minScore);
+        // In a follow-up step the user's turn was stored after the first step, and the recall
+        // finds it: the question being asked, not a memory from an earlier session (measured on
+        // 2026-11-22, it came first among the memories of the second model call). So a memory
+        // whose content is exactly the user's message is left out there. In the first step such
+        // a memory is a real earlier one and stays.
+        const followUp = isFollowUpStep(params.prompt);
         // `content` is typed as required but assembled from whatever the storage
         // adapter returned. A row that lost it must not produce a blank bullet.
         memories = results
           .filter((r) => relevant(r.score) && typeof r.content === 'string' && r.content.length > 0)
+          .filter((r) => !(followUp && r.content === query))
           .map((r) => `- ${r.content}`);
       } catch (err) {
         report(err, 'recall');

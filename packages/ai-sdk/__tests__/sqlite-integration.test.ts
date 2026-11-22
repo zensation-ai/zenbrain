@@ -9,7 +9,7 @@
  * import: on an unsupported runtime that module does not throw, it takes the worker down.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { generateText, wrapLanguageModel } from 'ai';
+import { generateText, jsonSchema, stepCountIs, tool, wrapLanguageModel } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { MemoryCoordinator, FakeEmbeddingProvider, InMemoryCache } from '@zensation/core';
 import { zenbrainMemory } from '../src/index.js';
@@ -90,6 +90,62 @@ open('the middleware over a real SQLite store', () => {
     });
 
     expect(model.doGenerateCalls[0].prompt.filter((m) => m.role === 'system')).toEqual([]);
+  });
+
+  it('in a follow-up step of a call with tools, leaves out the turn itself, stored after the first step', async () => {
+    // Measured on 2026-11-22 with the turn stored once (0.4.1 before this filter): the second
+    // model call got "Relevant memories from earlier sessions: - Where does Anna live? - Anna
+    // moved to Hamburg in March.", its own question first, as if from an earlier session.
+    coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
+    await coordinator.store('Anna moved to Hamburg in March.');
+    const lookup = tool({
+      description: 'Look something up.',
+      inputSchema: jsonSchema<{ q: string }>({ type: 'object', properties: { q: { type: 'string' } } }),
+      execute: async () => 'Hamburg',
+    });
+    let calls = 0;
+    const model = new MockLanguageModelV4({
+      doGenerate: async () =>
+        ++calls === 1
+          ? {
+              content: [{ type: 'tool-call' as const, toolCallId: 'c1', toolName: 'lookup', input: '{"q":"Anna"}' }],
+              finishReason: { unified: 'tool-calls' as const, raw: 'tool_calls' },
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+              warnings: [],
+            }
+          : reply('Anna lives in Hamburg.'),
+    });
+
+    await generateText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator }) }),
+      prompt: 'Where does Anna live?',
+      tools: { lookup },
+      stopWhen: stepCountIs(3),
+    });
+
+    expect(model.doGenerateCalls).toHaveLength(2);
+    const memories = (step: number) =>
+      model.doGenerateCalls[step].prompt.filter((m) => m.role === 'system').map((m) => String(m.content));
+    expect(memories(0)).toEqual(['Relevant memories from earlier sessions:\n- Anna moved to Hamburg in March.']);
+    expect(memories(1)).toEqual(['Relevant memories from earlier sessions:\n- Anna moved to Hamburg in March.']);
+    // The turn is in memory, once, for the next call.
+    const facts = (await coordinator.getSemanticMemory().getRecent(10)).map((f) => f.content);
+    expect(facts.filter((f) => f === 'Where does Anna live?')).toHaveLength(1);
+  });
+
+  it('in the first step, still injects an earlier memory with the same words as the question', async () => {
+    // Control for the filter above: here a memory equal to the question is a real earlier one.
+    coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
+    await coordinator.store('Where does Anna live?');
+    const model = new MockLanguageModelV4({ doGenerate: async () => reply('In Hamburg.') });
+
+    await generateText({
+      model: wrapLanguageModel({ model, middleware: zenbrainMemory({ coordinator }) }),
+      prompt: 'Where does Anna live?',
+    });
+
+    const injected = model.doGenerateCalls[0].prompt.filter((m) => m.role === 'system').map((m) => String(m.content));
+    expect(injected).toEqual(['Relevant memories from earlier sessions:\n- Where does Anna live?']);
   });
 
   it('actually persists the turn, not just the prompt', async () => {
