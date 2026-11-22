@@ -398,9 +398,15 @@ confidence, procedures their success rate, core blocks count as 1, results witho
 the fallbacks described below).
 `core: 'matching'` returns only the core blocks that share a content word with the query (stopwords do not
 count); the default `'always'` adds every core block to the candidates, where the blocks compete for `limit`
-like any result (measured: 12 blocks and `limit: 10` gave 9 blocks and 1 hit). Every result carries the `id` of
+like any result (measured: 12 blocks and `limit: 10` gave 9 blocks and the 1 hit when the hit scored 0.8, but 10
+blocks and no hit when it scored 0.13, below the blocks' 0.5). Every result carries the `id` of
 the memory in its layer, next to `layer`; a result that deduplication kept over others names them in
 `duplicates` (`{ id, layer }[]`, present only when there were any).
+A layer whose search fails at the storage (a locked database, a missing table, a lost connection) makes `recall()`
+throw once every requested layer has been searched: an `AggregateError` whose `errors` hold the error of each such
+layer, in the order episodic, semantic, procedural, core, and whose message names those layers and the first error.
+Until 0.7.0 each layer caught its error, and recall returned what the other layers found, or nothing. A failing
+embedding provider is still tolerated: the layers that need the query's embedding contribute nothing.
 
 ##### How scores are computed, per layer
 
@@ -436,9 +442,10 @@ The cascade (`cascade: true`, the default since 0.6.0) follows the edge `consoli
 | a procedure or core block | its working-memory copy |
 | a working-memory result | nothing: the slot is a copy, and forgetting it does not reach into long-term memory |
 
-The edge is the episode's `consolidatedInto` mark, written by `consolidate()` since 0.4.8 and found in existing
-databases without a schema change. An episode promoted before 0.4.8 is linked only once a later `consolidate()`
-finds its verbatim fact (among the 100 most recent episodes); one an LLM distilled before 0.4.8 has no edge. A fact
+The edge is the episode's `consolidatedInto` mark, written by `consolidate()` since release v0.4.8 (core 0.3.4) and
+found in existing databases without a schema change. An episode promoted before that release is linked only once a
+later `consolidate()` finds its verbatim fact (among the 100 most recent episodes); one an LLM distilled before it has
+no edge. A fact
 an LLM distilled since then is linked like any other — the cascade follows the recorded edge and does not search for
 memories that say something similar. `consolidate()` links a second episode with the same text to the fact the
 first one became instead of copying it again (also a fact stored with source `'consolidation'` and that exact text):
