@@ -47,7 +47,7 @@
   },
   "homepage": "https://github.com/zensation-ai/zenbrain/tree/main/packages/adapters/sqlite#readme",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.14"
   },
   "dependencies": {
     "@types/better-sqlite3": "^9.6.0",

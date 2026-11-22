@@ -2,7 +2,7 @@
  * @zensation/adapter-sqlite
  *
  * SQLite storage adapter for ZenBrain.
- * Zero-config, file-based. Perfect for development, testing, and single-user deployments.
+ * Zero-config, file-based. Suited to development, testing and single-user deployments.
  *
  * Uses better-sqlite3 for synchronous, fast SQLite access.
  * Translates PostgreSQL-style $1/$2 placeholders to SQLite ?1/?2 placeholders.
@@ -13,11 +13,51 @@
  * scan per query (no ANN index) — fine for development, testing and single-user
  * data volumes; use the PostgreSQL adapter for large production workloads.
  */
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import type { StorageAdapter, QueryResult } from '@zensation/core';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { createRequire } from 'node:module';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
+
+/** Lowest Node this package runs on, mirroring `engines.node` in package.json. */
+const MIN_NODE = { major: 22, minor: 14 } as const;
+
+/**
+ * Why the running Node cannot load the SQLite driver, or undefined when it can.
+ *
+ * better-sqlite3 13 is built against Node-API 10 (`NAPI_VERSION=10` in its binding.gyp), which
+ * Node 22 has from 22.14.0 on. Measured in the CI job `node-floor` on 2026-11-21: on 22.0.0,
+ * 22.12.0 and 22.13.0 its native module loaded and the first `new Database()` ended in a
+ * segmentation fault, also after `npm rebuild` on that version, with no message at all.
+ */
+function unsupportedNodeMessage(version: string): string | undefined {
+  const [major, minor] = version.replace(/^v/, '').split('.').map(Number);
+  const supported =
+    Number.isFinite(major) &&
+    Number.isFinite(minor) &&
+    (major > MIN_NODE.major || (major === MIN_NODE.major && minor >= MIN_NODE.minor));
+  if (supported) return undefined;
+  return (
+    `@zensation/adapter-sqlite needs Node ${MIN_NODE.major}.${MIN_NODE.minor} or newer — this is Node ${version}. ` +
+    `Its SQLite driver, better-sqlite3 13, is built for Node-API 10, which Node 22 has from ` +
+    `${MIN_NODE.major}.${MIN_NODE.minor} on; on an older Node it crashes the process instead of failing. Upgrade Node.`
+  );
+}
+
+let driver: typeof Database | undefined;
+
+/**
+ * better-sqlite3, loaded the first time an adapter is constructed, after the Node check. A
+ * static import would load its native module when this package is imported, before any check
+ * in this file could run: in ES modules the imports are evaluated before the module body.
+ */
+function sqliteDriver(): typeof Database {
+  const problem = unsupportedNodeMessage(process.version);
+  if (problem !== undefined) throw new Error(problem);
+  driver ??= createRequire(import.meta.url)('better-sqlite3') as typeof Database;
+  return driver;
+}
 
 export interface SqliteAdapterConfig {
   /**
@@ -186,6 +226,7 @@ export class SqliteAdapter implements StorageAdapter {
   private savepoints = 0;
 
   constructor(config: SqliteAdapterConfig = {}) {
+    const Driver = sqliteDriver();
     const filename = config.filename ?? './zenbrain.db';
     this.log = config.logger ?? { info() {}, warn() {}, error() {} };
     const busyTimeoutMs = config.busyTimeoutMs ?? 5000;
@@ -201,7 +242,7 @@ export class SqliteAdapter implements StorageAdapter {
       }
     }
 
-    this.db = new Database(filename, { timeout: busyTimeoutMs });
+    this.db = new Driver(filename, { timeout: busyTimeoutMs });
 
     // Cosine distance over pgvector-style string embeddings ("[0.1,...]").
     // translateQuery rewrites `embedding <=> $1` to this UDF, giving SQLite real

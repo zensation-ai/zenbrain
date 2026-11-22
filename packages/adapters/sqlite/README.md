@@ -8,7 +8,10 @@
 npm install @zensation/core @zensation/adapter-sqlite
 ```
 
-This package is ESM. `require()` loads it on Node 22.12 and later; on Node 22.0–22.11, use `import`.
+Requires **Node.js 22.14 or newer**. The SQLite driver underneath, better-sqlite3 13, is built for Node-API 10,
+which Node 22 has from 22.14 on; on Node 22.0 to 22.13 it crashes the process, so the adapter checks the version
+when it is constructed and stops there with a message. The package is ESM; `require()` loads it as well, on every
+Node it supports.
 
 ```typescript
 import { SemanticMemory } from '@zensation/core';

@@ -161,6 +161,9 @@ jobs:
   # `dist`), switch to the version under test, rebuild better-sqlite3 there, then run.
   # On 22.13.0 the server must refuse to start with a message, not crash; on 22.14.0 it must
   # serve (stdio, five tools, a memory stored and recalled) and load by `import` and `require()`.
+  # `@zensation/adapter-sqlite` has the same floor and, since 0.2.9, its own check: it loads
+  # better-sqlite3 in its constructor, after the check, so on 22.13.0 importing it must work and
+  # constructing it must end in its message; on 22.14.0 it must answer through both entry ways.
   node-floor:
     runs-on: ubuntu-latest
     strategy:
@@ -194,6 +197,13 @@ jobs:
           out=$(printf '' | node packages/mcp/dist/index.js 2>&1); code=$?
           echo "exit=$code"; echo "$out"
           test "$code" = 1 && echo "$out" | grep -q "needs Node 22.14 or newer"
+      - name: Below the floor the SQLite adapter imports, and refuses to construct with a message
+        if: matrix.node-version == '22.13.0'
+        run: |
+          node --input-type=module -e "
+            const { SqliteAdapter } = await import('@zensation/adapter-sqlite');
+            try { new SqliteAdapter({ filename: ':memory:' }); console.log('constructed on', process.version); process.exit(1); }
+            catch (e) { console.log(e.message); if (!/needs Node 22[.]14 or newer/.test(e.message)) process.exit(1); }"
       - name: better-sqlite3 loads and answers
         if: matrix.node-version == '22.14.0'
         run: node -e "const D = require('better-sqlite3'); console.log(new D(':memory:').prepare('select sqlite_version() v').get(), process.version)"
@@ -205,6 +215,11 @@ jobs:
         run: |
           node --input-type=module -e "await import('@zensation/mcp'); await import('@zensation/mcp/server'); console.log('import ok on', process.version)"
           node -e "require('@zensation/mcp'); require('@zensation/mcp/server'); console.log('require ok on', process.version)"
+      - name: The SQLite adapter answers through import() and require()
+        if: matrix.node-version == '22.14.0'
+        run: |
+          node --input-type=module -e "const { SqliteAdapter } = await import('@zensation/adapter-sqlite'); const a = new SqliteAdapter({ filename: ':memory:' }); console.log((await a.query('SELECT sqlite_version() AS v')).rows[0], 'import on', process.version)"
+          node -e "const { SqliteAdapter } = require('@zensation/adapter-sqlite'); const a = new SqliteAdapter({ filename: ':memory:' }); a.query('SELECT sqlite_version() AS v').then((r) => console.log(r.rows[0], 'require on', process.version))"
 
   # The unit tests of adapter-postgres mock `pg`, so they never see what PostgreSQL itself
   # decides: the schema in sql/001_init.sql, uuid and JSONB columns, pgvector. Until this job
