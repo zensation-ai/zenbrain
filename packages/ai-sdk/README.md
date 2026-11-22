@@ -155,7 +155,9 @@ suits your application.
   memories by the ids `store()` returned, also when it comes back in another form, such as a
   procedure's trigger, steps and outcome; the recall asks for that many more, so `limit`
   memories still come in when there are enough, and an earlier memory with the same words
-  stays. That works within one middleware instance in one process. A follow-up step that
+  stays. That works within one middleware instance in one process. An instance keeps a record
+  for each of its last 100 turns, also for a turn without tool steps, until newer turns push it
+  out; a follow-up step whose record is gone falls back as well. A follow-up step that
   another instance or process runs, as when the result of a client-side tool comes as a request
   of its own, falls back to leaving out a memory whose text is exactly the user's message: a
   turn stored as a procedure comes back in another form and is not left out, and an earlier
