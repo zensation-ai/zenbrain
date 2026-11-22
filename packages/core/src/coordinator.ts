@@ -883,10 +883,19 @@ export class MemoryCoordinator {
    * first; two English sentences sharing their first 50 characters did the
    * same; "Über" became "ber". A block written under such a label and stored
    * again verbatim keeps its label instead of gaining a twin.
+   *
+   * The hash has 32 bits, so two different memories with the same first words
+   * can share it: measured on 2026-11-22 against 0.6.1, a pair found among
+   * 64,207 random endings got one label, and the second store overwrote the
+   * first. So the label is checked against the blocks already stored: a block
+   * with this content keeps the label it has, under the plain label or one with
+   * a suffix; otherwise the memory takes the plain label, or `-2`, `-3` … after
+   * it while a different memory holds the label.
    */
   private async coreLabelFor(content: string): Promise<string> {
+    const blocks = await this.core.getBlocks();
     const legacy = content.substring(0, 50).replace(/[^a-zA-Z0-9_ -]/g, '').trim();
-    if ((await this.core.getBlock(legacy))?.content === content) return legacy;
+    if (blocks.some(b => b.label === legacy && b.content === content)) return legacy;
 
     const words = content
       .normalize('NFC')
@@ -895,7 +904,16 @@ export class MemoryCoordinator {
       .trim()
       .slice(0, 40)
       .trim();
-    return `${words} #${fnv1a(content)}`;
+    const base = `${words} #${fnv1a(content)}`;
+    const isOwn = (label: string) =>
+      label === base || (label.startsWith(`${base}-`) && /^[1-9][0-9]*$/.test(label.slice(base.length + 1)));
+    const same = blocks.find(b => b.content === content && isOwn(b.label));
+    if (same) return same.label;
+
+    const taken = new Set(blocks.map(b => b.label));
+    let label = base;
+    for (let n = 2; taken.has(label); n++) label = `${base}-${n}`;
+    return label;
   }
 
   /**
