@@ -207,7 +207,8 @@ async function main(): Promise<void> {
   });
 
   // A store file that exists but cannot be opened must not look like an empty
-  // memory: the coordinator's recall paths catch storage errors, so check first.
+  // memory, so every tool checks it before it runs. Since core 0.7.0 recall throws a
+  // storage error itself; before, its recall paths caught it and answered from nothing.
   const server = createZenBrainServer(
     coordinator,
     storage instanceof DeferredStore ? { checkStorage: () => (storage as DeferredStore).ensureReadable() } : {},

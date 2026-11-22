@@ -7,8 +7,8 @@
  * These fields are what a reader of an npm page and every tool that reads package metadata
  * get; nothing else checked them. Read on 2026-11-22 from the tarballs on npm:
  * `@zensation/adapter-sqlite` 0.2.8, `@zensation/adapter-postgres` 0.2.9 and
- * `@zensation/ai-sdk` 0.4.0 had no `bugs`, so their pages named no issue tracker, while the
- * other three did.
+ * `@zensation/ai-sdk` 0.4.0 had no `bugs`, so their pages named no issue tracker, and this
+ * check found that `@zensation/mcp` had none either; only the other two named theirs.
  *
  *   node scripts/verify-package-metadata.mjs
  *

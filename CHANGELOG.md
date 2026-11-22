@@ -41,13 +41,16 @@ no longer hides a storage that could not be read; it can still mean that nothing
 Code that calls `recall()` catches the error where an empty result was enough before and decides there: retry when
 the storage is busy, report it, or search the other layers by passing `layers` without the one that fails.
 `@zensation/ai-sdk` already catches it (its `onError` sees it, and the call goes through without memories), and the
-MCP server returns it as the tool's error.
+MCP server returns it as the tool's error. The published `@zensation/adapter-sqlite` 0.2.8,
+`@zensation/adapter-postgres` 0.2.9 and `@zensation/ai-sdk` 0.4.0 admit core only up to 0.6 in their peer ranges, so
+they move together with core, to 0.2.9, 0.2.10 and 0.4.1.
 
 Tests on SQLite: a locked store gives an `AggregateError` with the four errors, and recall works again once the lock
 is gone (a new adapter option, `busyTimeoutMs`, keeps the test fast); a missing table fails the recall for that one
 layer; a failing embedding provider still gives the core block. End to end, the built MCP server over stdio returns
 `isError` with "database is locked" from `zenbrain_recall` on a locked store, where 0.3.2 returned `count: 0`
-(measured: after 21.5 seconds, the server's busy timeout of 5 seconds per query).
+without an error (measured on 21 November 2026, after 20.8 seconds); 0.3.3 returns the error after the same wait
+(measured on 22 November 2026, after 21.5 seconds), about 5 seconds of busy timeout per query.
 
 ### Fixed
 
