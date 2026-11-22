@@ -22,7 +22,8 @@ npm install @zensation/core @zensation/adapter-sqlite
 ```
 
 > **Requires Node.js 22 or newer, and 22.14 or newer with `@zensation/adapter-sqlite`** as installed
-> above: its SQLite driver, better-sqlite3 13, is built for Node-API 10, which Node 22 has from 22.14 on.
+> above (on Node 23, 23.6 or newer): its SQLite driver, better-sqlite3 13, is built for Node-API 10, which Node has
+> from 22.14 and 23.6 on.
 > On Node 20 or older, npm silently installs the last release that
 > allowed older Node (`@zensation/core@0.2.2` with `@zensation/algorithms@0.3.4`) instead of the current
 > one, and the example below stops at `forget()`. That looks like a broken package but is a platform

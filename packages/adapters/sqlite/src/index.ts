@@ -20,28 +20,27 @@ import { createRequire } from 'node:module';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 
-/** Lowest Node this package runs on, mirroring `engines.node` in package.json. */
-const MIN_NODE = { major: 22, minor: 14 } as const;
-
 /**
- * Why the running Node cannot load the SQLite driver, or undefined when it can.
+ * Why the running Node cannot load the SQLite driver, or undefined when it can. Mirrors
+ * `engines.node` in package.json, `^22.14.0 || >=23.6.0`.
  *
  * better-sqlite3 13 is built against Node-API 10 (`NAPI_VERSION=10` in its binding.gyp), which
- * Node 22 has from 22.14.0 on. Measured in the CI job `node-floor` on 2026-11-21: on 22.0.0,
- * 22.12.0 and 22.13.0 its native module loaded and the first `new Database()` ended in a
- * segmentation fault, also after `npm rebuild` on that version, with no message at all.
+ * Node has from 22.14.0 and, on Node 23, from 23.6.0 on (Node-API version matrix in the Node.js
+ * documentation, nodejs.org/api/n-api.html). Measured in the CI job `node-floor` on 2026-11-21:
+ * on 22.0.0, 22.12.0 and 22.13.0 its native module loaded and the first `new Database()` ended in
+ * a segmentation fault, also after `npm rebuild` on that version, with no message at all.
  */
 function unsupportedNodeMessage(version: string): string | undefined {
   const [major, minor] = version.replace(/^v/, '').split('.').map(Number);
   const supported =
     Number.isFinite(major) &&
     Number.isFinite(minor) &&
-    (major > MIN_NODE.major || (major === MIN_NODE.major && minor >= MIN_NODE.minor));
+    (major > 23 || (major === 23 && minor >= 6) || (major === 22 && minor >= 14));
   if (supported) return undefined;
   return (
-    `@zensation/adapter-sqlite needs Node ${MIN_NODE.major}.${MIN_NODE.minor} or newer — this is Node ${version}. ` +
-    `Its SQLite driver, better-sqlite3 13, is built for Node-API 10, which Node 22 has from ` +
-    `${MIN_NODE.major}.${MIN_NODE.minor} on; on an older Node it crashes the process instead of failing. Upgrade Node.`
+    `@zensation/adapter-sqlite needs Node 22.14 or newer (on Node 23, 23.6 or newer) — this is Node ${version}. ` +
+    `Its SQLite driver, better-sqlite3 13, is built for Node-API 10, which Node has from 22.14 and 23.6 on; ` +
+    `on an older Node it crashes the process instead of failing. Upgrade Node.`
   );
 }
 

@@ -6,7 +6,7 @@ For complete runnable programs see [`examples/`](../examples); for the full surf
 [API Reference](./api-reference.md). Everything below uses only exported API.
 
 > **Node.js 22+** — every published package declares `engines.node >= 22` since `0.4.0`; `@zensation/adapter-sqlite`
-> and `@zensation/mcp` need 22.14 or newer.
+> and `@zensation/mcp` need 22.14 or newer, on Node 23 23.6 or newer.
 
 ---
 

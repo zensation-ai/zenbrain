@@ -50,7 +50,7 @@
     "url": "https://github.com/zensation-ai/zenbrain/issues"
   },
   "engines": {
-    "node": ">=22.14"
+    "node": "^22.14.0 || >=23.6.0"
   },
   "dependencies": {
     "@types/better-sqlite3": "^9.6.0",

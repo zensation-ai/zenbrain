@@ -13,7 +13,7 @@ npm install @zensation/ai-sdk @zensation/core @zensation/adapter-sqlite ai @ai-s
 ```
 
 This package is ESM. `require()` loads it on Node 22.12 and later; on Node 22.0–22.11, use `import`.
-`@zensation/adapter-sqlite`, which the example uses, needs Node 22.14 or newer.
+`@zensation/adapter-sqlite`, which the example uses, needs Node 22.14 or newer (on Node 23, 23.6 or newer).
 
 ```typescript
 import { generateText, wrapLanguageModel } from 'ai';

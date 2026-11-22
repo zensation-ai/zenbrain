@@ -48,7 +48,8 @@ describe('the Node floor of the SQLite adapter', () => {
   });
 
   it('below 22.14 the import loads no native code, and the constructor refuses with a message', () => {
-    for (const version of ['v22.13.0', 'v22.12.0', 'v22.0.0', 'v20.20.2']) {
+    // Node-API 10 came with 22.14.0 and 23.6.0 (Node-API version matrix, nodejs.org/api/n-api.html).
+    for (const version of ['v22.13.0', 'v22.12.0', 'v22.0.0', 'v20.20.2', 'v23.0.0', 'v23.5.0']) {
       const r = probe(version);
       expect(r.loadedOnImport, version).toBe(false);
       expect(r.error, version).toMatch(/needs Node 22\.14 or newer/);
@@ -58,7 +59,7 @@ describe('the Node floor of the SQLite adapter', () => {
   });
 
   it('on a supported Node the constructor loads better-sqlite3 and the adapter works', () => {
-    for (const version of [undefined, 'v22.14.0', 'v24.3.1']) {
+    for (const version of [undefined, 'v22.14.0', 'v23.6.0', 'v24.3.1']) {
       const r = probe(version);
       expect(r.loadedOnImport, String(version)).toBe(false);
       expect(r.error, String(version)).toBeUndefined();
@@ -69,6 +70,6 @@ describe('the Node floor of the SQLite adapter', () => {
 
   it('declares the same floor in engines', () => {
     const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { engines: { node: string } };
-    expect(pkg.engines.node).toBe('>=22.14');
+    expect(pkg.engines.node).toBe('^22.14.0 || >=23.6.0');
   });
 });

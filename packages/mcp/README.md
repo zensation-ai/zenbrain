@@ -26,8 +26,9 @@ local file.
 
 ## Install
 
-Requires **Node.js 22.14 or newer**. On Node 22.0 to 22.13 the SQLite driver underneath (better-sqlite3 13, built
-for Node-API 10) crashes, so the server refuses to start there and says why.
+Requires **Node.js 22.14 or newer** (on Node 23, 23.6 or newer). On Node 22.0 to 22.13 and 23.0 to 23.5 the SQLite
+driver underneath (better-sqlite3 13, built for Node-API 10) crashes, so the server refuses to start there and says
+why.
 
 ```bash
 npm install -g @zensation/mcp

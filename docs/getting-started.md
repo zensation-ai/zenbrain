@@ -3,8 +3,8 @@
 ## Requirements
 
 **Node.js 22 or newer.** Every published package declares `engines.node >= 22` since `0.4.0`;
-`@zensation/adapter-sqlite` (since 0.2.9) and `@zensation/mcp` (since 0.3.2) declare `>= 22.14` and stop with a
-message below it, because their SQLite driver crashes on Node 22.0 to 22.13. On an older
+`@zensation/adapter-sqlite` and `@zensation/mcp` declare `^22.14.0 || >=23.6.0` and stop with a message below it,
+because their SQLite driver crashes on Node 22.0 to 22.13 and 23.0 to 23.5. On an older
 Node, npm resolves to the last compatible versions instead of failing loudly — so if you end up with
 `@zensation/algorithms@0.3.4` rather than `0.4.0`, check your Node version first.
 

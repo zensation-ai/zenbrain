@@ -16,10 +16,10 @@ minor version (see *Compatibility history* in `docs/ROADMAP.md`). The Claude Cod
 |---|---|---|---|
 | `@zensation/core` | 0.6.1 | 0.7.0 | `recall()` throws an `AggregateError` when a layer cannot read the storage (breaking); core memories whose labels collide; episode metadata as an object on SQLite |
 | `@zensation/algorithms` | 0.6.1 | 0.6.2 | the archive and review thresholds documented as "at or below"; README |
-| `@zensation/adapter-sqlite` | 0.2.8 | 0.2.9 | `transaction()` on its one connection; Node 22.14 or newer, checked with a message; `busyTimeoutMs`; peer range admits core 0.7 |
+| `@zensation/adapter-sqlite` | 0.2.8 | 0.2.9 | `transaction()` on its one connection; Node 22.14 or newer (23.6 on Node 23), checked with a message; `busyTimeoutMs`; peer range admits core 0.7 |
 | `@zensation/adapter-postgres` | 0.2.9 | 0.2.10 | a connection that dies while in use no longer ends the process; README; peer range admits core 0.7 |
 | `@zensation/ai-sdk` | 0.4.0 | 0.4.1 | a call with tool steps stores the user's turn once and keeps it out of the later steps' memories; README; peer range admits core 0.7 |
-| `@zensation/mcp` | 0.3.2 | 0.3.3 | core `^0.7.0`, so `zenbrain_recall` reports a locked store as an error; adapter-sqlite `^0.2.9` |
+| `@zensation/mcp` | 0.3.2 | 0.3.3 | core `^0.7.0`, so `zenbrain_recall` reports a locked store as an error; adapter-sqlite `^0.2.9`; Node 23.0 to 23.5 refused like 22.0 to 22.13 |
 
 ### Breaking — `recall()` throws when a layer cannot read the storage (`@zensation/core`)
 
@@ -74,14 +74,18 @@ without an error (measured on 21 November 2026, after 20.8 seconds); 0.3.3 retur
   reaches the transaction instead of waiting for it, as `@zensation/mcp`'s deferred store does. When its callback
   ends, a transaction still waits for what is queued on it at that moment, such as a nested transaction the callback
   did not wait for; what the callback issues later is no longer part of the transaction.
-- `@zensation/adapter-sqlite` needs Node 22.14 or newer, as `@zensation/mcp` has since 0.3.2: `engines` says
-  `>=22.14`. better-sqlite3 13 is built for Node-API 10, which Node 22 has from 22.14 on; on 22.0.0, 22.12.0 and
-  22.13.0 its first `new Database()` ended in a segmentation fault (CI job `node-floor`, 21 November 2026). The adapter
-  imported better-sqlite3 when it was imported itself, before any check could run. It now loads it in its constructor,
-  after a check of the Node version, and below 22.14 the constructor throws "@zensation/adapter-sqlite needs Node 22.14
-  or newer — this is Node v22.13.0. …" instead; importing the adapter loads no native code. Tested with the version set
-  in a child process. The CI job `node-floor` now also runs the adapter on 22.13.0 (the message) and on 22.14.0
-  (`import` and `require()`).
+- `@zensation/adapter-sqlite` needs Node 22.14 or newer, and on Node 23 23.6 or newer: `engines` says
+  `^22.14.0 || >=23.6.0`. better-sqlite3 13 is built for Node-API 10, which Node has from 22.14.0 and 23.6.0 on (the
+  Node-API version matrix of the Node.js documentation); on 22.0.0, 22.12.0 and 22.13.0 its first `new Database()`
+  ended in a segmentation fault (CI job `node-floor`, 21 November 2026). The adapter imported better-sqlite3 when it
+  was imported itself, before any check could run. It now loads it in its constructor, after a check of the Node
+  version, and below the floor the constructor throws "@zensation/adapter-sqlite needs Node 22.14 or newer (on Node
+  23, 23.6 or newer) — this is Node v22.13.0. …" instead; importing the adapter loads no native code. Tested with the
+  version set in a child process, for 22.0 to 22.13, 23.0 and 23.5. The CI job `node-floor` now also runs the adapter
+  on 22.13.0 (the message) and on 22.14.0 (`import` and `require()`).
+- `@zensation/mcp` 0.3.2 let Node 23.0 to 23.5 through its start check, although Node-API 10 came only with 23.6.0.
+  Its check and its `engines` now say `^22.14.0 || >=23.6.0`, like the SQLite adapter's, with tests for 23.0, 23.5
+  and 23.6.
 - `@zensation/adapter-postgres`: a connection that died while the adapter used it ended the Node process. Measured on
   22 November 2026 against 0.2.9: a server restart during `pg_sleep` ended the process in 4 of 4 `query()` runs, with
   "Connection terminated unexpectedly" as an unhandled `error` event. `query()` waited before retrying while it still
