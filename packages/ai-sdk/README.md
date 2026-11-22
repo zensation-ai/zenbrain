@@ -155,6 +155,9 @@ suits your application.
   memories by the ids `store()` returned, also when it comes back in another form, such as a
   procedure's trigger, steps and outcome; the recall asks for that many more, so `limit`
   memories still come in when there are enough. An earlier memory with the same words stays.
+  Two calls running at the same time with exactly the same user message share what the
+  middleware keeps for it: in a follow-up step one of them can then miss a memory the other
+  stored, or get back what it stored itself.
 
 ## Streaming
 
