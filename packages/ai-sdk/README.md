@@ -154,8 +154,12 @@ suits your application.
   step on, what the call stored (the turn, and replies when they are stored) is left out of the
   memories by the ids `store()` returned, also when it comes back in another form, such as a
   procedure's trigger, steps and outcome; the recall asks for that many more, so `limit`
-  memories still come in when there are enough. An earlier memory with the same words stays.
-  Two calls running at the same time with exactly the same user message share what the
+  memories still come in when there are enough, and an earlier memory with the same words
+  stays. That works within one middleware instance in one process. A follow-up step that
+  another instance or process runs, as when the result of a client-side tool comes as a request
+  of its own, falls back to leaving out a memory whose text is exactly the user's message: a
+  turn stored as a procedure comes back in another form and is not left out, and an earlier
+  memory with the same words is. Two calls running at the same time with exactly the same user message share what the
   middleware keeps for it: in a follow-up step one of them can then miss a memory the other
   stored, or get back what it stored itself. A first model call whose prompt already has tool
   results after the user's last message, for instance results the application added itself,

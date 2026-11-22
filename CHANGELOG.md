@@ -18,7 +18,7 @@ minor version (see *Compatibility history* in `docs/ROADMAP.md`). The Claude Cod
 | `@zensation/algorithms` | 0.6.1 | 0.6.2 | the archive and review thresholds documented as "at or below"; README |
 | `@zensation/adapter-sqlite` | 0.2.8 | 0.2.9 | `transaction()` on its one connection; Node 22.14 or newer (23.6 on Node 23), checked with a message; `busyTimeoutMs`; peer range admits core 0.7 |
 | `@zensation/adapter-postgres` | 0.2.9 | 0.2.10 | a connection that dies while in use no longer ends the process; README; peer range admits core 0.7 |
-| `@zensation/ai-sdk` | 0.4.0 | 0.4.1 | a call with tool steps stores the user's turn once and keeps it out of the later steps' memories; README; peer range admits core 0.7 |
+| `@zensation/ai-sdk` | 0.4.0 | 0.4.1 | a call with tool steps stores the user's turn once and keeps it out of the later steps' memories, by its ids within one middleware instance, by its text otherwise; README; peer range admits core 0.7 |
 | `@zensation/mcp` | 0.3.2 | 0.3.3 | core `^0.7.0`, so `zenbrain_recall` reports a locked store as an error; adapter-sqlite `^0.2.9`; Node 23.0 to 23.5 refused like 22.0 to 22.13 |
 
 ### Breaking — `recall()` throws when a layer cannot read the storage (`@zensation/core`)
@@ -103,7 +103,10 @@ without an error (measured on 21 November 2026, after 20.8 seconds); 0.3.3 retur
   what the call stored is left out of them by the ids `store()` returned (measured with the turn stored once: it came
   first among the memories of the second call, and a turn stored as a procedure came back as its trigger, steps and
   outcome), and the recall of that step asks for as many more, so `limit` still holds. An earlier memory with the
-  same words stays, in the first step and after it.
+  same words stays, in the first step and after it. That works within one middleware instance in one process. A
+  follow-up step that another instance or process runs, as when the result of a client-side tool comes as a request
+  of its own, falls back to leaving out a memory whose text is exactly the user's message, which does not catch a
+  turn stored as a procedure and does take out an earlier memory with the same words.
   Two calls running at the same time with exactly the same user message share what the middleware keeps for it: in a
   follow-up step one of them can then miss a memory the other stored, or get back what it stored itself.
 - `@zensation/adapter-sqlite`, `@zensation/adapter-postgres`, `@zensation/ai-sdk` and `@zensation/mcp` name their issue

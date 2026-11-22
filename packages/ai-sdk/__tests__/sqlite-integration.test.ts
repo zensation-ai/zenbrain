@@ -218,6 +218,45 @@ open('the middleware over a real SQLite store', () => {
     expect(memoriesOf(model, 1)).toEqual(['Relevant memories from earlier sessions:\n- Where does Anna live?']);
   });
 
+  it('in a follow-up step another instance runs, leaves out the turn by its text', async () => {
+    // A client-side tool: the first request ends with the tool call, and the tool result comes
+    // back as a request of its own, which may reach another instance or process. That instance
+    // does not know what the first one stored, so it falls back to leaving out a memory whose text
+    // is exactly the user's message.
+    coordinator = new MemoryCoordinator({ storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }) });
+    await coordinator.store('Anna moved to Hamburg in March.');
+    const lookup = tool({
+      description: 'Look something up.',
+      inputSchema: jsonSchema<{ q: string }>({ type: 'object', properties: { q: { type: 'string' } } }),
+    });
+    const first = new MockLanguageModelV4({
+      doGenerate: async () => ({
+        content: [{ type: 'tool-call' as const, toolCallId: 'c1', toolName: 'lookup', input: '{"q":"Anna"}' }],
+        finishReason: { unified: 'tool-calls' as const, raw: 'tool_calls' },
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        warnings: [],
+      }),
+    });
+    await generateText({
+      model: wrapLanguageModel({ model: first, middleware: zenbrainMemory({ coordinator }) }),
+      prompt: 'Where does Anna live?',
+      tools: { lookup },
+    });
+
+    const second = new MockLanguageModelV4({ doGenerate: async () => reply('In Hamburg.') });
+    await generateText({
+      model: wrapLanguageModel({ model: second, middleware: zenbrainMemory({ coordinator }) }),
+      messages: [
+        { role: 'user', content: 'Where does Anna live?' },
+        { role: 'assistant', content: [{ type: 'tool-call', toolCallId: 'c1', toolName: 'lookup', input: { q: 'Anna' } }] },
+        { role: 'tool', content: [{ type: 'tool-result', toolCallId: 'c1', toolName: 'lookup', output: { type: 'text', value: 'Hamburg' } }] },
+      ],
+      tools: { lookup },
+    });
+
+    expect(memoriesOf(second, 0)).toEqual(['Relevant memories from earlier sessions:\n- Anna moved to Hamburg in March.']);
+  });
+
   it('actually persists the turn, not just the prompt', async () => {
     coordinator = new MemoryCoordinator({
       storage: new sqlite!.SqliteAdapter({ filename: ':memory:' }),

@@ -241,13 +241,18 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
       // In a follow-up step the turn was stored after the first step, and the recall finds it:
       // the question being asked, not a memory from an earlier session (measured on 2026-11-22,
       // it came first among the memories of the second model call). What the turn stored is left
-      // out by its ids, and the recall asks for that many more, so `limit` still holds.
-      const turn = isFollowUpStep(params.prompt) ? ownTurns.get(query) : undefined;
+      // out by its ids, and the recall asks for that many more, so `limit` still holds. A follow-up
+      // step this instance has no record for (another instance or process, a client-side tool
+      // whose result comes as a request of its own, an entry pushed out) falls back to leaving out
+      // a memory whose text is exactly the user's message; that misses a turn stored as a
+      // procedure, which comes back as its trigger, steps and outcome.
+      const followUp = isFollowUpStep(params.prompt);
+      const turn = followUp ? ownTurns.get(query) : undefined;
       const limit = recallOpts.limit ?? DEFAULT_LIMIT;
 
       let memories: string[];
       try {
-        const search: RecallOptions = { limit: limit + (turn?.ids.size ?? 0) };
+        const search: RecallOptions = { limit: limit + (turn ? turn.ids.size : followUp ? 1 : 0) };
         if (recallOpts.layers) search.layers = recallOpts.layers;
         if (recallOpts.minConfidence !== undefined) search.minConfidence = recallOpts.minConfidence;
         if (recallOpts.core !== undefined) search.core = recallOpts.core;
@@ -262,7 +267,7 @@ export function zenbrainMemory(options: ZenBrainMemoryOptions): LanguageModelV4M
         // adapter returned. A row that lost it must not produce a blank bullet.
         memories = results
           .filter((r) => relevant(r.score) && typeof r.content === 'string' && r.content.length > 0)
-          .filter((r) => !(turn && storedByTurn(r, turn)))
+          .filter((r) => !(turn ? storedByTurn(r, turn) : followUp && r.content === query))
           .slice(0, limit)
           .map((r) => `- ${r.content}`);
       } catch (err) {
