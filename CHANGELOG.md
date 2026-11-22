@@ -81,7 +81,8 @@ without an error (measured on 21 November 2026, after 20.8 seconds); 0.3.3 retur
   was imported itself, before any check could run. It now loads it in its constructor, after a check of the Node
   version, and below the floor the constructor throws "@zensation/adapter-sqlite needs Node 22.14 or newer (on Node
   23, 23.6 or newer) — this is Node v22.13.0. …" instead; importing the adapter loads no native code. Tested with the
-  version set in a child process, for 22.0 to 22.13, 23.0 and 23.5. The CI job `node-floor` now also runs the adapter
+  version set in a child process: refused for 20.20.2, 22.0.0, 22.12.0, 22.13.0, 23.0.0 and 23.5.0, accepted for
+  22.14.0, 23.6.0 and 24.3.1. The CI job `node-floor` now also runs the adapter
   on 22.13.0 (the message) and on 22.14.0 (`import` and `require()`).
 - `@zensation/mcp` 0.3.2 let Node 23.0 to 23.5 through its start check, although Node-API 10 came only with 23.6.0.
   Its check and its `engines` now say `^22.14.0 || >=23.6.0`, like the SQLite adapter's, with tests for 23.0, 23.5
@@ -94,7 +95,9 @@ without an error (measured on 21 November 2026, after 20.8 seconds); 0.3.3 retur
   retry, and `transaction()` gives a client whose connection is gone back with the error instead of sending ROLLBACK.
   A new test in the job `postgres` ends the adapter's backend with `pg_terminate_backend` during `pg_sleep`, which
   fails the query with the same 57P01 as a restart: `query()` retries and answers, `transaction()` rejects with
-  57P01, and the process lives.
+  57P01, and the process lives. `query()` also gives a client back with the error when its connection is gone but the
+  error is not one it retries (57P02, or "Connection terminated unexpectedly"), so the pool does not hand the dead
+  client to the next query; a unit test pins it.
 - `@zensation/ai-sdk`: the middleware runs on every model call. In a call with tool steps, where the AI SDK calls the
   model again with the tool results, it stored the user's turn after each step; measured against 0.4.0, one tool call
   put it into memory twice. A step whose prompt has tool results after the user's last message is now a follow-up of

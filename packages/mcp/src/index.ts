@@ -62,7 +62,7 @@ export function unsupportedNodeMessage(version: string): string | null {
     `zenbrain-mcp needs Node ${MIN_NODE_LABEL} or newer (on Node 23, 23.6 or newer) — this is Node ${version}.\n` +
     `Its SQLite storage uses better-sqlite3, whose native module crashes on older\n` +
     `runtimes instead of failing cleanly. Upgrade Node, or point your MCP client at a\n` +
-    `Node ${MIN_NODE_LABEL}+ binary:\n\n` +
+    `Node ${MIN_NODE_LABEL} binary or newer (on Node 23, 23.6 or newer):\n\n` +
     `  { "command": "/path/to/node22/bin/node",\n` +
     `    "args": ["/path/to/node_modules/@zensation/mcp/dist/index.js"] }\n`
   );
