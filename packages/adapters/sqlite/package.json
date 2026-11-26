@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "@types/better-sqlite3": "^9.6.0",
-    "better-sqlite3": "^13.1.1"
+    "better-sqlite3": "^13.2.0"
   },
   "peerDependencies": {
     "@zensation/core": "^0.2.0 || ^0.3.0 || ^0.4.0 || ^0.5.0 || ^0.6.0 || ^0.7.0"
